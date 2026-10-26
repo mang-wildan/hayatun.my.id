@@ -13,7 +13,7 @@ let ctx: TestContext;
 beforeEach(async () => { ctx = await createTestContext(); });
 afterEach(() => ctx.close());
 
-const deps = (email: string | undefined = OWNER) => ({
+const deps = (email = OWNER) => ({
   config: { ...ctx.config, adminBootstrapEmail: email },
   db: ctx.db, queue: ctx.queue, crypto: ctx.crypto, now: () => ctx.clock.now,
 });
@@ -50,7 +50,7 @@ describe("bootstrapAdmin (F15.1)", () => {
   });
 
   it("ADMIN_BOOTSTRAP_EMAIL kosong: error yang menyebut nama variabelnya", async () => {
-    await expect(bootstrapAdmin(deps(undefined))).rejects.toThrow(/ADMIN_BOOTSTRAP_EMAIL/);
+    await expect(bootstrapAdmin({ ...deps(), config: { ...ctx.config, adminBootstrapEmail: undefined } })).rejects.toThrow(/ADMIN_BOOTSTRAP_EMAIL/);
     expect(await ctx.db.$count(users)).toBe(0);
   });
 
@@ -124,10 +124,9 @@ describe("POST /api/auth/accept-invite", () => {
   });
 
   it("token jenis lain atau milik akun yang bukan invited ditolak", async () => {
-    const id = await ctx.createUser({ email: "aktif@hayatun.my.id", password: PW, role: "admin" });
+    await ctx.createUser({ email: "aktif@hayatun.my.id", password: PW, role: "admin" });
     await ctx.post("/api/auth/forgot-password", { email: "aktif@hayatun.my.id" });
     const reset = tokenFrom(linkFrom((await ctx.emails())[0].text));
     expect((await accept({ token: reset, name: "X", password: PW }).expect(400)).body.code).toBe("TOKEN_INVALID");
-    await ctx.db.update(users).set({ status: "disabled" }).where(eq(users.id, id));
   });
 });

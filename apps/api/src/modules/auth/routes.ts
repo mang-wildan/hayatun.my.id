@@ -3,7 +3,7 @@ import type { AppDeps } from "../../app.js";
 import { requireUser } from "./middleware.js";
 import { clearSessionCookie, revokeSession, setSessionCookie } from "./sessions.js";
 import {
-  CHECK_EMAIL, FORGOT_MESSAGE, forgotPassword, getMe, login, loginTotp, registerBuyer, resendVerification, resetPassword,
+  CHECK_EMAIL, FORGOT_MESSAGE, acceptInvite, forgotPassword, getMe, login, loginTotp, registerBuyer, resendVerification, resetPassword,
   totpConfirm, totpDisable, totpSetup, verifyEmail,
 } from "./service.js";
 
@@ -50,6 +50,10 @@ export function authRoutes(deps: AppDeps) {
   r.post("/reset-password", async (req, res) => {
     await resetPassword(deps, req.body);
     res.json({ message: "Password-mu sudah diganti. Silakan masuk lagi ya." });
+  });
+
+  r.post("/accept-invite", async (req, res) => {
+    res.json(await acceptInvite(deps, req.body));
   });
 
   const sendLogin = (res: Response, done: Awaited<ReturnType<typeof loginTotp>>) => {
