@@ -28,7 +28,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npx vitest run packages/shared/src/schemas/auth.test.ts`
 - [x] **T03 Kerangka API: config, log tersamar, error, health, database, antrean, hak database audit** — N22, N30, F15.4 · **B**
   Selesai jika: `npm -w apps/api run db:migrate && npx vitest run apps/api/src/config.test.ts apps/api/src/logger.test.ts apps/api/src/modules/health apps/api/src/db/roles.test.ts`
-- [ ] **T04 Enkripsi field, rotasi kunci, blind index** — F12.1, N2 · **A**
+- [x] **T04 Enkripsi field, rotasi kunci, blind index** — F12.1, N2 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/crypto`
 - [ ] **T05 Password Argon2id dan daftar password umum** — N3 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/auth/password.test.ts`
