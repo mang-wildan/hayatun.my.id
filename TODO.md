@@ -61,7 +61,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npx vitest run apps/api/src/modules/storage`
 - [x] **T18 API kelola produk: berat wajib, tanpa hapus permanen, harga** — F9.1, F9.2, F9.6, F9.8, F9.9 · **B**
   Selesai jika: `npx vitest run apps/api/src/modules/products/products.test.ts`
-- [ ] **T19 Stok, kode lisensi massal, tolak duplikat, angka tersedia/ditahan/terjual** — F9.3, F9.4, F9.7 · **B**
+- [x] **T19 Stok, kode lisensi massal, tolak duplikat, angka tersedia/ditahan/terjual** — F9.3, F9.4, F9.7 · **B**
   Selesai jika: `npx vitest run apps/api/src/modules/products/stock.test.ts`
 - [ ] **T20 Email peringatan stok rendah (≤ 3)** — F9.5, F11.2 · **B**
   Selesai jika: `npx vitest run apps/api/src/modules/products/low-stock.test.ts`

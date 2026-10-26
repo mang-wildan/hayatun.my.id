@@ -29,6 +29,13 @@
       "when": 1793056616618,
       "tag": "0003_products",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793056848628,
+      "tag": "0004_license_codes",
+      "breakpoints": true
     }
   ]
 }
