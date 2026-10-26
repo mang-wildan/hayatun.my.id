@@ -38,7 +38,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npx vitest run apps/api/src/modules/auth/sessions.test.ts`
 - [x] **T08 Email lewat antrean dengan retry** — F11.4, N20 · **B**
   Selesai jika: `npx vitest run apps/api/src/modules/notifications apps/api/src/jobs`
-- [ ] **T09 Daftar dan verifikasi email** — F1.1, F1.2, F1.6, F1.7 · **A**
+- [x] **T09 Daftar dan verifikasi email** — F1.1, F1.2, F1.6, F1.7 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/auth/register.test.ts`
 - [ ] **T10 Login, logout, penguncian 5×/15 menit** — F1.8, N4 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/auth/login.test.ts`

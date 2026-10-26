@@ -17,16 +17,17 @@ export function loadSession(deps: { db: Db; now: () => Date }): RequestHandler {
   };
 }
 
-const requireRole = (role: Role) => (req: Request, _res: Response, next: NextFunction) => {
+const requireRole = (...roles: Role[]) => (req: Request, _res: Response, next: NextFunction) => {
   if (!req.session) {
     // cookie ada tapi tidak berlaku = sesi habis; tanpa cookie = belum pernah masuk
     throw req.cookies?.[SESSION_COOKIE]
       ? new HttpError(401, "Sesimu sudah habis, silakan masuk lagi ya.", "SESSION_EXPIRED")
       : new HttpError(401, "Kamu perlu masuk dulu ya.", "UNAUTHENTICATED");
   }
-  if (req.session.role !== role) throw new HttpError(403, "Kamu tidak punya akses ke halaman ini.", "FORBIDDEN");
+  if (!roles.includes(req.session.role)) throw new HttpError(403, "Kamu tidak punya akses ke halaman ini.", "FORBIDDEN");
   next();
 };
 
+export const requireUser = requireRole("buyer", "admin");
 export const requireBuyer = requireRole("buyer");
 export const requireAdmin = requireRole("admin");

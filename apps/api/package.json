@@ -21,12 +21,14 @@
     "tsx": "^4.23.15"
   },
   "dependencies": {
+    "@hayatun/shared": "^0.0.0",
     "@node-rs/argon2": "^2.2.2",
     "cookie-parser": "^1.4.7",
     "drizzle-orm": "^0.45.4",
     "express": "^5.3.0",
     "helmet": "^8.3.0",
     "nodemailer": "^10.2.1",
+    "otplib": "^13.5.0",
     "pg": "^8.23.1",
     "pg-boss": "^12.38.0",
     "pino": "^10.4.0",

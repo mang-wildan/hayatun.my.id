@@ -9,6 +9,7 @@ const appWith = (execute: () => Promise<unknown>) =>
     db: { execute } as never,
     logger: pino({ level: "silent" }),
     queue: {} as never,
+    crypto: {} as never,
     now: () => new Date(),
   });
 
