@@ -1,12 +1,12 @@
-import { emailSchema, loginSchema, registerSchema } from "@hayatun/shared";
-import { eq } from "drizzle-orm";
+import { emailSchema, loginSchema, registerSchema, resetPasswordSchema } from "@hayatun/shared";
+import { and, eq, isNull } from "drizzle-orm";
 import type { AppDeps } from "../../app.js";
-import { users } from "../../db/schema.js";
+import { authTokens, users } from "../../db/schema.js";
 import { HttpError } from "../../errors.js";
 import { enqueueEmail } from "../notifications/worker.js";
 import { isLocked, recordAttempt } from "./lockout.js";
 import { hashPassword, isCommonPassword, verifyPassword } from "./password.js";
-import { createSession } from "./sessions.js";
+import { createSession, revokeUserSessions } from "./sessions.js";
 import { consumeToken, issueToken, type ConsumeResult } from "./tokens.js";
 
 type Deps = Pick<AppDeps, "config" | "db" | "queue" | "crypto" | "now">;
@@ -147,4 +147,44 @@ export async function login(deps: Deps, input: unknown): Promise<LoginResult> {
     return { next: u.totpEnabled ? "totp" : "totp_setup", challenge };
   }
   return { next: "done", ...(await finishLogin(deps, u)) };
+}
+
+export const FORGOT_MESSAGE = "Kalau emailnya terdaftar, kami sudah kirim tautan untuk atur ulang password.";
+
+const RESET_MESSAGES = {
+  dead: "Tautannya tidak berlaku lagi. Minta tautan atur ulang password yang baru ya.",
+  used: "Tautannya sudah dipakai. Minta tautan atur ulang password yang baru kalau masih perlu.",
+};
+
+// F1.3: jawaban selalu sama; tautan hanya untuk akun aktif yang sudah punya password
+export async function forgotPassword(deps: Deps, input: unknown): Promise<void> {
+  const email = emailSchema.parse((input as { email?: unknown } | undefined)?.email);
+  const u = await findUserByEmail(deps, email);
+  if (!u || u.status !== "active" || !u.passwordHash) return;
+  const token = await issueToken(deps.db, "reset_password", u.id, deps.now());
+  const name = u.nameEnc ? deps.crypto.decrypt(u.nameEnc) : undefined;
+  await enqueueEmail(deps.queue, deps.crypto, "reset_password", email, { name, link: `${deps.config.appUrl}/reset-password?token=${token}` });
+}
+
+export async function resetPassword(deps: Deps, input: unknown): Promise<void> {
+  const body = resetPasswordSchema.parse(input);
+  assertNotCommon(body.password); // sebelum memakai token, supaya tautannya tetap bisa dipakai lagi
+  const now = deps.now();
+  const result = await consumeToken(deps.db, "reset_password", body.token, now);
+  if ("error" in result) throw tokenError(result, RESET_MESSAGES);
+  const [u] = await deps.db.select().from(users).where(eq(users.id, result.userId));
+  if (u?.status !== "active") throw tokenError({ error: "invalid" }, RESET_MESSAGES);
+
+  await deps.db
+    .update(users)
+    .set({ passwordHash: await hashPassword(body.password), emailVerifiedAt: u.emailVerifiedAt ?? now })
+    .where(eq(users.id, u.id));
+  await revokeUserSessions(deps.db, u.id);
+  // tautan reset lain yang masih aktif tidak boleh dipakai lagi
+  await deps.db
+    .update(authTokens)
+    .set({ usedAt: now })
+    .where(and(eq(authTokens.userId, u.id), eq(authTokens.type, "reset_password"), isNull(authTokens.usedAt)));
+  // pemilik email terbukti; buka penguncian login
+  await recordAttempt(deps.db, u.emailIndex, true, now);
 }
