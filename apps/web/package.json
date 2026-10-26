@@ -7,7 +7,7 @@
     "dev": "next dev -H 127.0.0.1 -p 3000",
     "build": "next build",
     "start": "next start -H 127.0.0.1 -p 3000",
-    "typecheck": "tsc -p .",
+    "typecheck": "tsc -p . && tsc -p e2e",
     "test:e2e": "playwright test"
   },
   "devDependencies": {
