@@ -44,7 +44,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npx vitest run apps/api/src/modules/auth/login.test.ts`
 - [x] **T11 Lupa dan reset password** — F1.3, F1.7 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/auth/reset.test.ts`
-- [ ] **T12 TOTP: opsional pembeli, wajib admin** — F1.4, F15.2 · **A**
+- [x] **T12 TOTP: opsional pembeli, wajib admin** — F1.4, F15.2 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/auth/totp.test.ts`
 - [ ] **T13 Admin pertama lewat undangan** — F15.1 · **B**
   Selesai jika: `npx vitest run apps/api/src/scripts/bootstrap-admin.test.ts`
@@ -133,7 +133,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npm run test:e2e -- legal`
 - [ ] **T48 Pengaturan toko dan rekening, email ke semua admin saat rekening berubah** — F13.3, F15.7, N32 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/settings && npm run test:e2e -- admin-settings`
-- [ ] **T49 Undang dan nonaktifkan admin, sesi dicabut ≤ 1 menit, admin terakhir tidak bisa menonaktifkan diri** — F15.1, F15.5, F15.6 · **A**
+- [ ] **T49 Undang dan nonaktifkan admin, sesi dicabut ≤ 1 menit, admin terakhir tidak bisa menonaktifkan diri, admin bisa mematikan TOTP pembeli yang kehilangan HP (dicatat di log aktivitas)** — F15.1, F15.5, F15.6 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/admins`
 - [ ] **T50 Log aktivitas lengkap untuk semua aksi admin dan pembukaan data pribadi, plus halaman log** — F15.3, F15.4, N28 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/audit && npm run test:e2e -- admin-audit`

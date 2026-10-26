@@ -1,4 +1,4 @@
-import { bigserial, boolean, index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { bigint, bigserial, boolean, index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 
@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   emailVerifiedAt: ts("email_verified_at"),
   totpSecretEnc: text("totp_secret_enc"),
   totpEnabled: boolean("totp_enabled").notNull().default(false),
+  totpLastStep: bigint("totp_last_step", { mode: "number" }), // langkah waktu kode terakhir yang diterima, agar kode tidak dipakai ulang
   deletedAt: ts("deleted_at"),
   createdAt: ts("created_at").notNull().defaultNow(),
 });
