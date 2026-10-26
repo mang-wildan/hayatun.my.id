@@ -30,6 +30,12 @@ const envSchema = z.object({
   SMTP_PASSWORD: z.string(),
   EMAIL_FROM: z.string().min(1),
   ADMIN_BOOTSTRAP_EMAIL: z.string().optional(),
+  STORAGE_DIR: z.string().min(1),
+  STORAGE_INTERNAL_PREFIX: z
+    .string()
+    .optional()
+    .transform((v) => v || undefined)
+    .refine((v) => v === undefined || v.startsWith("/"), "harus diawali /"),
 });
 
 // format DATA_ENCRYPTION_KEYS: "k1:<base64 32 byte>,k2:<base64 32 byte>"
@@ -73,6 +79,7 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
     smtp: { host: e.SMTP_HOST, port: e.SMTP_PORT, user: e.SMTP_USER, password: e.SMTP_PASSWORD },
     emailFrom: e.EMAIL_FROM,
     adminBootstrapEmail: e.ADMIN_BOOTSTRAP_EMAIL,
+    storage: { dir: e.STORAGE_DIR, internalPrefix: e.STORAGE_INTERNAL_PREFIX },
     secureCookies: e.NODE_ENV === "production",
   };
 }
