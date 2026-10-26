@@ -32,7 +32,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npx vitest run apps/api/src/modules/crypto`
 - [ ] **T05 Password Argon2id dan daftar password umum** — N3 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/auth/password.test.ts`
-- [ ] **T06 Token sekali pakai dan log aktivitas dasar** — F1.3, F1.7, F15.3 · **A**
+- [x] **T06 Token sekali pakai dan log aktivitas dasar** — F1.3, F1.7, F15.3 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/auth/tokens.test.ts apps/api/src/modules/audit`
 - [ ] **T07 Sesi server, diam 30 menit untuk admin, pemeriksa akses** — N4, N6, F15.5 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/auth/sessions.test.ts`
