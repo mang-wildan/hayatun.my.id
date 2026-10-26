@@ -92,6 +92,12 @@ describe("email saat stok turun ke ambang 3 (F9.5, F11.2)", () => {
     expect(await lowStockMails()).toHaveLength(2);
   });
 
+  it("menaikkan stok yang masih rendah (dan belum pernah dikabari) tidak mengirim apa pun", async () => {
+    const p = await makeProduct(ctx, admin, { ...PHYSICAL, stockQty: 2 });
+    await setStock(p.id, 3);
+    expect(await lowStockMails()).toHaveLength(0);
+  });
+
   it("stok tersedia dihitung setelah dikurangi yang ditahan", async () => {
     const p = await makeProduct(ctx, admin, PHYSICAL);
     await ctx.db.execute(sql`update products set stock_reserved = 6 where id = ${p.id}`);

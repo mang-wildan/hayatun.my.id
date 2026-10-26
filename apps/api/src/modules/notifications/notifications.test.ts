@@ -9,16 +9,18 @@ import { renderEmail, type EmailTemplate } from "./templates.js";
 import { enqueueEmail, registerEmailWorker } from "./worker.js";
 
 const LINK = "https://hayatun.my.id/verifikasi-email?token=TOKEN-RAHASIA-123";
-const SUBJECTS: Record<EmailTemplate, string> = {
+// low_stock punya data sendiri dan dites di modules/products/low-stock.test.ts
+type Tpl = Exclude<EmailTemplate, "low_stock">;
+const SUBJECTS: Record<Tpl, string> = {
   verify_email: "Verifikasi email akun Hayatun-mu",
   email_already_registered: "Ada yang mencoba daftar dengan emailmu",
   reset_password: "Atur ulang password Hayatun-mu",
   login_locked: "Ada percobaan masuk ke akun Hayatun-mu",
   admin_invite: "Undangan jadi admin Hayatun",
 };
-const TEMPLATES = Object.keys(SUBJECTS) as EmailTemplate[];
-const NEEDS_LINK: EmailTemplate[] = ["verify_email", "reset_password", "admin_invite"];
-const data = (t: EmailTemplate) => ({ name: "Budi", ...(NEEDS_LINK.includes(t) ? { link: LINK } : {}) });
+const TEMPLATES = Object.keys(SUBJECTS) as Tpl[];
+const NEEDS_LINK: Tpl[] = ["verify_email", "reset_password", "admin_invite"];
+const data = (t: Tpl) => ({ name: "Budi", ...(NEEDS_LINK.includes(t) ? { link: LINK } : {}) });
 
 describe("renderEmail", () => {
   it.each(TEMPLATES)("%s: subjek tetap, teks dan HTML terisi, tanpa emoji", (t) => {

@@ -76,6 +76,7 @@ export const products = pgTable("products", {
   isLicensed: boolean("is_licensed").notNull().default(false),
   coverKey: text("cover_key"),
   coverUpdatedAt: ts("cover_updated_at"),
+  lowStockNotified: boolean("low_stock_notified").notNull().default(false), // admin sudah dikabari untuk penurunan ini (F9.5)
   active: boolean("active").notNull().default(false),
   createdAt: ts("created_at").notNull().defaultNow(),
   updatedAt: ts("updated_at").notNull().defaultNow(),
