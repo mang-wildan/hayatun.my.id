@@ -1,10 +1,12 @@
-import { emailSchema, registerSchema } from "@hayatun/shared";
+import { emailSchema, loginSchema, registerSchema } from "@hayatun/shared";
 import { eq } from "drizzle-orm";
 import type { AppDeps } from "../../app.js";
 import { users } from "../../db/schema.js";
 import { HttpError } from "../../errors.js";
 import { enqueueEmail } from "../notifications/worker.js";
-import { hashPassword, isCommonPassword } from "./password.js";
+import { isLocked, recordAttempt } from "./lockout.js";
+import { hashPassword, isCommonPassword, verifyPassword } from "./password.js";
+import { createSession } from "./sessions.js";
 import { consumeToken, issueToken, type ConsumeResult } from "./tokens.js";
 
 type Deps = Pick<AppDeps, "config" | "db" | "queue" | "crypto" | "now">;
@@ -98,4 +100,51 @@ export async function resendVerification(deps: Deps, input: unknown): Promise<vo
 export async function getMe(deps: Deps, userId: string) {
   const [u] = await deps.db.select().from(users).where(eq(users.id, userId));
   return publicUser(deps, u);
+}
+
+const BAD_CREDENTIALS = () => new HttpError(401, "Email atau password-nya belum cocok.", "BAD_CREDENTIALS");
+export const LOCKED = () => new HttpError(429, "Terlalu banyak percobaan masuk. Coba lagi 15 menit lagi ya.", "LOCKED");
+
+// dipakai saat email tidak dikenal, supaya waktu jawabnya sama dengan password salah
+let dummyHash: Promise<string> | undefined;
+const getDummyHash = () => (dummyHash ??= hashPassword("bukan-password-siapa-pun"));
+
+export async function recordFailure(deps: Deps, emailIndex: string, u: User | undefined, email: string) {
+  const { justLocked } = await recordAttempt(deps.db, emailIndex, false, deps.now());
+  if (justLocked && u?.status === "active") {
+    const name = u.nameEnc ? deps.crypto.decrypt(u.nameEnc) : undefined;
+    await enqueueEmail(deps.queue, deps.crypto, "login_locked", email, { name });
+  }
+}
+
+// Login sukses baru dicatat saat sesi dibuat. Bila dicatat saat password benar, penyerang yang tahu password
+// bisa mengatur ulang hitungan gagal dan menebak kode TOTP tanpa batas.
+export async function finishLogin(deps: Deps, u: User) {
+  await recordAttempt(deps.db, u.emailIndex, true, deps.now());
+  const session = await createSession(deps.db, { id: u.id, role: u.role }, deps.now());
+  return { session, user: publicUser(deps, u) };
+}
+
+export type LoginResult =
+  | { next: "done"; session: { token: string; expiresAt: Date }; user: ReturnType<typeof publicUser> }
+  | { next: "totp" | "totp_setup"; challenge: string };
+
+export async function login(deps: Deps, input: unknown): Promise<LoginResult> {
+  const body = loginSchema.parse(input);
+  const emailIndex = deps.crypto.blindIndex(body.email);
+  if (await isLocked(deps.db, emailIndex, deps.now())) throw LOCKED();
+
+  const u = await findUserByEmail(deps, body.email);
+  const passwordOk = await verifyPassword(u?.passwordHash ?? (await getDummyHash()), body.password);
+  if (!u || !u.passwordHash || !passwordOk || u.status !== "active") {
+    await recordFailure(deps, emailIndex, u, body.email);
+    throw BAD_CREDENTIALS();
+  }
+
+  // F15.2: admin tidak pernah mendapat sesi tanpa TOTP; F1.4: pembeli dengan TOTP aktif diminta kode
+  if (u.totpEnabled || u.role === "admin") {
+    const challenge = await issueToken(deps.db, "mfa_challenge", u.id, deps.now());
+    return { next: u.totpEnabled ? "totp" : "totp_setup", challenge };
+  }
+  return { next: "done", ...(await finishLogin(deps, u)) };
 }
