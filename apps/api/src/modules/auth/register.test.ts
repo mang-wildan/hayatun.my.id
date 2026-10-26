@@ -50,12 +50,20 @@ describe("POST /api/auth/register (F1.1, F1.2)", () => {
   });
 
   it("waktu jawab email terdaftar tidak jauh lebih cepat (tidak membocorkan keberadaan akun)", async () => {
-    let t = Date.now();
-    await register(valid).expect(202);
-    const fresh = Date.now() - t;
-    t = Date.now();
-    await register(valid).expect(202);
-    expect(Date.now() - t).toBeGreaterThanOrEqual(fresh * 0.5);
+    // waktu satu permintaan berisik (lonjakan acak 100+ ms), jadi bandingkan nilai terkecil dari 3 kali ukur
+    const fastest = async (emailFor: (i: number) => string) => {
+      let min = Infinity;
+      for (let i = 0; i < 3; i++) {
+        const t = performance.now();
+        await register({ ...valid, email: emailFor(i) }).expect(202);
+        min = Math.min(min, performance.now() - t);
+      }
+      return min;
+    };
+    await register({ ...valid, email: "pemanasan@mail.com" }).expect(202);
+    const fresh = await fastest((i) => `baru${i}@mail.com`);
+    const existing = await fastest((i) => `baru${i}@mail.com`);
+    expect(existing).toBeGreaterThanOrEqual(fresh * 0.5);
   });
 
   it("menolak password umum (N3)", async () => {

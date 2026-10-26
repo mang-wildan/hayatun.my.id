@@ -41,7 +41,7 @@
 | R4 | `users.status` ditambah nilai `invited` (selain `active`, `disabled`, `deleted`). | Admin yang diundang belum punya password. |
 | R5 | Nama maksimal 100 karakter. Email maksimal 254 karakter. | Batas wajar dan standar panjang email. |
 | R6 | Format `DATA_ENCRYPTION_KEYS`: `k1:<base64 32 byte>,k2:<base64 32 byte>`. | Mendukung rotasi kunci (ARCHITECTURE K5). |
-| R7 | Daftar password umum: 10.000 password teratas dari SecLists (lisensi MIT), disimpan sebagai file teks di repo. | SPEC N3, tanpa mengirim password ke layanan luar. |
+| R7 | Daftar password umum: daftar NCSC 100.000 dari SecLists (lisensi MIT), disaring ke 46.521 entri berukuran 8–128 karakter, disimpan sebagai file teks di repo. | SPEC N3, tanpa mengirim password ke layanan luar. Daftar 10.000 hanya punya 2.089 entri ≥ 8 karakter, sehingga `password123` lolos. |
 | R9 | Sesi admin juga punya batas mutlak **12 jam** sejak login, selain aturan diam 30 menit. | Supaya admin yang terus aktif tetap login ulang setiap hari. |
 | R8 | `apps/web` memakai `rewrites` `/api/:path*` → `API_INTERNAL_URL` untuk pengembangan dan tes end-to-end. Di produksi Nginx yang meneruskan `/api/*`. | Satu domain di semua lingkungan tanpa CORS. |
 
