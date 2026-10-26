@@ -23,6 +23,7 @@ const validEnv = (over: Record<string, string> = {}): NodeJS.ProcessEnv => ({
   SMTP_USER: "u",
   SMTP_PASSWORD: "p",
   EMAIL_FROM: "toko@hayatun.my.id",
+  STORAGE_DIR: "/srv/hayatun/files",
   ...over,
 });
 
@@ -50,5 +51,11 @@ describe("loadConfig", () => {
   it("cookie Secure aktif kecuali test dan development", () => {
     expect(loadConfig(validEnv({ NODE_ENV: "production" })).secureCookies).toBe(true);
     expect(loadConfig(validEnv({ NODE_ENV: "test" })).secureCookies).toBe(false);
+  });
+  it("membaca lokasi penyimpanan; prefix internal Nginx opsional dan harus diawali /", () => {
+    expect(loadConfig(validEnv()).storage).toEqual({ dir: "/srv/hayatun/files", internalPrefix: undefined });
+    expect(loadConfig(validEnv({ STORAGE_INTERNAL_PREFIX: "/_files" })).storage.internalPrefix).toBe("/_files");
+    expect(() => loadConfig(validEnv({ STORAGE_DIR: "" }))).toThrow(/STORAGE_DIR/);
+    expect(() => loadConfig(validEnv({ STORAGE_INTERNAL_PREFIX: "_files" }))).toThrow(/STORAGE_INTERNAL_PREFIX/);
   });
 });
