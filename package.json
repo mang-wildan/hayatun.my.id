@@ -11,7 +11,9 @@
   },
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "npm -w apps/web run test:e2e --",
+    "build": "npm run build --workspaces --if-present"
   },
   "devDependencies": {
     "typescript": "^6.0.3",

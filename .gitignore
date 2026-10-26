@@ -6,3 +6,9 @@ coverage
 test-results
 playwright-report
 .superpowers
+.next
+next-env.d.ts
+test-results
+playwright-report
+tsconfig.tsbuildinfo
+*.tsbuildinfo
