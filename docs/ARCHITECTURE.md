@@ -14,7 +14,7 @@ Pemilik memilih **Opsi B**: satu repo, Next.js dan Express sebagai dua proses di
                         │
               ┌─────────▼──────────┐
               │ Nginx (aaPanel)    │  TLS, header keamanan, batas ukuran unggah,
-              │ hayatun.id         │  batas laju, file statis
+              │ hayatun.my.id      │  batas laju, file statis
               └──┬─────────────┬───┘
      /api/*      │             │      semua path lain
         ┌────────▼───┐     ┌───▼──────────┐

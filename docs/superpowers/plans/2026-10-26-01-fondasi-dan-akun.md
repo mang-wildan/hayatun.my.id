@@ -524,11 +524,11 @@ git add apps/api/src/modules/auth/sessions* apps/api/src/modules/auth/middleware
 - [ ] **Step 1: Tulis tes yang gagal**
 
 ```ts
-await enqueueEmail(queue, crypto, "verify_email", "budi@mail.com", { name: "Budi", link: "https://hayatun.id/verifikasi-email?token=abc" });
+await enqueueEmail(queue, crypto, "verify_email", "budi@mail.com", { name: "Budi", link: "https://hayatun.my.id/verifikasi-email?token=abc" });
 expect(JSON.stringify(queue.jobs[0].data)).not.toContain("budi@mail.com");
 await queue.runAll();
 expect(mailer.sent[0]).toMatchObject({ to: "budi@mail.com", subject: "Verifikasi email akun Hayatun-mu" });
-expect(mailer.sent[0].text).toContain("https://hayatun.id/verifikasi-email?token=abc");
+expect(mailer.sent[0].text).toContain("https://hayatun.my.id/verifikasi-email?token=abc");
 expect(renderEmail("reset_password", { name: "Budi", link: "L" }).text).toContain("berlaku 60 menit");
 expect(renderEmail("login_locked", { name: "Budi" }).subject).toBe("Ada percobaan masuk ke akun Hayatun-mu");
 for (const t of ALL_TEMPLATES) expect(renderEmail(t, sample[t]).text).not.toMatch(/[\u{1F300}-\u{1FAFF}]/u); // tanpa emoji
@@ -838,12 +838,12 @@ git add apps/api/src apps/api/drizzle && git commit -m "feat(api): TOTP two-step
 - [ ] **Step 1: Tulis tes yang gagal**
 
 ```ts
-expect(await bootstrapAdmin({ ...deps, config: { ...config, adminBootstrapEmail: "pemilik@hayatun.id" } })).toBe("invited");
+expect(await bootstrapAdmin({ ...deps, config: { ...config, adminBootstrapEmail: "pemilik@hayatun.my.id" } })).toBe("invited");
 expect(await bootstrapAdmin(deps)).toBe("admin_exists");                    // hanya sekali
 await queue.runAll();
 expect(mailer.sent[0].subject).toBe("Undangan jadi admin Hayatun");
 const tok = tokenFrom(extractLink(mailer.sent[0].text));                   // .../admin/undangan?token=
-await loginAs("pemilik@hayatun.id", "apa-saja-123").expect(401);           // status invited belum bisa login
+await loginAs("pemilik@hayatun.my.id", "apa-saja-123").expect(401);           // status invited belum bisa login
 const r = await post("/api/auth/accept-invite", { token: tok, name: "Pemilik", password: "admin-hayatun-2026" }).expect(200);
 expect(r.body.next).toBe("totp_setup");
 expect((await db.select().from(auditLogs)).map(a => a.action)).toEqual(["admin.bootstrap", "admin.invite_accepted"]);

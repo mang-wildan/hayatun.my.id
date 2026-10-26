@@ -153,19 +153,19 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
 - [ ] **T56 Pengamanan server: aaPanel, SSH, firewalld, SELinux, pengguna `hayatun`, PostgreSQL lokal** — N7, N34 · **A**
   Selesai jika: `sudo ops/check-server.sh` (di server)
 - [ ] **T57 Nginx: TLS 1.2+, HSTS, rute `/api`, lokasi internal file, batas unggah, log tanpa query string** — N1, N5, N30 · **A**
-  Selesai jika: `sudo nginx -t && ops/check-edge.sh https://hayatun.id`
+  Selesai jika: `sudo nginx -t && ops/check-edge.sh https://hayatun.my.id`
 - [ ] **T58 PM2, skrip deploy dengan health check dan rollback** — N22, N36 · **B**
-  Selesai jika: `ops/deploy.sh --dry-run && curl -fsS https://hayatun.id/api/health`
+  Selesai jika: `ops/deploy.sh --dry-run && curl -fsS https://hayatun.my.id/api/health`
 - [ ] **T59 Cadangan harian terenkripsi ke luar server, simpan 30 hari, uji pulih** — N23, N29 · **A**
   Selesai jika: `ops/restore-test.sh` (pulih ke server kosong, lalu `/api/health` OK, dalam ≤ 8 jam)
 - [ ] **T60 Logrotate 90 hari, pemantau uptime, peringatan tugas gagal, disk, dan TLS** — N22, N25, N30 · **B**
   Selesai jika: `sudo logrotate -d /etc/logrotate.d/hayatun && ops/check-alerts.sh`
 - [ ] **T61 Pemindaian OWASP ZAP baseline dan audit dependensi bersih** — N7, N34 · **A**
-  Selesai jika: `ops/zap-baseline.sh https://staging.hayatun.id && npm audit --audit-level=high`
+  Selesai jika: `ops/zap-baseline.sh https://staging.hayatun.my.id && npm audit --audit-level=high`
 - [ ] **T62 Panduan operasi: pasang ulang, pulihkan cadangan, ganti kunci enkripsi** — N35 · **A**
   Selesai jika: `npx vitest run apps/api/src/scripts/rotate-keys.test.ts && ops/restore-test.sh --from-docs`
 - [ ] **T63 Migrasi server ke AlmaLinux 9 atau Rocky Linux 9 sebelum 31 Mei 2027** (ARCHITECTURE K10) — N34 · **A**
-  Selesai jika: `grep -Eq 'AlmaLinux|Rocky' /etc/os-release && ops/check-server.sh && curl -fsS https://hayatun.id/api/health`
+  Selesai jika: `grep -Eq 'AlmaLinux|Rocky' /etc/os-release && ops/check-server.sh && curl -fsS https://hayatun.my.id/api/health`
 
 ## Fase 8 — Payment gateway (tahap 2)
 
