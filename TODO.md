@@ -22,9 +22,9 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
 
 ## Fase 1 — Fondasi dan akun
 
-- [ ] **T01 Monorepo dan formatter Rupiah/WIB** — N33 · **C**
+- [x] **T01 Monorepo dan formatter Rupiah/WIB** — N33 · **C**
   Selesai jika: `npx vitest run --project shared && npm run typecheck`
-- [ ] **T02 Skema validasi akun dengan pesan santai** — F1, N3, N10 · **C**
+- [x] **T02 Skema validasi akun dengan pesan santai** — F1, N3, N10 · **C**
   Selesai jika: `npx vitest run packages/shared/src/schemas/auth.test.ts`
 - [ ] **T03 Kerangka API: config, log tersamar, error, health, database, antrean, hak database audit** — N22, N30, F15.4 · **B**
   Selesai jika: `npm -w apps/api run db:migrate && npx vitest run apps/api/src/config.test.ts apps/api/src/logger.test.ts apps/api/src/modules/health apps/api/src/db/roles.test.ts`
