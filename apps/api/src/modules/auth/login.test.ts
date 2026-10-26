@@ -47,12 +47,20 @@ describe("POST /api/auth/login", () => {
   });
 
   it("waktu jawab email tak dikenal tidak jauh lebih cepat dari password salah", async () => {
-    let t = Date.now();
-    await login("budi@mail.com", "salah-salah-1").expect(401);
-    const known = Date.now() - t;
-    t = Date.now();
-    await login("tidakada@mail.com", "salah-salah-1").expect(401);
-    expect(Date.now() - t).toBeGreaterThanOrEqual(known * 0.5);
+    // waktu satu permintaan berisik, jadi bandingkan nilai terkecil dari 3 kali ukur (3 gagal belum mengunci)
+    const fastest = async (emailFor: (i: number) => string) => {
+      let min = Infinity;
+      for (let i = 0; i < 3; i++) {
+        const t = performance.now();
+        await login(emailFor(i), "salah-salah-1").expect(401);
+        min = Math.min(min, performance.now() - t);
+      }
+      return min;
+    };
+    await login("pemanasan@mail.com", "salah-salah-1").expect(401);
+    const known = await fastest(() => "budi@mail.com");
+    const unknown = await fastest((i) => `tidakada${i}@mail.com`);
+    expect(unknown).toBeGreaterThanOrEqual(known * 0.5);
   });
 
   it("admin tanpa TOTP: wajib memasang TOTP, belum ada sesi (F15.2)", async () => {

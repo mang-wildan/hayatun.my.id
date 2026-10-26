@@ -1,7 +1,8 @@
 import { Router } from "express";
 import type { AppDeps } from "../../app.js";
 import { requireUser } from "./middleware.js";
-import { CHECK_EMAIL, getMe, registerBuyer, resendVerification, verifyEmail } from "./service.js";
+import { clearSessionCookie, revokeSession, setSessionCookie } from "./sessions.js";
+import { CHECK_EMAIL, getMe, login, registerBuyer, resendVerification, verifyEmail } from "./service.js";
 
 export function authRoutes(deps: AppDeps) {
   const r = Router();
@@ -23,6 +24,19 @@ export function authRoutes(deps: AppDeps) {
 
   r.get("/me", requireUser, async (req, res) => {
     res.json(await getMe(deps, req.session!.userId));
+  });
+
+  r.post("/login", async (req, res) => {
+    const result = await login(deps, req.body);
+    if (result.next !== "done") return void res.json(result);
+    setSessionCookie(res, result.session.token, result.session.expiresAt, deps.config.secureCookies);
+    res.json({ next: "done", user: result.user });
+  });
+
+  r.post("/logout", async (req, res) => {
+    if (req.session) await revokeSession(deps.db, req.session.sessionId);
+    clearSessionCookie(res);
+    res.status(204).end();
   });
 
   return r;
