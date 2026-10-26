@@ -10,7 +10,7 @@
     "node": ">=24"
   },
   "scripts": {
-    "typecheck": "tsc -b",
+    "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "vitest run"
   },
   "devDependencies": {
