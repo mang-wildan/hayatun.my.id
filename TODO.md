@@ -65,7 +65,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npx vitest run apps/api/src/modules/products/stock.test.ts`
 - [x] **T20 Email peringatan stok rendah (≤ 3)** — F9.5, F11.2 · **B**
   Selesai jika: `npx vitest run apps/api/src/modules/products/low-stock.test.ts`
-- [ ] **T21 API katalog publik dan status Habis** — F2.1, F2.2, F2.3 · **B**
+- [x] **T21 API katalog publik dan status Habis** — F2.1, F2.2, F2.3 · **B**
   Selesai jika: `npx vitest run apps/api/src/modules/catalog`
 - [ ] **T22 Halaman admin produk: formulir, sampul, file, kode lisensi** — F9, N15 · **B**
   Selesai jika: `npm run test:e2e -- admin-products`
