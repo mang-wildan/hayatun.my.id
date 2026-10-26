@@ -1,3 +1,4 @@
+import pino from "pino";
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../app.js";
@@ -6,7 +7,7 @@ const appWith = (execute: () => Promise<unknown>) =>
   createApp({
     config: { secureCookies: false } as never,
     db: { execute } as never,
-    logger: { info() {}, error() {}, warn() {}, debug() {}, trace() {}, fatal() {}, child() { return this; }, level: "silent" } as never,
+    logger: pino({ level: "silent" }),
     queue: {} as never,
     now: () => new Date(),
   });
