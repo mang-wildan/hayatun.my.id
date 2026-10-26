@@ -30,6 +30,7 @@ const envSchema = z.object({
   SMTP_PASSWORD: z.string(),
   EMAIL_FROM: z.string().min(1),
   ADMIN_BOOTSTRAP_EMAIL: z.string().optional(),
+  PRODUCT_FILE_MAX_MB: z.coerce.number().positive().default(500), // pertanyaan terbuka SPEC 6
   STORAGE_DIR: z.string().min(1),
   STORAGE_INTERNAL_PREFIX: z
     .string()
@@ -80,6 +81,7 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
     emailFrom: e.EMAIL_FROM,
     adminBootstrapEmail: e.ADMIN_BOOTSTRAP_EMAIL,
     storage: { dir: e.STORAGE_DIR, internalPrefix: e.STORAGE_INTERNAL_PREFIX },
+    productFileMaxBytes: Math.round(e.PRODUCT_FILE_MAX_MB * 1024 * 1024),
     secureCookies: e.NODE_ENV === "production",
   };
 }
