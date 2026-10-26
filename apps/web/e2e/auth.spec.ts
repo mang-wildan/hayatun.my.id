@@ -47,7 +47,7 @@ test("password salah: pesan jelas, kolom tetap terisi", async ({ page }) => {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill("salah-salah-1");
   await page.getByRole("button", { name: "Masuk" }).click();
-  await expect(page.getByRole("alert")).toHaveText("Email atau password-nya belum cocok.");
+  await expect(page.getByRole("alert").filter({ hasText: "Email atau password-nya belum cocok." })).toBeVisible();
   await expect(page.getByLabel("Email")).toHaveValue(email);
 });
 
@@ -83,7 +83,7 @@ test("tautan reset yang sudah dipakai ditolak dengan pesan jelas", async ({ page
   await page.goto(link);
   await page.getByLabel("Password baru").fill("lain-lagi-2026");
   await page.getByRole("button", { name: "Ganti password" }).click();
-  await expect(page.getByRole("alert")).toContainText("Tautannya sudah dipakai");
+  await expect(page.getByRole("alert").filter({ hasText: "Tautannya sudah dipakai" })).toBeVisible();
 });
 
 test("tombol tidak bisa ditekan dua kali saat memproses", async ({ page }) => {
@@ -122,6 +122,7 @@ test("verifikasi dua langkah pembeli: aktifkan, keluar, lalu masuk dengan kode",
   await expect(page.getByText("Verifikasi dua langkah sudah aktif.")).toBeVisible();
 
   await page.getByRole("button", { name: "Keluar" }).click();
+  await expect(page.getByRole("link", { name: "Masuk" })).toBeVisible(); // keluar selesai
   await page.goto("/masuk");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PW);
@@ -130,7 +131,7 @@ test("verifikasi dua langkah pembeli: aktifkan, keluar, lalu masuk dengan kode",
   expect(page.url()).not.toMatch(/challenge/); // challenge tidak boleh ada di URL
   await page.getByLabel("Kode 6 angka").fill("000000");
   await page.getByRole("button", { name: "Masuk" }).click();
-  await expect(page.getByRole("alert")).toHaveText("Kodenya belum cocok. Coba kode terbaru di aplikasi authenticator-mu.");
+  await expect(page.getByRole("alert").filter({ hasText: "Kodenya belum cocok. Coba kode terbaru di aplikasi authenticator-mu." })).toBeVisible();
   await page.getByLabel("Kode 6 angka").fill(totpNow(secret, 30)); // kode yang sama dengan saat mengaktifkan tidak boleh dipakai lagi
   await page.getByRole("button", { name: "Masuk" }).click();
   await expect(page.getByRole("link", { name: "Akun" })).toBeVisible();

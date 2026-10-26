@@ -63,3 +63,13 @@ export async function createVerifiedBuyer(email: string, password: string, name 
   expectOk(await post("/api/auth/verify-email", { token: new URL(linkFrom(mail.text)).searchParams.get("token") }));
 }
 function expectOk(res: Response) { if (!res.ok) throw new Error(`Permintaan gagal: ${res.status}`); }
+
+// Menghapus semua admin beserta sesinya, supaya tes undangan tidak bergantung pada tes lain yang membuat admin.
+export async function resetAdmins() {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  const admins = "(select id from users where role = 'admin')";
+  await pool.query(`delete from sessions where user_id in ${admins}`);
+  await pool.query(`delete from auth_tokens where user_id in ${admins}`);
+  await pool.query(`delete from users where role = 'admin'`);
+  await pool.end();
+}

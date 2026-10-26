@@ -50,7 +50,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npx vitest run apps/api/src/scripts/bootstrap-admin.test.ts`
 - [x] **T14 Token desain, bar atas toko, kerangka admin** — N11, N12, N13, N16 · **B**
   Selesai jika: `npm run test:e2e -- a11y session`
-- [ ] **T15 Halaman daftar, masuk, kode, reset, keamanan, undangan admin** — F1, N14, N15 · **B**
+- [x] **T15 Halaman daftar, masuk, kode, reset, keamanan, undangan admin** — F1, N14, N15 · **B**
   Selesai jika: `npm run test:e2e -- auth admin`
 - [ ] **T16 CI dan Dependabot** — N33, N34 · **C**
   Selesai jika: `npm run lint && npm run typecheck && npm test && npm run build && npm run test:e2e && npm audit --audit-level=high`

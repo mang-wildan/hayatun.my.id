@@ -1,8 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { latestEmailTo, linkFrom, runBootstrap, totpNow } from "./helpers";
+import { latestEmailTo, linkFrom, resetAdmins, runBootstrap, totpNow } from "./helpers";
 
 const OWNER = "pemilik@hayatun.test";
 const PW = "admin-hayatun-2026";
+
+// tes ini berurutan (tes kedua memakai undangan tes pertama), dan tidak boleh terpengaruh admin dari tes lain
+test.describe.configure({ mode: "serial" });
+test.beforeAll(resetAdmins);
 
 test("undangan admin: buat password, pasang TOTP, masuk panel, keluar, lalu masuk dengan kode", async ({ page }) => {
   runBootstrap(OWNER);
@@ -20,6 +24,7 @@ test("undangan admin: buat password, pasang TOTP, masuk panel, keluar, lalu masu
   await expect(page.getByRole("navigation", { name: "Menu admin" })).toBeVisible();
 
   await page.getByRole("button", { name: "Keluar" }).click();
+  await expect(page).toHaveURL(/127\.0\.0\.1:3000\/$/); // keluar selesai
   await page.goto("/masuk");
   await page.getByLabel("Email").fill(OWNER);
   await page.getByLabel("Password").fill(PW);
@@ -36,5 +41,5 @@ test("undangan yang sudah dipakai ditolak dengan pesan jelas", async ({ page }) 
   await page.getByLabel("Nama").fill("Pemilik");
   await page.getByLabel("Password").fill(PW);
   await page.getByRole("button", { name: "Simpan dan lanjut" }).click();
-  await expect(page.getByRole("alert")).toHaveText("Undangannya sudah dipakai. Silakan masuk.");
+  await expect(page.getByRole("alert").filter({ hasText: "Undangannya sudah dipakai. Silakan masuk." })).toBeVisible();
 });

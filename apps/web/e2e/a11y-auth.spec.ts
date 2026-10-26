@@ -34,7 +34,7 @@ test("alur masuk bisa diselesaikan hanya dengan keyboard (N14) dan fokus selalu 
   await page.keyboard.press("Tab");
   await page.keyboard.type("salah-salah-1");
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: "belum cocok" })).toBeVisible();
 });
 
 test("/akun/keamanan tanpa sesi mengarah ke halaman masuk", async ({ page }) => {
