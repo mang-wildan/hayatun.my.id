@@ -1,1 +1,9 @@
-{ "name": "@hayatun/shared", "version": "0.0.0", "private": true, "type": "module", "main": "src/index.ts", "scripts": { "typecheck": "tsc -p ." } }
+{
+  "name": "@hayatun/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": { "typecheck": "tsc -p ." },
+  "dependencies": { "zod": "^4.6.7" }
+}
