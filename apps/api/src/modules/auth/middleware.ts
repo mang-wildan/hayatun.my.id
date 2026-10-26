@@ -3,10 +3,8 @@ import type { Db } from "../../db/client.js";
 import { HttpError } from "../../errors.js";
 import { resolveSession, SESSION_COOKIE, type Role, type SessionUser } from "./sessions.js";
 
-declare global {
-  namespace Express {
-    interface Request { session?: SessionUser }
-  }
+declare module "express-serve-static-core" {
+  interface Request { session?: SessionUser }
 }
 
 export function loadSession(deps: { db: Db; now: () => Date }): RequestHandler {

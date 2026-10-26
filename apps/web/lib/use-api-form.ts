@@ -12,6 +12,8 @@ export function useApiForm(path: string, schema: ZodType) {
   const [message, setMessage] = useState<string>();
   const busy = useRef(false); // mencegah kirim ganda, termasuk lewat tombol Enter
 
+  // bentuk jawaban berbeda per endpoint; isinya sudah divalidasi dan dikirim oleh API kita sendiri
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async function submit(values: object, onOk: (data: any) => void, extra: object = {}) {
     if (busy.current) return;
     setMessage(undefined);

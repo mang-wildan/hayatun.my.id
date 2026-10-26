@@ -1,4 +1,3 @@
-import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { auditLogs, users } from "../db/schema.js";
 import { linkFrom, tokenFrom, APP_URL, createTestContext, type TestContext } from "../test/context.js";
