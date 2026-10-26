@@ -24,6 +24,7 @@ export const E2E_API_ENV = {
   SMTP_PASSWORD: "",
   EMAIL_FROM: "toko@hayatun.my.id",
   ADMIN_BOOTSTRAP_EMAIL: "pemilik@hayatun.test",
+  STORAGE_DIR: "/tmp/hayatun-e2e-files",
 };
 export const KEYS = { encryption: Buffer.alloc(32, 2), blindIndex: Buffer.alloc(32, 3) };
 export const MAILPIT_URL = process.env.MAILPIT_URL ?? "http://127.0.0.1:8025";

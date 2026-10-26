@@ -1,4 +1,7 @@
 import { randomBytes } from "node:crypto";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import request from "supertest";
 import { createApp } from "../app.js";
 import { loadConfig } from "../config.js";
@@ -9,6 +12,7 @@ import { hashPassword } from "../modules/auth/password.js";
 import { createCrypto } from "../modules/crypto/index.js";
 import { createMemoryMailer, type Mailer } from "../modules/notifications/mailer.js";
 import { registerEmailWorker } from "../modules/notifications/worker.js";
+import { createStorage } from "../modules/storage/index.js";
 import { resetDb, testDb } from "./db.js";
 
 export const APP_URL = "https://hayatun.my.id";
@@ -38,6 +42,7 @@ export function testConfig() {
     SMTP_USER: "",
     SMTP_PASSWORD: "",
     EMAIL_FROM: "toko@hayatun.my.id",
+    STORAGE_DIR: mkdtempSync(join(tmpdir(), "hayatun-files-")),
   });
 }
 
@@ -55,7 +60,8 @@ export async function createTestContext(over: { mailer?: Mailer } = {}) {
     now: T0,
     advance(ms: number) { this.now = new Date(this.now.getTime() + ms); },
   };
-  const app = createApp({ config, db, logger, queue, crypto, now: () => clock.now });
+  const storage = createStorage(config.storage);
+  const app = createApp({ config, db, logger, queue, crypto, storage, now: () => clock.now });
 
   // pengguna langsung di database, untuk tes yang tidak menguji pendaftaran
   async function createUser(u: {
@@ -91,7 +97,7 @@ export async function createTestContext(over: { mailer?: Mailer } = {}) {
   }
 
   return {
-    app, db, crypto, config, queue, clock, createUser, emails,
+    app, db, crypto, config, queue, storage, clock, createUser, emails,
     post: (path: string, body?: object, cookie?: string) => {
       const r = request(app).post(path).send(body ?? {});
       return cookie ? r.set("Cookie", cookie) : r;
