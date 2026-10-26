@@ -52,7 +52,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npm run test:e2e -- a11y session`
 - [x] **T15 Halaman daftar, masuk, kode, reset, keamanan, undangan admin** — F1, N14, N15 · **B**
   Selesai jika: `npm run test:e2e -- auth admin`
-- [ ] **T16 CI dan Dependabot** — N33, N34 · **C**
+- [x] **T16 CI dan Dependabot** — N33, N34 · **C**
   Selesai jika: `npm run lint && npm run typecheck && npm test && npm run build && npm run test:e2e && npm audit --audit-level=high`
 
 ## Fase 2 — Katalog dan produk

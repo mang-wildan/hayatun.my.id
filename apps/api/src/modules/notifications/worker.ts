@@ -30,6 +30,8 @@ export async function registerEmailWorker(
     } catch (err) {
       // pesan SMTP sering memuat alamat penerima; jangan dicatat dan jangan diteruskan ke tabel antrean (N30)
       deps.logger.error({ template, errorName: (err as Error).name }, "email gagal terkirim");
+      // sengaja tanpa `cause`: pesan SMTP asli bisa memuat alamat penerima dan akan ikut tersimpan di tabel antrean
+      // eslint-disable-next-line preserve-caught-error
       throw new Error("Gagal mengirim email");
     }
   });

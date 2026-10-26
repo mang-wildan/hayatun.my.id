@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+      mailpit:
+        image: axllent/mailpit
+        ports: ["1025:1025", "8025:8025"]
+    env:
+      # nilai khusus tes; bukan rahasia
+      DATABASE_URL: postgres://hayatun_app:hayatun@127.0.0.1:5432/hayatun_test
+      DATABASE_MIGRATION_URL: postgres://hayatun_migrate:hayatun@127.0.0.1:5432/hayatun_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Lint dan tipe
+        run: |
+          npm run lint
+          npm run typecheck
+      - name: Siapkan database tes
+        run: |
+          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 -f ops/postgres-init.sql
+          npm -w apps/api run db:migrate
+      - name: Tes unit dan integrasi
+        run: npm test
+      - run: npm run build
+      - name: Tes end-to-end
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+      - name: "Audit dependensi (N34: tinggi dan kritis)"
+        run: npm audit --audit-level=high
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7

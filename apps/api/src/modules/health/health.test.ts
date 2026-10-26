@@ -1,6 +1,6 @@
 import pino from "pino";
 import request from "supertest";
-import { describe, expect, it } from "vitest";
+import { describe, it } from "vitest";
 import { createApp } from "../../app.js";
 
 const appWith = (execute: () => Promise<unknown>) =>
