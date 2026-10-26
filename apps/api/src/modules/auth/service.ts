@@ -1,7 +1,8 @@
-import { emailSchema, loginSchema, registerSchema, resetPasswordSchema, totpCodeSchema } from "@hayatun/shared";
+import { acceptInviteSchema, emailSchema, loginSchema, registerSchema, resetPasswordSchema, totpCodeSchema } from "@hayatun/shared";
 import { and, eq, isNull, lt, or } from "drizzle-orm";
 import type { AppDeps } from "../../app.js";
 import { authTokens, users } from "../../db/schema.js";
+import { recordAudit } from "../audit/index.js";
 import { HttpError } from "../../errors.js";
 import { enqueueEmail } from "../notifications/worker.js";
 import { isLocked, recordAttempt } from "./lockout.js";
@@ -261,4 +262,29 @@ export async function totpDisable(deps: Deps, sessionUserId: string, input: { co
   if (!u.totpEnabled || !u.totpSecretEnc) throw new HttpError(409, "Verifikasi dua langkah belum aktif.", "TOTP_NOT_ENABLED");
   await checkCode(deps, u, input.code, deps.crypto.decrypt(u.totpSecretEnc));
   await deps.db.update(users).set({ totpEnabled: false, totpSecretEnc: null, totpLastStep: null }).where(eq(users.id, u.id));
+}
+
+// ---- undangan admin (F15.1) ----
+
+const INVITE_MESSAGES = {
+  dead: "Undangannya tidak berlaku lagi. Minta undangan baru ya.",
+  used: "Undangannya sudah dipakai. Silakan masuk.",
+};
+
+// Admin belum mendapat sesi; ia langsung diminta memasang TOTP (F15.2)
+export async function acceptInvite(deps: Deps, input: unknown): Promise<{ next: "totp_setup"; challenge: string }> {
+  const body = acceptInviteSchema.parse(input);
+  assertNotCommon(body.password); // sebelum memakai token, supaya undangan tetap bisa dipakai lagi
+  const now = deps.now();
+  const result = await consumeToken(deps.db, "admin_invite", body.token, now);
+  if ("error" in result) throw tokenError(result, INVITE_MESSAGES);
+  const [u] = await deps.db.select().from(users).where(eq(users.id, result.userId));
+  if (u?.role !== "admin" || u.status !== "invited") throw tokenError({ error: "invalid" }, INVITE_MESSAGES);
+
+  await deps.db
+    .update(users)
+    .set({ nameEnc: deps.crypto.encrypt(body.name), passwordHash: await hashPassword(body.password), status: "active", emailVerifiedAt: now })
+    .where(eq(users.id, u.id));
+  await recordAudit(deps.db, { actorId: u.id, action: "admin.invite_accepted", entityType: "user", entityId: u.id });
+  return { next: "totp_setup", challenge: await issueToken(deps.db, "mfa_challenge", u.id, now) };
 }
