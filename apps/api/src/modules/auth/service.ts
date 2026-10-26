@@ -1,5 +1,5 @@
-import { emailSchema, loginSchema, registerSchema, resetPasswordSchema } from "@hayatun/shared";
-import { and, eq, isNull } from "drizzle-orm";
+import { emailSchema, loginSchema, registerSchema, resetPasswordSchema, totpCodeSchema } from "@hayatun/shared";
+import { and, eq, isNull, lt, or } from "drizzle-orm";
 import type { AppDeps } from "../../app.js";
 import { authTokens, users } from "../../db/schema.js";
 import { HttpError } from "../../errors.js";
@@ -7,7 +7,8 @@ import { enqueueEmail } from "../notifications/worker.js";
 import { isLocked, recordAttempt } from "./lockout.js";
 import { hashPassword, isCommonPassword, verifyPassword } from "./password.js";
 import { createSession, revokeUserSessions } from "./sessions.js";
-import { consumeToken, issueToken, type ConsumeResult } from "./tokens.js";
+import { generateTotpSecret, totpUri, verifyTotp } from "./totp.js";
+import { consumeToken, issueToken, peekToken, type ConsumeResult } from "./tokens.js";
 
 type Deps = Pick<AppDeps, "config" | "db" | "queue" | "crypto" | "now">;
 type User = typeof users.$inferSelect;
@@ -187,4 +188,77 @@ export async function resetPassword(deps: Deps, input: unknown): Promise<void> {
     .where(and(eq(authTokens.userId, u.id), eq(authTokens.type, "reset_password"), isNull(authTokens.usedAt)));
   // pemilik email terbukti; buka penguncian login
   await recordAttempt(deps.db, u.emailIndex, true, now);
+}
+
+// ---- TOTP (F1.4, F15.2) ----
+
+const CHALLENGE_DEAD = () => new HttpError(400, "Waktunya habis. Silakan masuk lagi dari awal ya.", "CHALLENGE_EXPIRED");
+const BAD_TOTP = () => new HttpError(401, "Kodenya belum cocok. Coba kode terbaru di aplikasi authenticator-mu.", "BAD_TOTP");
+const ALREADY_ENABLED = () => new HttpError(409, "Verifikasi dua langkah sudah aktif.", "TOTP_ALREADY_ENABLED");
+
+const getUser = async (deps: Deps, id: string) => (await deps.db.select().from(users).where(eq(users.id, id)))[0];
+
+// Pengguna untuk setup/confirm: dari sesi (pembeli yang sudah masuk) atau challenge (admin yang baru memasang TOTP)
+async function userFor(deps: Deps, sessionUserId: string | undefined, challenge: unknown): Promise<User> {
+  if (sessionUserId) return getUser(deps, sessionUserId);
+  if (typeof challenge !== "string" || !challenge) throw new HttpError(401, "Kamu perlu masuk dulu ya.", "UNAUTHENTICATED");
+  const found = await peekToken(deps.db, "mfa_challenge", challenge, deps.now());
+  const u = found && (await getUser(deps, found.userId));
+  if (!u || u.status !== "active") throw CHALLENGE_DEAD();
+  return u;
+}
+
+// Kode salah dihitung sebagai login gagal, jadi menebak 6 angka terhenti oleh penguncian (F1.8).
+async function checkCode(deps: Deps, u: User, rawCode: unknown, secret: string): Promise<number> {
+  const code = totpCodeSchema.parse(rawCode);
+  if (await isLocked(deps.db, u.emailIndex, deps.now())) throw LOCKED();
+  const step = verifyTotp(secret, code, deps.now());
+  if (step === null || (u.totpLastStep !== null && step <= u.totpLastStep)) {
+    await recordFailure(deps, u.emailIndex, u, deps.crypto.decrypt(u.emailEnc));
+    throw BAD_TOTP();
+  }
+  return step;
+}
+
+export async function loginTotp(deps: Deps, input: { challenge?: unknown; code?: unknown }) {
+  const u = await userFor(deps, undefined, input.challenge);
+  if (!u.totpEnabled || !u.totpSecretEnc) throw CHALLENGE_DEAD();
+  const step = await checkCode(deps, u, input.code, deps.crypto.decrypt(u.totpSecretEnc));
+  // atomik: dari dua login bersamaan dengan kode yang sama, hanya satu yang lolos
+  const [claimed] = await deps.db
+    .update(users)
+    .set({ totpLastStep: step })
+    .where(and(eq(users.id, u.id), or(isNull(users.totpLastStep), lt(users.totpLastStep, step))))
+    .returning({ id: users.id });
+  if (!claimed) throw BAD_TOTP();
+  if ("error" in (await consumeToken(deps.db, "mfa_challenge", String(input.challenge), deps.now()))) throw CHALLENGE_DEAD();
+  return finishLogin(deps, u);
+}
+
+export async function totpSetup(deps: Deps, sessionUserId: string | undefined, input: { challenge?: unknown }) {
+  const u = await userFor(deps, sessionUserId, input.challenge);
+  if (u.totpEnabled) throw ALREADY_ENABLED();
+  const secret = generateTotpSecret();
+  await deps.db.update(users).set({ totpSecretEnc: deps.crypto.encrypt(secret), totpLastStep: null }).where(eq(users.id, u.id));
+  return { otpauthUri: totpUri(secret, deps.crypto.decrypt(u.emailEnc), deps.config.totpIssuer), secret };
+}
+
+export async function totpConfirm(deps: Deps, sessionUserId: string | undefined, input: { challenge?: unknown; code?: unknown }) {
+  const u = await userFor(deps, sessionUserId, input.challenge);
+  if (u.totpEnabled) throw ALREADY_ENABLED();
+  if (!u.totpSecretEnc) throw new HttpError(400, "Mulai pasang verifikasi dua langkah dulu ya.", "TOTP_NOT_STARTED");
+  const step = await checkCode(deps, u, input.code, deps.crypto.decrypt(u.totpSecretEnc));
+  await deps.db.update(users).set({ totpEnabled: true, totpLastStep: step }).where(eq(users.id, u.id));
+  if (sessionUserId) return null;
+  // admin baru: TOTP aktif sekaligus masuk
+  if ("error" in (await consumeToken(deps.db, "mfa_challenge", String(input.challenge), deps.now()))) throw CHALLENGE_DEAD();
+  return finishLogin(deps, { ...u, totpEnabled: true });
+}
+
+export async function totpDisable(deps: Deps, sessionUserId: string, input: { code?: unknown }) {
+  const u = await getUser(deps, sessionUserId);
+  if (u.role === "admin") throw new HttpError(403, "Admin wajib memakai verifikasi dua langkah.", "TOTP_REQUIRED");
+  if (!u.totpEnabled || !u.totpSecretEnc) throw new HttpError(409, "Verifikasi dua langkah belum aktif.", "TOTP_NOT_ENABLED");
+  await checkCode(deps, u, input.code, deps.crypto.decrypt(u.totpSecretEnc));
+  await deps.db.update(users).set({ totpEnabled: false, totpSecretEnc: null, totpLastStep: null }).where(eq(users.id, u.id));
 }

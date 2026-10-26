@@ -43,3 +43,12 @@ export async function consumeToken(db: Db, type: TokenType, token: string, now: 
   if (!row) return { error: "invalid" };
   return { error: row.usedAt ? "used" : "expired" };
 }
+
+// Memeriksa token tanpa memakainya, misalnya challenge TOTP yang harus tetap berlaku saat kode salah.
+export async function peekToken(db: Db, type: TokenType, token: string, now: Date): Promise<{ userId: string } | null> {
+  const [row] = await db
+    .select({ userId: authTokens.userId })
+    .from(authTokens)
+    .where(and(eq(authTokens.tokenHash, hashToken(token)), eq(authTokens.type, type), isNull(authTokens.usedAt), gt(authTokens.expiresAt, now)));
+  return row ?? null;
+}

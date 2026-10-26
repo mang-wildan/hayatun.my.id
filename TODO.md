@@ -44,7 +44,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npx vitest run apps/api/src/modules/auth/login.test.ts`
 - [x] **T11 Lupa dan reset password** — F1.3, F1.7 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/auth/reset.test.ts`
-- [ ] **T12 TOTP: opsional pembeli, wajib admin** — F1.4, F15.2 · **A**
+- [x] **T12 TOTP: opsional pembeli, wajib admin** — F1.4, F15.2 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/auth/totp.test.ts`
 - [ ] **T13 Admin pertama lewat undangan** — F15.1 · **B**
   Selesai jika: `npx vitest run apps/api/src/scripts/bootstrap-admin.test.ts`
