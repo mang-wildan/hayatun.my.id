@@ -34,7 +34,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npx vitest run apps/api/src/modules/auth/password.test.ts`
 - [x] **T06 Token sekali pakai dan log aktivitas dasar** — F1.3, F1.7, F15.3 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/auth/tokens.test.ts apps/api/src/modules/audit`
-- [ ] **T07 Sesi server, diam 30 menit untuk admin, pemeriksa akses** — N4, N6, F15.5 · **A**
+- [x] **T07 Sesi server, diam 30 menit untuk admin, pemeriksa akses** — N4, N6, F15.5 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/auth/sessions.test.ts`
 - [ ] **T08 Email lewat antrean dengan retry** — F11.4, N20 · **B**
   Selesai jika: `npx vitest run apps/api/src/modules/notifications apps/api/src/jobs`
