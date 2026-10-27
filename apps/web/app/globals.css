@@ -221,3 +221,20 @@ code, .mono { font-family: var(--font-mono); }
 .product-detail .sampul { max-width: 28rem; }
 .description { max-width: 65ch; white-space: pre-line; }
 @media (min-width: 768px) { .product-detail { grid-template-columns: minmax(0, 20rem) minmax(0, 1fr); align-items: start; } }
+
+/* ---- keranjang (DESIGN §6) ---- */
+.nav-link .count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; margin-left: var(--space-2); padding: 0 6px; border-radius: 999px; background: var(--action); color: #FFFFFF; font-size: 0.8125rem; font-weight: 600; }
+.badge[data-tone="danger"] { background: var(--danger-bg); color: var(--danger); }
+.cart-list { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-3); }
+.cart-list li { display: grid; gap: var(--space-3); padding: var(--space-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); }
+.cart-info { display: grid; gap: var(--space-2); min-width: 0; overflow-wrap: anywhere; }
+.cart-info > a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; }
+.cart-list .btn { width: auto; min-height: 44px; padding: 0 var(--space-4); justify-self: start; }
+.stepper { display: inline-flex; align-items: center; gap: var(--space-3); }
+.stepper .btn { width: 44px; min-width: 44px; padding: 0; }
+.stepper [data-testid="jumlah"] { min-width: 2ch; text-align: center; font-weight: 600; }
+.cart-total, .cart-subtotal { font-weight: 600; }
+.cart-subtotal { font-size: 1.25rem; }
+@media (min-width: 768px) {
+  .cart-list li { grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: center; gap: var(--space-4); }
+}

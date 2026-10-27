@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { bigint, bigserial, boolean, check, index, integer, jsonb, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { bigint, bigserial, boolean, check, index, integer, jsonb, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 
@@ -115,4 +115,16 @@ export const licenseCodes = pgTable("license_codes", {
 }, (t) => [
   unique("license_codes_product_code_unique").on(t.productId, t.codeIndex), // F9.7
   index("license_codes_status_idx").on(t.productId, t.status),
+]);
+
+// Keranjang per akun (F3.1). Tidak menahan stok; penahanan terjadi saat checkout (T28).
+export const cartItems = pgTable("cart_items", {
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  productId: uuid("product_id").notNull().references(() => products.id),
+  qty: integer("qty").notNull(),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+}, (t) => [
+  primaryKey({ columns: [t.userId, t.productId] }),
+  check("cart_items_qty_range", sql`${t.qty} between 1 and 99`),
 ]);

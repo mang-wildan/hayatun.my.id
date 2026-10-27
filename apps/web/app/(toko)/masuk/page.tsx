@@ -9,6 +9,7 @@ export default async function Masuk({ searchParams }: { searchParams: Promise<{ 
     <>
       <h1>Masuk</h1>
       {pesan === "sesi-habis" && <p className="notice" role="status">Sesimu sudah habis, silakan masuk lagi ya.</p>}
+      {pesan === "masuk-dulu" && <p className="notice" role="status">Masuk dulu ya supaya keranjangmu tersimpan.</p>}
       <LoginForm />
     </>
   );
