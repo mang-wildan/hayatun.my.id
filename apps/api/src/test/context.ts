@@ -13,6 +13,7 @@ import { createSession } from "../modules/auth/sessions.js";
 import { createCrypto } from "../modules/crypto/index.js";
 import { createMemoryMailer, type Mailer } from "../modules/notifications/mailer.js";
 import { registerEmailWorker } from "../modules/notifications/worker.js";
+import { createFakeShipping } from "../modules/shipping/fake.js";
 import { createStorage } from "../modules/storage/index.js";
 import { resetDb, testDb } from "./db.js";
 
@@ -21,7 +22,7 @@ export const T0 = new Date("2026-10-26T07:00:00Z");
 
 const b64 = () => randomBytes(32).toString("base64");
 
-export function testConfig() {
+export function testConfig(over: Record<string, string> = {}) {
   return loadConfig({
     NODE_ENV: "test",
     APP_URL,
@@ -44,6 +45,7 @@ export function testConfig() {
     SMTP_PASSWORD: "",
     EMAIL_FROM: "toko@hayatun.my.id",
     STORAGE_DIR: mkdtempSync(join(tmpdir(), "hayatun-files-")),
+    ...over,
   });
 }
 
@@ -62,7 +64,8 @@ export async function createTestContext(over: { mailer?: Mailer } = {}) {
     advance(ms: number) { this.now = new Date(this.now.getTime() + ms); },
   };
   const storage = createStorage(config.storage);
-  const app = createApp({ config, db, logger, queue, crypto, storage, now: () => clock.now });
+  const shipping = createFakeShipping();
+  const app = createApp({ config, db, logger, queue, crypto, storage, shipping, now: () => clock.now });
 
   // pengguna langsung di database, untuk tes yang tidak menguji pendaftaran
   async function createUser(u: {
@@ -106,7 +109,7 @@ export async function createTestContext(over: { mailer?: Mailer } = {}) {
   }
 
   return {
-    app, db, crypto, config, queue, storage, clock, createUser, emails,
+    app, db, crypto, config, queue, storage, shipping, clock, createUser, emails,
     adminCookie: () => cookieFor("admin"),
     buyerCookie: () => cookieFor("buyer"),
     post: (path: string, body?: object, cookie?: string) => {
