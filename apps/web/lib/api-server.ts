@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 
 export interface ApiUser { id: string; name: string | null; email: string; role: "buyer" | "admin"; emailVerified: boolean; totpEnabled: boolean }
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; body: { message: string; code?: string; fields?: Record<string, string> } };
@@ -17,4 +18,12 @@ export async function apiServer<T>(path: string, init: RequestInit = {}): Promis
 export async function getAuth(): Promise<{ user: ApiUser | null; expired: boolean }> {
   const res = await apiServer<ApiUser>("/api/auth/me");
   return res.ok ? { user: res.data, expired: false } : { user: null, expired: !res.ok && res.body.code === "SESSION_EXPIRED" };
+}
+
+// Untuk halaman server: layout dan halaman dirender bersamaan, jadi halaman sendiri yang mengarahkan pengunjung tanpa sesi
+export function unwrap<T>(res: ApiResult<T>): T {
+  if (res.ok) return res.data;
+  if (res.status === 401 || res.status === 403) redirect("/masuk");
+  if (res.status === 404) notFound();
+  throw new Error(res.body.message);
 }

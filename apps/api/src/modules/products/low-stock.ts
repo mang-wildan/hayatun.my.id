@@ -1,10 +1,11 @@
+import { LOW_STOCK_THRESHOLD } from "@hayatun/shared";
 import { and, eq } from "drizzle-orm";
 import type { AppDeps } from "../../app.js";
 import { products } from "../../db/schema.js";
 import { notifyAdmins } from "../notifications/admins.js";
 import { licenseCounts, stockOf } from "./stock.js";
 
-export const LOW_STOCK_THRESHOLD = 3;
+export { LOW_STOCK_THRESHOLD };
 
 // F9.5: admin dikabari sekali setiap stok tersedia turun ke ambang atau di bawahnya; penanda diatur ulang saat stok pulih di atas ambang.
 // Dipanggil setelah stok berkurang (ubah stok, dan pemesanan di T28) atau pulih (kode lisensi ditambah).
