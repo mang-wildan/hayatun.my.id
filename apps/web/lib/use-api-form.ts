@@ -6,7 +6,7 @@ import { apiClient } from "./api-client";
 
 // Validasi di browser memakai skema yang sama dengan API (pesan sama); server tetap yang menentukan.
 // Error per kolom tampil di bawah kolomnya, error umum lewat `message`.
-export function useApiForm(path: string, schema: ZodType) {
+export function useApiForm(path: string, schema: ZodType, method = "POST") {
   const [loading, setLoading] = useState(false);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string>();
@@ -26,7 +26,7 @@ export function useApiForm(path: string, schema: ZodType) {
     }
     busy.current = true;
     setLoading(true);
-    const res = await apiClient(path, { ...(parsed.data as object), ...extra });
+    const res = await apiClient(path, { ...(parsed.data as object), ...extra }, method);
     if (res.ok) onOk(res.data);
     else if (res.body.fields) setFields(res.body.fields);
     else setMessage(res.body.message);

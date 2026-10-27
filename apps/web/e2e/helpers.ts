@@ -73,3 +73,59 @@ export async function resetAdmins() {
   await pool.query(`delete from users where role = 'admin'`);
   await pool.end();
 }
+
+// ---- produk: data awal dibuat lewat API admin, bukan lewat tampilan ----
+
+// PNG 1x1 yang valid, supaya browser benar-benar bisa menampilkannya
+export const PNG_1X1 = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+export interface SeedProduct {
+  name: string;
+  type?: "digital" | "physical";
+  price?: number;
+  description?: string;
+  weightG?: number;
+  stockQty?: number;
+  isLicensed?: boolean;
+  cover?: boolean;
+  activate?: boolean; // bawaan: ya
+  licenses?: string;
+}
+
+export async function seedProduct(cookie: { name: string; value: string }, p: SeedProduct): Promise<{ id: string; slug: string }> {
+  const headers = { Cookie: `${cookie.name}=${cookie.value}` };
+  const call = async (path: string, init: RequestInit, okStatuses = [200, 201, 204]) => {
+    const res = await fetch(`${WEB_URL}${path}`, { ...init, headers: { ...headers, ...init.headers } });
+    if (!okStatuses.includes(res.status)) throw new Error(`${init.method ?? "GET"} ${path} -> ${res.status} ${await res.text()}`);
+    return res.status === 204 ? null : res.json();
+  };
+  const type = p.type ?? "digital";
+  const created = await call("/api/admin/products", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      name: p.name, type, price: p.price ?? 75000, description: p.description ?? "Deskripsi " + p.name,
+      ...(type === "physical" ? { weightG: p.weightG ?? 500, stockQty: p.stockQty ?? 10 } : { isLicensed: p.isLicensed ?? false }),
+    }),
+  });
+  if (p.cover) await call(`/api/admin/products/${created.id}/cover`, { method: "PUT", headers: { "content-type": "image/png" }, body: PNG_1X1 });
+  if (type === "digital") {
+    await call(`/api/admin/products/${created.id}/links`, {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: "https://contoh.id/unduh", label: "Unduh" }),
+    });
+    if (p.licenses) await call(`/api/admin/products/${created.id}/licenses`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ codes: p.licenses }) });
+  }
+  if (p.activate !== false) await call(`/api/admin/products/${created.id}/activate`, { method: "POST" });
+  return { id: created.id, slug: created.slug };
+}
+
+// Menghapus semua produk beserta file dan kode lisensinya, supaya tes katalog tidak bergantung pada tes lain.
+export async function resetProducts() {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  const { rows } = await pool.query<{ t: string }>("select tablename as t from pg_tables where schemaname = 'public' and tablename in ('license_codes', 'product_files', 'products')");
+  if (rows.length) await pool.query(`truncate ${rows.map((r) => r.t).join(", ")} cascade`);
+  await pool.end();
+}

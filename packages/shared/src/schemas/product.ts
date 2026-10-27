@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const MAX_WEIGHT_G = 100_000;
+export const LOW_STOCK_THRESHOLD = 3; // F9.5: stok tersedia sebesar ini atau kurang dianggap rendah
 export const NO_WEIGHT = "Berat wajib diisi untuk produk fisik (dalam gram), karena ongkir dihitung dari beratnya.";
 
 // Kolom yang boleh diisi pengguna. Tanpa nilai bawaan, supaya skema ini juga dipakai untuk ubah sebagian (PATCH).
