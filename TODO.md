@@ -74,7 +74,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
 
 ## Fase 3 — Keranjang, ongkir, checkout, invoice
 
-- [ ] **T24 Keranjang: API dan halaman, item nonaktif atau habis ditandai** — F2.4, F3.1 · **B**
+- [x] **T24 Keranjang: API dan halaman, item nonaktif atau habis ditandai** — F2.4, F3.1 · **B**
   Selesai jika: `npx vitest run apps/api/src/modules/cart && npm run test:e2e -- cart`
 - [ ] **T25 Mesin status pesanan dan enum bersama** — N33, N36 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/orders/state-machine.test.ts --coverage` dengan cakupan cabang 100% untuk `state-machine.ts`

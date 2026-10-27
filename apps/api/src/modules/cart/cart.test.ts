@@ -211,6 +211,16 @@ describe("item yang tidak bisa dibeli ditandai (F2.4)", () => {
     expect(await cart()).toMatchObject({ canCheckout: true });
   });
 
+  it("jumlah yang melebihi stok bisa dikurangi selangkah demi selangkah, tapi tidak dinaikkan", async () => {
+    const f = await physical({ stockQty: 5 });
+    await add(f.id, 4).expect(201);
+    await a.patch(`/api/admin/products/${f.id}`, { stockQty: 2 }).expect(200);
+    expect(((await b.patch(`/api/cart/items/${f.id}`, { qty: 3 }).expect(200)).body as Cart).items[0]).toMatchObject({ qty: 3, status: "exceeds_stock" });
+    expect((await b.patch(`/api/cart/items/${f.id}`, { qty: 4 }).expect(422)).body.code).toBe("STOCK_LIMIT");
+    await a.patch(`/api/admin/products/${f.id}`, { stockQty: 0 }).expect(200);
+    expect(((await b.patch(`/api/cart/items/${f.id}`, { qty: 2 }).expect(200)).body as Cart).items[0].qty).toBe(2); // yang habis pun boleh dikurangi
+  });
+
   it("kode lisensi: keranjang tidak menahan kode, jadi dua pembeli bisa memasukkan kode terakhir", async () => {
     const lic = await publish({ isLicensed: true });
     await a.post(`/api/admin/products/${lic.id}/licenses`, { codes: "AAA" }).expect(200);

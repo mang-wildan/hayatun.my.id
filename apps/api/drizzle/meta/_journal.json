@@ -43,6 +43,13 @@
       "when": 1793056974565,
       "tag": "0005_low_stock_notified",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793065409152,
+      "tag": "0006_cart_items",
+      "breakpoints": true
     }
   ]
 }
