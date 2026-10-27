@@ -21,7 +21,7 @@ export const T0 = new Date("2026-10-26T07:00:00Z");
 
 const b64 = () => randomBytes(32).toString("base64");
 
-export function testConfig() {
+export function testConfig(over: Record<string, string> = {}) {
   return loadConfig({
     NODE_ENV: "test",
     APP_URL,
@@ -44,6 +44,7 @@ export function testConfig() {
     SMTP_PASSWORD: "",
     EMAIL_FROM: "toko@hayatun.my.id",
     STORAGE_DIR: mkdtempSync(join(tmpdir(), "hayatun-files-")),
+    ...over,
   });
 }
 
