@@ -93,7 +93,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
 
 ## Fase 4 — Pembayaran manual dan verifikasi
 
-- [ ] **T32 Instruksi bayar: rekening, total, batas 24 jam** — F4.1, F4.2 · **B**
+- [x] **T32 Instruksi bayar: rekening, total, batas 24 jam** — F4.1, F4.2 · **B**
   Selesai jika: `npx vitest run apps/api/src/modules/payments-manual/instructions.test.ts`
 - [ ] **T33 Unggah bukti: maks. 5 MB, JPG/PNG/PDF dari isi file, dienkripsi, tolak bila kedaluwarsa** — F4.3, F4.7, F4.8, N21 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/payments-manual/upload.test.ts`
