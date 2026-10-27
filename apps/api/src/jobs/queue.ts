@@ -1,3 +1,4 @@
+import type { Logger } from "pino";
 import { PgBoss } from "pg-boss";
 
 export interface SendOptions { retryLimit?: number; retryDelaySec?: number; startAfter?: Date }
@@ -7,8 +8,10 @@ export interface JobQueue {
   work<T = unknown>(name: string, handler: (data: T) => Promise<void>): Promise<void>;
 }
 
-export async function createPgBossQueue(url: string): Promise<JobQueue & { stop(): Promise<void> }> {
+export async function createPgBossQueue(url: string, logger?: Logger): Promise<JobQueue & { stop(): Promise<void> }> {
   const boss = new PgBoss({ connectionString: url, migrate: false, createSchema: false }); // skema dibuat oleh db:migrate
+  // tanpa pendengar, error internal pg-boss (polling, pemeliharaan) hilang tanpa jejak
+  boss.on("error", (err) => logger?.error({ errorName: err.name }, "error antrean pg-boss"));
   await boss.start();
   const known = new Set<string>();
   const ensure = async (name: string) => {
