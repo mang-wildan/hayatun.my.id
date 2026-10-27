@@ -7,6 +7,8 @@ import { Button } from "@/components/Button";
 import { FormMessage } from "@/components/FormMessage";
 import { apiClient } from "@/lib/api-client";
 import type { Cart, CartItem } from "@/lib/cart";
+import { checkoutHref } from "@/lib/checkout";
+import { CheckoutSteps } from "@/components/checkout/CheckoutSteps";
 import { formatRupiah, typeLabel } from "@/lib/products";
 
 const BLOCKED = "Ada item yang tidak bisa dibeli. Hapus item itu dulu untuk melanjutkan.";
@@ -40,6 +42,7 @@ export function CartView({ cart }: { cart: Cart }) {
 
   return (
     <div className="stack">
+      <CheckoutSteps current="keranjang" physical={cart.requiresAddress} />
       {note && <FormMessage tone={note.tone}>{note.text}</FormMessage>}
       {cart.items.length === 0 ? (
         <>
@@ -74,7 +77,14 @@ export function CartView({ cart }: { cart: Cart }) {
             ))}
           </ul>
           {cart.items.some((i) => i.status !== "ok") && <FormMessage tone="error">{BLOCKED}</FormMessage>}
-          <p className="cart-subtotal">Subtotal <strong data-testid="subtotal">{formatRupiah(cart.subtotal)}</strong></p>
+          <div className="checkout-bar">
+            <p className="cart-subtotal">Subtotal <strong data-testid="subtotal">{formatRupiah(cart.subtotal)}</strong></p>
+            {cart.canCheckout ? (
+              <Link className="btn" data-variant="primary" href={checkoutHref(cart)}>Lanjut bayar</Link>
+            ) : (
+              <Button type="button" disabled>Lanjut bayar</Button>
+            )}
+          </div>
         </>
       )}
     </div>
