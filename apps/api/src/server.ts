@@ -12,7 +12,7 @@ import { createStorage } from "./modules/storage/index.js";
 const config = loadConfig(process.env);
 const logger = createLogger(config);
 const { db, pool } = createDb(config.databaseUrl);
-const queue = await createPgBossQueue(config.databaseUrl);
+const queue = await createPgBossQueue(config.databaseUrl, logger);
 const crypto = createCrypto({ keys: config.encryptionKeys, activeKeyId: config.activeKeyId, blindIndexKey: config.blindIndexKey });
 await registerEmailWorker(queue, { mailer: createSmtpMailer(config), crypto, logger });
 

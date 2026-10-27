@@ -25,8 +25,10 @@ export async function registerEmailWorker(
 ): Promise<void> {
   await queue.work(JOB, async ({ payload }: { payload: string }) => {
     const { template, to, data } = JSON.parse(deps.crypto.decrypt(payload)) as { template: EmailTemplate; to: string; data: EmailData };
+    deps.logger.info({ template }, "email diproses"); // tanpa alamat penerima (N30)
     try {
       await deps.mailer.send({ to, ...renderEmail(template, data) });
+      deps.logger.info({ template }, "email terkirim");
     } catch (err) {
       // pesan SMTP sering memuat alamat penerima; jangan dicatat dan jangan diteruskan ke tabel antrean (N30)
       deps.logger.error({ template, errorName: (err as Error).name }, "email gagal terkirim");

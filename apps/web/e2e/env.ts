@@ -6,7 +6,7 @@ export const E2E_API_ENV = {
   NODE_ENV: "test",
   APP_URL: WEB_URL,
   APP_TIMEZONE: "Asia/Jakarta",
-  LOG_LEVEL: "warn",
+  LOG_LEVEL: "info", // log antrean email ikut tampil di laporan CI untuk melacak kegagalan yang kadang terjadi
   LOG_DIR: "/tmp",
   WEB_PORT: "3000",
   API_PORT: "4000",

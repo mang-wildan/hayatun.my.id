@@ -42,7 +42,10 @@ export async function latestEmailTo(address: string, subject?: string): Promise<
     }
     await new Promise((r) => setTimeout(r, 250));
   }
-  throw new Error(`Email untuk ${address} tidak muncul dalam 15 detik`);
+  // saat gagal, tunjukkan isi Mailpit: email tidak pernah sampai, atau sampai tapi tidak cocok dengan pencarian
+  const all = await (await fetch(`${MAILPIT_URL}/api/v1/messages?limit=5`)).json().catch(() => null);
+  const recent = (all?.messages ?? []).map((m: { Subject: string; To: { Address: string }[] }) => `${m.Subject} -> ${m.To?.map((t) => t.Address).join(",")}`);
+  throw new Error(`Email untuk ${address} tidak muncul dalam 15 detik. Mailpit berisi ${all?.total ?? "?"} pesan; terbaru: ${recent.join(" | ") || "-"}`);
 }
 
 export const linkFrom = (text: string) => text.match(/https?:\/\/\S+/)![0];
