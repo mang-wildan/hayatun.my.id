@@ -129,7 +129,8 @@ describe("checkLowStock (dipakai juga oleh checkout di T28)", () => {
     const deps = { db: ctx.db, queue: ctx.queue, crypto: ctx.crypto, config: ctx.config, now: () => ctx.clock.now };
     const p = await makeProduct(ctx, admin, { ...DIGITAL, name: "Aplikasi Kasir", isLicensed: true });
     await a.post(`/api/admin/products/${p.id}/licenses`, { codes: "K1\nK2\nK3\nK4\nK5" }).expect(200);
-    const reserve = (n: number) => ctx.db.execute(sql`update license_codes set status = 'reserved' where id in (select id from license_codes where product_id = ${p.id} order by id limit ${n})`);
+    // menahan n kode yang masih tersedia (id berupa UUID acak, jadi tanpa `status = 'available'` kode yang sudah tertahan bisa ikut terpilih dan jumlahnya tidak pasti)
+    const reserve = (n: number) => ctx.db.execute(sql`update license_codes set status = 'reserved' where id in (select id from license_codes where product_id = ${p.id} and status = 'available' order by id limit ${n})`);
 
     await reserve(2); // tersedia 3
     await checkLowStock(deps, p.id);
@@ -139,10 +140,10 @@ describe("checkLowStock (dipakai juga oleh checkout di T28)", () => {
 
     await a.post(`/api/admin/products/${p.id}/licenses`, { codes: "K6\nK7\nK8\nK9" }).expect(200); // tersedia 7
     await checkLowStock(deps, p.id);
-    await reserve(5); // tersedia 4 → belum
+    await reserve(3); // total tertahan 5, tersedia 4 → belum
     await checkLowStock(deps, p.id);
     expect(await lowStockMails()).toHaveLength(2);
-    await reserve(8); // tersedia 1
+    await reserve(3); // total tertahan 8, tersedia 1
     await checkLowStock(deps, p.id);
     expect(await lowStockMails()).toHaveLength(4);
   });
