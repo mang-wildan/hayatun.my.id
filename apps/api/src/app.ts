@@ -10,6 +10,7 @@ import { errorHandler, HttpError } from "./errors.js";
 import type { JobQueue } from "./jobs/queue.js";
 import { loadSession } from "./modules/auth/middleware.js";
 import { authRoutes } from "./modules/auth/routes.js";
+import { catalogRoutes } from "./modules/catalog/routes.js";
 import { productRoutes } from "./modules/products/routes.js";
 import type { Crypto } from "./modules/crypto/index.js";
 import { healthRoutes } from "./modules/health/routes.js";
@@ -41,6 +42,7 @@ export function createApp(deps: AppDeps) {
   app.use("/api", loadSession(deps));
   app.use("/api/auth", authRoutes(deps));
   app.use("/api/admin/products", productRoutes(deps));
+  app.use("/api/catalog", catalogRoutes(deps));
   app.use(errorHandler);
   return app;
 }
