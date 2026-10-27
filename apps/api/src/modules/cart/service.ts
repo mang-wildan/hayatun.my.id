@@ -41,7 +41,9 @@ export async function getCart(deps: Deps, userId: string) {
   });
   // yang tidak bisa dibeli tidak ikut dihitung dan mencegah checkout (F2.4)
   const subtotal = items.filter((i) => i.status === "ok").reduce((sum, i) => sum + i.lineTotal, 0);
-  return { items, subtotal, canCheckout: items.length > 0 && items.every((i) => i.status === "ok") };
+  // F3.3: alamat dan nomor HP hanya diminta bila ada produk fisik
+  const requiresAddress = items.some((i) => i.type === "physical");
+  return { items, subtotal, canCheckout: items.length > 0 && items.every((i) => i.status === "ok"), requiresAddress };
 }
 
 async function activeProduct(deps: Deps, id: string): Promise<Product> {

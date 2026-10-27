@@ -50,6 +50,13 @@
       "when": 1793065409152,
       "tag": "0006_cart_items",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793072744356,
+      "tag": "0007_addresses",
+      "breakpoints": true
     }
   ]
 }

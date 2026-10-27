@@ -18,7 +18,7 @@ beforeEach(async () => {
 afterEach(() => ctx.close());
 
 type Item = { productId: string; slug: string; name: string; type: string; price: number; qty: number; maxQty: number; lineTotal: number; coverUrl: string | null; status: string };
-type Cart = { items: Item[]; subtotal: number; canCheckout: boolean };
+type Cart = { items: Item[]; subtotal: number; canCheckout: boolean; requiresAddress: boolean };
 
 async function publish(over: Record<string, unknown> = {}) {
   const p = await makeProduct(ctx, admin, over);
@@ -45,7 +45,7 @@ describe("akses (F3.1)", () => {
   });
 
   it("keranjang baru kosong dan belum bisa checkout", async () => {
-    expect(await cart()).toEqual({ items: [], subtotal: 0, canCheckout: false });
+    expect(await cart()).toEqual({ items: [], subtotal: 0, canCheckout: false, requiresAddress: false });
   });
 
   it("keranjang milik masing-masing akun", async () => {

@@ -104,7 +104,7 @@ describe("validasi dengan pesan per kolom (N15)", () => {
     [{ phone: "12345" }, "phone", "Format nomor HP belum benar. Contoh: 081234567890."],
     [{ phone: "0812abc" }, "phone", "Format nomor HP belum benar. Contoh: 081234567890."],
     [{ phone: "0812345678901234567" }, "phone", "Format nomor HP belum benar. Contoh: 081234567890."],
-    [{ address: "Jl. Pendek" }, "address", "Alamat terlalu pendek, tulis jalan, nomor, RT/RW, dan kelurahan."],
+    [{ address: "Jl. Satu" }, "address", "Alamat terlalu pendek, tulis jalan, nomor, RT/RW, dan kelurahan."],
     [{ address: "x".repeat(301) }, "address", "Alamat maksimal 300 karakter."],
     [{ recipient: "x".repeat(101) }, "recipient", "Nama penerima maksimal 100 karakter."],
     [{ postalCode: "4017" }, "postalCode", "Kode pos terdiri dari 5 angka."],
