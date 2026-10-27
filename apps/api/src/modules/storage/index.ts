@@ -40,6 +40,22 @@ function disposition(filename: string) {
   return `attachment; filename="${ascii}"; filename*=UTF-8''${encoded}`;
 }
 
+// Membaca unggahan kecil ke memori dengan batas ukuran dan jenis dari isi file (pesan sama dengan save).
+// Dipakai bila isi perlu diolah dulu sebelum disimpan, misalnya bukti bayar yang dienkripsi (N2).
+export async function readUpload<T extends FileType>(data: Readable, opts: { allowed: readonly T[]; maxBytes: number }): Promise<{ buffer: Buffer; type: T }> {
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of data) {
+    size += (chunk as Buffer).length;
+    if (size > opts.maxBytes) throw sizeError(opts.maxBytes);
+    chunks.push(chunk as Buffer);
+  }
+  const buffer = Buffer.concat(chunks);
+  const type = detectFileType(buffer);
+  if (!type || !(opts.allowed as readonly FileType[]).includes(type)) throw typeError(opts.allowed);
+  return { buffer, type: type as T };
+}
+
 // ARCHITECTURE K4: file produk dan bukti bayar di disk privat di luar root web (N5).
 // `internalPrefix` diisi di produksi: Nginx yang mengirim file lewat X-Accel-Redirect setelah API memeriksa akses.
 export function createStorage({ dir, internalPrefix }: { dir: string; internalPrefix?: string }) {
