@@ -19,6 +19,7 @@ export default defineConfig({
       cwd: "../..",
       url: "http://127.0.0.1:4000/api/health",
       env: E2E_API_ENV,
+      stdout: "pipe", // log server API (sudah disamarkan, N30) ikut tampil di laporan CI, supaya kegagalan email dll. bisa dilacak
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
     },
