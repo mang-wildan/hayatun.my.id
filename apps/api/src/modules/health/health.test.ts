@@ -12,6 +12,7 @@ const appWith = (execute: () => Promise<unknown>, checkWritable: () => Promise<v
     queue: {} as never,
     crypto: {} as never,
     storage: { checkWritable } as never,
+    shipping: {} as never,
     now: () => new Date(),
   });
 

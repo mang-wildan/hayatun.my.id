@@ -15,9 +15,10 @@ import { catalogRoutes } from "./modules/catalog/routes.js";
 import { productRoutes } from "./modules/products/routes.js";
 import type { Crypto } from "./modules/crypto/index.js";
 import { healthRoutes } from "./modules/health/routes.js";
+import type { ShippingProvider } from "./modules/shipping/index.js";
 import type { Storage } from "./modules/storage/index.js";
 
-export interface AppDeps { config: Config; db: Db; logger: Logger; queue: JobQueue; crypto: Crypto; storage: Storage; now: () => Date }
+export interface AppDeps { config: Config; db: Db; logger: Logger; queue: JobQueue; crypto: Crypto; storage: Storage; shipping: ShippingProvider; now: () => Date }
 
 // N7: permintaan pengubah data dari situs lain ditolak. Browser selalu mengirim Origin untuk permintaan lintas situs,
 // jadi permintaan tanpa Origin (curl, tes, server-ke-server) tidak berasal dari formulir situs lain.
