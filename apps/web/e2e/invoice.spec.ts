@@ -180,6 +180,17 @@ test.describe("aksesibilitas invoice (N11–N16)", () => {
     });
   }
 
+  test("HP: angka dan kata di tabel tidak terpotong di tengah", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.goto(`/invoice/${await mixedOrder()}`);
+    for (const cell of await page.locator(".invoice-table td.num").all()) {
+      expect(await cell.evaluate((e) => getComputedStyle(e).whiteSpace)).toBe("nowrap"); // "Rp75.000" tetap satu baris
+    }
+    for (const cell of await page.locator(".invoice-table th, .invoice-table td").all()) {
+      expect(await cell.evaluate((e) => getComputedStyle(e).overflowWrap)).toBe("normal"); // kata hanya patah di spasi
+    }
+  });
+
   test("HP: tombol cetak berukuran sentuh minimal 44px", async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 800 });
     await page.goto(`/invoice/${await digitalOrder()}`);

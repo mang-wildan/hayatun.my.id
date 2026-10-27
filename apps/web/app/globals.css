@@ -268,3 +268,28 @@ code, .mono { font-family: var(--font-mono); }
   .checkout-bar .btn { width: auto; }
 }
 @media (min-width: 1024px) { .checkout-layout { grid-template-columns: minmax(0, 1fr) 24rem; } .summary { position: sticky; top: var(--space-4); } }
+
+/* ---- invoice: dokumen netral, siap cetak (DESIGN §6, ARCHITECTURE K8) ---- */
+.invoice-actions { display: flex; justify-content: flex-end; max-width: 800px; }
+.invoice { max-width: 800px; padding: var(--space-4); background: #FFFFFF; color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-card); display: grid; gap: var(--space-6); overflow-wrap: anywhere; }
+.invoice > * + * { margin: 0; }
+.invoice-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-4); }
+.invoice-head .shop { font-size: 1.375rem; font-weight: 700; color: var(--brand); }
+.invoice-meta { display: grid; gap: var(--space-1); justify-items: start; }
+.invoice-meta h1 { font-size: 1.5rem; }
+.invoice-parties { display: grid; gap: var(--space-4); }
+.invoice-parties h2 { font-size: 1rem; color: var(--ink-soft); margin-bottom: var(--space-1); }
+.invoice-table { width: 100%; border-collapse: collapse; }
+.invoice-table th, .invoice-table td { padding: var(--space-2); text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 0.9375rem; }
+.invoice-table th { font-weight: 600; color: var(--ink-soft); }
+.invoice-table th, .invoice-table td { padding: var(--space-2) var(--space-1); font-size: 0.875rem; overflow-wrap: normal; } /* kata hanya patah di spasi; lebar kolom mengikuti kata terpanjang */
+.invoice-table .num { text-align: right; }
+.invoice-table td.num { white-space: nowrap; }
+.invoice-totals { margin-left: auto; width: 100%; }
+@media (min-width: 768px) { .invoice-table th, .invoice-table td { padding: var(--space-2); font-size: 1rem; } .invoice { padding: var(--space-8); } .invoice-meta { justify-items: end; text-align: right; } .invoice-parties { grid-template-columns: 1fr 1fr; } .invoice-table th, .invoice-table td { font-size: 1rem; } }
+@media print {
+  .top-bar, .invoice-actions { display: none !important; }
+  body { background: #FFFFFF; }
+  .page { padding: 0; max-width: none; }
+  .invoice { max-width: none; padding: 0; border: 0; box-shadow: none; border-radius: 0; }
+}

@@ -88,7 +88,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npx vitest run apps/api/src/modules/invoices`
 - [x] **T30 Halaman checkout: Keranjang → Pengiriman → Bayar, maksimal 5 layar** — F3, N8 · **B**
   Selesai jika: `npm run test:e2e -- checkout`
-- [ ] **T31 Halaman invoice siap cetak** — F6.4 · **B**
+- [x] **T31 Halaman invoice siap cetak** — F6.4 · **B**
   Selesai jika: `npm run test:e2e -- invoice`
 
 ## Fase 4 — Pembayaran manual dan verifikasi
