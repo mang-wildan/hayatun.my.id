@@ -2,11 +2,13 @@ import { createProductSchema, linkSchema, productRuleErrors, updateProductSchema
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import type { Request } from "express";
 import type { AppDeps } from "../../app.js";
+import { checkLowStock, LOW_STOCK_THRESHOLD } from "./low-stock.js";
+import { licenseCounts, stockOf, type Stock } from "./stock.js";
 import { licenseCodes, productFiles, products } from "../../db/schema.js";
 import { HttpError } from "../../errors.js";
 import { recordAudit } from "../audit/index.js";
 
-type Deps = Pick<AppDeps, "config" | "db" | "storage" | "now">;
+type Deps = Pick<AppDeps, "config" | "db" | "storage" | "now" | "queue" | "crypto">;
 type Product = typeof products.$inferSelect;
 type ProductFile = typeof productFiles.$inferSelect;
 type Details = Record<string, string | number | boolean>;
@@ -18,30 +20,6 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 const notFound = () => new HttpError(404, "Produk tidak ditemukan.", "PRODUCT_NOT_FOUND");
 const invalid = (field: string, message: string) => new HttpError(422, message, "VALIDATION", { [field]: message });
-
-export interface Stock { available: number | null; reserved: number; sold: number }
-
-type LicenseCounts = Map<string, { available: number; reserved: number; assigned: number }>;
-
-// Jumlah kode per status untuk satu produk, atau semua produk bila `productId` kosong
-export async function licenseCounts(db: Deps["db"], productId?: string): Promise<LicenseCounts> {
-  const rows = await db
-    .select({ id: licenseCodes.productId, status: licenseCodes.status, n: count() })
-    .from(licenseCodes)
-    .where(productId ? eq(licenseCodes.productId, productId) : undefined)
-    .groupBy(licenseCodes.productId, licenseCodes.status);
-  const out: LicenseCounts = new Map();
-  for (const r of rows) out.set(r.id, { ...(out.get(r.id) ?? { available: 0, reserved: 0, assigned: 0 }), [r.status]: r.n });
-  return out;
-}
-
-// Tersedia, ditahan, terjual (F9.4). Fisik dari kolom stok; berlisensi dari status kode; digital biasa tanpa batas.
-export function stockOf(p: Product, licenses: LicenseCounts): Stock {
-  if (p.type === "physical") return { available: p.stockQty - p.stockReserved, reserved: p.stockReserved, sold: p.stockSold };
-  if (!p.isLicensed) return { available: null, reserved: 0, sold: p.stockSold };
-  const c = licenses.get(p.id) ?? { available: 0, reserved: 0, assigned: 0 };
-  return { available: c.available, reserved: c.reserved, sold: c.assigned };
-}
 
 export const coverUrl = (p: Product) => (p.coverKey ? `/api/admin/products/${p.id}/cover?v=${p.coverUpdatedAt?.getTime() ?? 0}` : null);
 
@@ -157,7 +135,12 @@ export async function updateProduct(deps: Deps, actorId: string, id: string, inp
     throw new HttpError(422, message, "STOCK_BELOW_RESERVED", { stockQty: message });
   }
   if (Object.keys(changed).length) await audit(deps, actorId, "product.updated", p.id, changed);
-  if (stockChange) await audit(deps, actorId, "product.stock_changed", p.id, { from: p.stockQty, to: body.stockQty! });
+  if (stockChange) {
+    await audit(deps, actorId, "product.stock_changed", p.id, { from: p.stockQty, to: body.stockQty! });
+    // hanya saat stok berkurang atau pulih di atas ambang; menaikkan stok yang masih rendah tidak perlu mengirim apa pun
+    const available = updated.stockQty - updated.stockReserved;
+    if (available < p.stockQty - p.stockReserved || available > LOW_STOCK_THRESHOLD) await checkLowStock(deps, p.id);
+  }
   return detail(deps, updated);
 }
 
@@ -249,7 +232,7 @@ const MAX_CODE_LENGTH = 200;
 const CHUNK = 1000;
 const codesError = (message: string) => new HttpError(422, message, "VALIDATION", { codes: message });
 
-export async function addLicenses(deps: Deps & { crypto: AppDeps["crypto"] }, actorId: string, id: string, input: unknown) {
+export async function addLicenses(deps: Deps, actorId: string, id: string, input: unknown) {
   const p = await load(deps, id);
   if (p.type !== "digital" || !p.isLicensed) throw new HttpError(422, "Produk ini tidak memakai kode lisensi.", "NOT_LICENSED");
 
@@ -270,5 +253,7 @@ export async function addLicenses(deps: Deps & { crypto: AppDeps["crypto"] }, ac
   }
   const duplicates = lines.length - added;
   await audit(deps, actorId, "product.licenses_added", p.id, { added, duplicates });
+  if (added) await checkLowStock(deps, p.id); // stok pulih: atur ulang penanda
+
   return { added, duplicates };
 }
