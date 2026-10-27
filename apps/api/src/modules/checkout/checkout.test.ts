@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import pg from "pg";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createSession } from "../auth/sessions.js";
@@ -244,6 +245,27 @@ describe("alamat dan ongkir saat membuat pesanan", () => {
   });
 });
 
+// Memastikan permintaan benar-benar tumpang tindih: baris produk dikunci dari koneksi lain sampai semua permintaan
+// tertahan di sebuah kunci, baru dilepas. Tanpa ini, permintaan "bersamaan" sering selesai satu per satu dan bug lolos.
+async function overlapped<T>(productId: string, waiting: number, fire: () => Promise<T>): Promise<T> {
+  const client = new pg.Client({ connectionString: process.env.DATABASE_MIGRATION_URL });
+  await client.connect();
+  try {
+    await client.query("begin");
+    await client.query("select id from products where id = $1 for update", [productId]);
+    const running = fire();
+    for (let i = 0; i < 150; i++) {
+      const { rows } = await client.query<{ n: number }>("select count(distinct pid)::int as n from pg_locks where not granted");
+      if (rows[0].n >= waiting) break;
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    await client.query("commit");
+    return await running;
+  } finally {
+    await client.end();
+  }
+}
+
 describe("permintaan bersamaan (F3.9, N24)", () => {
   it("dua pembeli untuk stok fisik terakhir: tepat satu pesanan, yang lain diberi tahu habis", async () => {
     const f = await physical({ name: "Nastar Terakhir", stockQty: 1 });
@@ -251,7 +273,7 @@ describe("permintaan bersamaan (F3.9, N24)", () => {
     await addToCart(f.id);
     await addToCart(f.id, undefined, other);
     const [bodyB, bodyO] = [await physicalBody(), await physicalBody(other)]; // rincian dulu, lalu checkout benar-benar bersamaan
-    const results = await Promise.all([checkout(bodyB), checkout(bodyO, other)]);
+    const results = await overlapped(f.id, 2, () => Promise.all([checkout(bodyB), checkout(bodyO, other)]));
     expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
     const lost = results.find((r) => r.status === 409)!;
     expect(lost.body.code).toBe("CART_NOT_READY");
@@ -266,7 +288,7 @@ describe("permintaan bersamaan (F3.9, N24)", () => {
     const other = api(ctx, await ctx.buyerCookie());
     await addToCart(lic.id);
     await addToCart(lic.id, undefined, other);
-    const results = await Promise.all([checkout({ expectedTotal: 50000 }), checkout({ expectedTotal: 50000 }, other)]);
+    const results = await overlapped(lic.id, 2, () => Promise.all([checkout({ expectedTotal: 50000 }), checkout({ expectedTotal: 50000 }, other)]));
     expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
     expect(await rows(sql`select status from license_codes where status = 'reserved'`)).toHaveLength(1);
     expect(await rows(sql`select id from orders`)).toHaveLength(1);
@@ -275,9 +297,9 @@ describe("permintaan bersamaan (F3.9, N24)", () => {
   it("klik ganda dari pembeli yang sama: satu pesanan", async () => {
     const d = await publish({ price: 75000 });
     await addToCart(d.id);
-    const results = await Promise.all([checkout({ expectedTotal: 75000 }), checkout({ expectedTotal: 75000 })]);
-    expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
-    expect(results.find((r) => r.status === 409)!.body.code).toBe("CART_EMPTY");
+    const results = await overlapped(d.id, 5, () => Promise.all(Array.from({ length: 5 }, () => checkout({ expectedTotal: 75000 }))));
+    expect(results.filter((r) => r.status === 201)).toHaveLength(1);
+    expect(results.filter((r) => r.status !== 201).every((r) => r.body.code === "CART_EMPTY")).toBe(true);
     expect(await rows(sql`select id from orders`)).toHaveLength(1);
   });
 

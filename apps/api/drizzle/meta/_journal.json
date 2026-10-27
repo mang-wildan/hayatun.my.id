@@ -57,6 +57,13 @@
       "when": 1793072744356,
       "tag": "0007_addresses",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793076283428,
+      "tag": "0008_orders",
+      "breakpoints": true
     }
   ]
 }

@@ -7,6 +7,7 @@ export class HttpError extends Error {
     message: string,
     public code?: string,
     public fields?: Record<string, string>, // pesan per kolom formulir
+    public extra?: Record<string, unknown>, // data tambahan untuk pembeli, misalnya daftar item yang habis
   ) {
     super(message);
   }
@@ -14,7 +15,7 @@ export class HttpError extends Error {
 
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   if (err instanceof HttpError) {
-    res.status(err.status).json({ message: err.message, code: err.code, fields: err.fields });
+    res.status(err.status).json({ ...err.extra, message: err.message, code: err.code, fields: err.fields });
   } else if (err instanceof ZodError) {
     const fields: Record<string, string> = {};
     for (const i of err.issues) fields[i.path.join(".")] ??= i.message;
