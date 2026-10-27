@@ -187,3 +187,14 @@ export const invoiceCounters = pgTable("invoice_counters", {
   period: text("period").primaryKey(),
   lastNumber: integer("last_number").notNull(),
 });
+
+// Bukti bayar (F4.3). File terenkripsi di disk privat; baris ini tetap ada sebagai catatan walau file dihapus setelah 1 tahun (F12.3).
+export const paymentProofs = pgTable("payment_proofs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderId: uuid("order_id").notNull().references(() => orders.id),
+  storageKey: text("storage_key").notNull(),
+  mime: text("mime").notNull(), // dari isi file, bukan dari kiriman pembeli
+  sizeBytes: integer("size_bytes").notNull(),
+  status: text("status", { enum: ["pending", "accepted", "rejected"] }).notNull().default("pending"),
+  uploadedAt: ts("uploaded_at").notNull().defaultNow(),
+}, (t) => [index("payment_proofs_order_idx").on(t.orderId, t.uploadedAt)]);
