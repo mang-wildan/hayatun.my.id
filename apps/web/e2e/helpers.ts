@@ -8,14 +8,14 @@ const crypto = createCrypto({ keys: { k1: KEYS.encryption }, activeKeyId: "k1", 
 // Membuat admin lengkap dengan sesi langsung di database, untuk tes yang tidak menguji proses masuk.
 export const adminCookie = (email = `admin-${Date.now()}@hayatun.test`) => sessionCookie("admin", email);
 // Pembeli terverifikasi dengan sesi langsung di database
-export const buyerCookie = (email = `pembeli-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@hayatun.test`) => sessionCookie("buyer", email);
+export const buyerCookie = (email = `pembeli-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@hayatun.test`, opts: { verified?: boolean } = {}) => sessionCookie("buyer", email, opts.verified ?? true);
 
-async function sessionCookie(role: "admin" | "buyer", email: string) {
+async function sessionCookie(role: "admin" | "buyer", email: string, verified = true) {
   const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
   const { rows } = await pool.query<{ id: string }>(
     `insert into users (role, status, email_enc, email_index, name_enc, email_verified_at, totp_enabled)
-     values ($4, 'active', $1, $2, $3, now(), $5) returning id`,
-    [crypto.encrypt(email), crypto.blindIndex(email), crypto.encrypt(role === "admin" ? "Admin Tes" : "Pembeli Tes"), role, role === "admin"],
+     values ($4, 'active', $1, $2, $3, case when $6 then now() end, $5) returning id`,
+    [crypto.encrypt(email), crypto.blindIndex(email), crypto.encrypt(role === "admin" ? "Admin Tes" : "Pembeli Tes"), role, role === "admin", verified],
   );
   const token = randomBytes(32).toString("base64url");
   await pool.query(
@@ -141,4 +141,20 @@ export async function resetProducts() {
 export async function adminApi(cookie: { name: string; value: string }, method: string, path: string, body?: object) {
   const res = await fetch(`${WEB_URL}${path}`, { method, headers: { Cookie: `${cookie.name}=${cookie.value}`, "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
   if (!res.ok) throw new Error(`${method} ${path} -> ${res.status} ${await res.text()}`);
+}
+
+export const ADDRESS = { recipient: "Budi Santoso", phone: "081234567890", address: "Jl. Pajajaran No. 12 RT 03/RW 05, Cicendo", areaId: "Cicendo", postalCode: "40172" };
+
+// Data awal pembeli lewat API, bukan lewat tampilan
+export async function userApi(cookie: { name: string; value: string }, method: string, path: string, body?: object) {
+  const res = await fetch(`${WEB_URL}${path}`, { method, headers: { Cookie: `${cookie.name}=${cookie.value}`, "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+  if (!res.ok) throw new Error(`${method} ${path} -> ${res.status} ${await res.text()}`);
+  return res.status === 204 ? null : res.json();
+}
+
+export async function countOrders() {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  const { rows } = await pool.query<{ n: number }>("select count(*)::int as n from orders");
+  await pool.end();
+  return rows[0].n;
 }
