@@ -11,7 +11,7 @@ type Product = typeof products.$inferSelect;
 const SLUG = /^[a-z0-9-]{1,120}$/;
 const notFound = () => new HttpError(404, "Produk tidak ditemukan.", "PRODUCT_NOT_FOUND");
 
-const coverUrl = (p: Product) => (p.coverKey ? `/api/catalog/${p.slug}/cover?v=${p.coverUpdatedAt?.getTime() ?? 0}` : null);
+export const coverUrl = (p: Product) => (p.coverKey ? `/api/catalog/${p.slug}/cover?v=${p.coverUpdatedAt?.getTime() ?? 0}` : null);
 
 // Publik hanya boleh tahu tersedia atau Habis, bukan jumlah stok (F2.3)
 const isAvailable = (available: number | null) => available === null || available > 0;

@@ -6,12 +6,16 @@ import { E2E_API_ENV, KEYS, WEB_URL } from "./env";
 const crypto = createCrypto({ keys: { k1: KEYS.encryption }, activeKeyId: "k1", blindIndexKey: KEYS.blindIndex });
 
 // Membuat admin lengkap dengan sesi langsung di database, untuk tes yang tidak menguji proses masuk.
-export async function adminCookie(email = `admin-${Date.now()}@hayatun.test`) {
+export const adminCookie = (email = `admin-${Date.now()}@hayatun.test`) => sessionCookie("admin", email);
+// Pembeli terverifikasi dengan sesi langsung di database
+export const buyerCookie = (email = `pembeli-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@hayatun.test`) => sessionCookie("buyer", email);
+
+async function sessionCookie(role: "admin" | "buyer", email: string) {
   const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
   const { rows } = await pool.query<{ id: string }>(
     `insert into users (role, status, email_enc, email_index, name_enc, email_verified_at, totp_enabled)
-     values ('admin', 'active', $1, $2, $3, now(), true) returning id`,
-    [crypto.encrypt(email), crypto.blindIndex(email), crypto.encrypt("Admin Tes")],
+     values ($4, 'active', $1, $2, $3, now(), $5) returning id`,
+    [crypto.encrypt(email), crypto.blindIndex(email), crypto.encrypt(role === "admin" ? "Admin Tes" : "Pembeli Tes"), role, role === "admin"],
   );
   const token = randomBytes(32).toString("base64url");
   await pool.query(
@@ -128,4 +132,10 @@ export async function resetProducts() {
   const { rows } = await pool.query<{ t: string }>("select tablename as t from pg_tables where schemaname = 'public' and tablename in ('license_codes', 'product_files', 'products')");
   if (rows.length) await pool.query(`truncate ${rows.map((r) => r.t).join(", ")} cascade`);
   await pool.end();
+}
+
+// Panggilan API sebagai admin, untuk mengubah produk di tengah tes (menonaktifkan, mengubah stok)
+export async function adminApi(cookie: { name: string; value: string }, method: string, path: string, body?: object) {
+  const res = await fetch(`${WEB_URL}${path}`, { method, headers: { Cookie: `${cookie.name}=${cookie.value}`, "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+  if (!res.ok) throw new Error(`${method} ${path} -> ${res.status} ${await res.text()}`);
 }

@@ -2,4 +2,5 @@ export * from "./money";
 export * from "./datetime";
 export * from "./schemas/auth";
 export * from "./schemas/product";
+export * from "./schemas/cart";
 export * from "./order-status";
