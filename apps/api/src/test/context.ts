@@ -9,6 +9,7 @@ import { users } from "../db/schema.js";
 import { createMemoryQueue } from "../jobs/queue.js";
 import { createLogger } from "../logger.js";
 import { hashPassword } from "../modules/auth/password.js";
+import { createSession } from "../modules/auth/sessions.js";
 import { createCrypto } from "../modules/crypto/index.js";
 import { createMemoryMailer, type Mailer } from "../modules/notifications/mailer.js";
 import { registerEmailWorker } from "../modules/notifications/worker.js";
@@ -90,6 +91,14 @@ export async function createTestContext(over: { mailer?: Mailer } = {}) {
     return row.id;
   }
 
+  // cookie sesi untuk admin atau pembeli baru, langsung dibuat di database
+  let seq = 0;
+  async function cookieFor(role: "admin" | "buyer", over: { status?: "active" | "disabled" } = {}) {
+    const email = `${role}${++seq}@hayatun.test`;
+    const id = await createUser({ email, password: "rahasia-hayatun-1", role, name: `${role} ${seq}`, ...over });
+    return `hayatun_sid=${(await createSession(db, { id, role }, clock.now)).token}`;
+  }
+
   // jalankan antrean lalu kembalikan email yang terkirim
   async function emails() {
     await queue.runAll();
@@ -98,6 +107,8 @@ export async function createTestContext(over: { mailer?: Mailer } = {}) {
 
   return {
     app, db, crypto, config, queue, storage, clock, createUser, emails,
+    adminCookie: () => cookieFor("admin"),
+    buyerCookie: () => cookieFor("buyer"),
     post: (path: string, body?: object, cookie?: string) => {
       const r = request(app).post(path).send(body ?? {});
       return cookie ? r.set("Cookie", cookie) : r;

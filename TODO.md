@@ -59,7 +59,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
 
 - [x] **T17 Penyimpanan file privat dan pemeriksaan jenis file dari isinya** — N5 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/storage`
-- [ ] **T18 API kelola produk: berat wajib, tanpa hapus permanen, harga** — F9.1, F9.2, F9.6, F9.8, F9.9 · **B**
+- [x] **T18 API kelola produk: berat wajib, tanpa hapus permanen, harga** — F9.1, F9.2, F9.6, F9.8, F9.9 · **B**
   Selesai jika: `npx vitest run apps/api/src/modules/products/products.test.ts`
 - [ ] **T19 Stok, kode lisensi massal, tolak duplikat, angka tersedia/ditahan/terjual** — F9.3, F9.4, F9.7 · **B**
   Selesai jika: `npx vitest run apps/api/src/modules/products/stock.test.ts`

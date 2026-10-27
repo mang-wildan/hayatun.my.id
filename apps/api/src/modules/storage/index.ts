@@ -97,6 +97,8 @@ export function createStorage({ dir, internalPrefix }: { dir: string; internalPr
 
     read: async (key: string) => readFile(pathFor(key)),
 
+    size: async (key: string) => (await stat(pathFor(key))).size,
+
     // aman dipanggil berulang, misalnya oleh tugas hapus bukti bayar setelah 1 tahun
     remove: async (key: string) => rm(pathFor(key), { force: true }),
 
@@ -107,15 +109,16 @@ export function createStorage({ dir, internalPrefix }: { dir: string; internalPr
       await rm(probe, { force: true });
     },
 
-    async send(res: Response, key: string, file: { filename: string; contentType: string }): Promise<void> {
+    async send(res: Response, key: string, file: { filename: string; contentType: string; inline?: boolean; cacheControl?: string }): Promise<void> {
       const path = pathFor(key);
       // tanpa Nginx (lokal dan tes e2e) API mengalirkan filenya sendiri; periksa dulu sebelum header terpasang
       const info = internalPrefix ? null : await stat(path).catch(() => null);
       if (!internalPrefix && !info?.isFile()) throw new HttpError(404, "File tidak ditemukan.", "FILE_NOT_FOUND");
       res.setHeader("Content-Type", file.contentType);
-      res.setHeader("Content-Disposition", disposition(file.filename));
+      // inline hanya untuk gambar sampul yang memang tampil di halaman; selebihnya selalu diunduh
+      res.setHeader("Content-Disposition", file.inline ? disposition(file.filename).replace(/^attachment/, "inline") : disposition(file.filename));
       res.setHeader("X-Content-Type-Options", "nosniff");
-      res.setHeader("Cache-Control", "private, no-store");
+      res.setHeader("Cache-Control", file.cacheControl ?? "private, no-store");
       if (internalPrefix) {
         res.setHeader("X-Accel-Redirect", `${internalPrefix}/${key}`);
         return void res.end();
