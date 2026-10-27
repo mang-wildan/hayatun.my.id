@@ -80,7 +80,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npx vitest run apps/api/src/modules/orders/state-machine.test.ts --coverage` dengan cakupan cabang 100% untuk `state-machine.ts`
 - [x] **T26 Adaptor ongkir dan tiruannya: batas 5 detik, wilayah tidak dilayani, data terbatas** — F3.2, F3.6, F3.7, N19, N27 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/shipping`
-- [ ] **T27 Alamat pembeli terenkripsi, tidak diminta untuk keranjang digital** — F3.3, F12.1, N27 · **B**
+- [x] **T27 Alamat pembeli terenkripsi, tidak diminta untuk keranjang digital** — F3.3, F12.1, N27 · **B**
   Selesai jika: `npx vitest run apps/api/src/modules/addresses`
 - [ ] **T28 Checkout: kunci harga, tahan stok dan lisensi, wajib email terverifikasi, uji bersamaan** — F1.1, F1.2, F3.4, F3.5, F3.8, F3.9, N24 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/checkout`

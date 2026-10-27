@@ -128,3 +128,16 @@ export const cartItems = pgTable("cart_items", {
   primaryKey({ columns: [t.userId, t.productId] }),
   check("cart_items_qty_range", sql`${t.qty} between 1 and 99`),
 ]);
+
+// Alamat pembeli (F12.1). Nama, nomor HP, dan alamat terenkripsi; area_id dan kode pos terbuka karena hanya itu yang dikirim ke penyedia ongkir (N27).
+export const addresses = pgTable("addresses", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  recipientEnc: text("recipient_enc").notNull(),
+  phoneEnc: text("phone_enc").notNull(),
+  addressEnc: text("address_enc").notNull(),
+  areaId: text("area_id").notNull(),
+  postalCode: text("postal_code").notNull(),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+}, (t) => [index("addresses_user_idx").on(t.userId, t.createdAt)]);
