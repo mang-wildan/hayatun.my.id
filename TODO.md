@@ -86,7 +86,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npx vitest run apps/api/src/modules/checkout`
 - [x] **T29 Nomor invoice berurutan per bulan dan data invoice tanpa PPN, akses hanya pemilik/admin** — F6.1, F6.2, F6.3, F6.5, F6.6 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/invoices`
-- [ ] **T30 Halaman checkout: Keranjang → Pengiriman → Bayar, maksimal 5 layar** — F3, N8 · **B**
+- [x] **T30 Halaman checkout: Keranjang → Pengiriman → Bayar, maksimal 5 layar** — F3, N8 · **B**
   Selesai jika: `npm run test:e2e -- checkout`
 - [ ] **T31 Halaman invoice siap cetak** — F6.4 · **B**
   Selesai jika: `npm run test:e2e -- invoice`
