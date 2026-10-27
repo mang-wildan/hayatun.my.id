@@ -158,3 +158,10 @@ export async function countOrders() {
   await pool.end();
   return rows[0].n;
 }
+
+// Mengubah status pesanan langsung di database, karena verifikasi dan pembatalan belum punya antarmuka di tahap ini
+export async function setOrderStatus(orderId: string, status: string) {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  await pool.query("update orders set status = $1 where id = $2", [status, orderId]);
+  await pool.end();
+}
