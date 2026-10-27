@@ -1,8 +1,8 @@
 import { createProductSchema, linkSchema, productRuleErrors, updateProductSchema } from "@hayatun/shared";
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import type { Request } from "express";
 import type { AppDeps } from "../../app.js";
-import { productFiles, products } from "../../db/schema.js";
+import { licenseCodes, productFiles, products } from "../../db/schema.js";
 import { HttpError } from "../../errors.js";
 import { recordAudit } from "../audit/index.js";
 
@@ -21,10 +21,26 @@ const invalid = (field: string, message: string) => new HttpError(422, message, 
 
 export interface Stock { available: number | null; reserved: number; sold: number }
 
-export function stockOf(p: Product): Stock {
+type LicenseCounts = Map<string, { available: number; reserved: number; assigned: number }>;
+
+// Jumlah kode per status untuk satu produk, atau semua produk bila `productId` kosong
+export async function licenseCounts(db: Deps["db"], productId?: string): Promise<LicenseCounts> {
+  const rows = await db
+    .select({ id: licenseCodes.productId, status: licenseCodes.status, n: count() })
+    .from(licenseCodes)
+    .where(productId ? eq(licenseCodes.productId, productId) : undefined)
+    .groupBy(licenseCodes.productId, licenseCodes.status);
+  const out: LicenseCounts = new Map();
+  for (const r of rows) out.set(r.id, { ...(out.get(r.id) ?? { available: 0, reserved: 0, assigned: 0 }), [r.status]: r.n });
+  return out;
+}
+
+// Tersedia, ditahan, terjual (F9.4). Fisik dari kolom stok; berlisensi dari status kode; digital biasa tanpa batas.
+export function stockOf(p: Product, licenses: LicenseCounts): Stock {
   if (p.type === "physical") return { available: p.stockQty - p.stockReserved, reserved: p.stockReserved, sold: p.stockSold };
-  // produk digital berlisensi dihitung dari kode (T19); tanpa lisensi tidak ada batas
-  return { available: p.isLicensed ? 0 : null, reserved: 0, sold: p.stockSold };
+  if (!p.isLicensed) return { available: null, reserved: 0, sold: p.stockSold };
+  const c = licenses.get(p.id) ?? { available: 0, reserved: 0, assigned: 0 };
+  return { available: c.available, reserved: c.reserved, sold: c.assigned };
 }
 
 export const coverUrl = (p: Product) => (p.coverKey ? `/api/admin/products/${p.id}/cover?v=${p.coverUpdatedAt?.getTime() ?? 0}` : null);
@@ -38,7 +54,7 @@ function summary(p: Product, fileCount: number, stock: Stock) {
 async function detail(deps: Deps, p: Product) {
   const files = await deps.db.select().from(productFiles).where(eq(productFiles.productId, p.id)).orderBy(productFiles.createdAt);
   return {
-    ...summary(p, files.length, stockOf(p)),
+    ...summary(p, files.length, stockOf(p, await licenseCounts(deps.db, p.id))),
     description: p.description,
     weightG: p.weightG,
     createdAt: p.createdAt,
@@ -65,7 +81,8 @@ export async function listProducts(deps: Deps) {
   const rows = await deps.db.select().from(products).orderBy(desc(products.createdAt));
   const counts = await deps.db.select({ id: productFiles.productId, n: count() }).from(productFiles).groupBy(productFiles.productId);
   const byProduct = new Map(counts.map((c) => [c.id, c.n]));
-  return { products: rows.map((p) => summary(p, byProduct.get(p.id) ?? 0, stockOf(p))) };
+  const licenses = await licenseCounts(deps.db);
+  return { products: rows.map((p) => summary(p, byProduct.get(p.id) ?? 0, stockOf(p, licenses))) };
 }
 
 export async function getProduct(deps: Deps, id: string) {
@@ -126,9 +143,19 @@ export async function updateProduct(deps: Deps, actorId: string, id: string, inp
   const stockChange = physical && body.stockQty !== undefined && body.stockQty !== p.stockQty;
   if (stockChange) set.stockQty = body.stockQty;
 
+  // syarat stok ada di UPDATE itu sendiri, supaya penahanan yang masuk bersamaan tidak terlewat
   const [updated] = Object.keys(changed).length || stockChange
-    ? await deps.db.update(products).set(set).where(eq(products.id, p.id)).returning()
+    ? await deps.db
+        .update(products)
+        .set(set)
+        .where(and(eq(products.id, p.id), stockChange ? sql`${products.stockReserved} <= ${body.stockQty}` : undefined))
+        .returning()
     : [p];
+  if (!updated) {
+    const [now] = await deps.db.select({ reserved: products.stockReserved }).from(products).where(eq(products.id, p.id));
+    const message = `Stok tidak boleh di bawah jumlah yang sedang ditahan (${now.reserved}).`;
+    throw new HttpError(422, message, "STOCK_BELOW_RESERVED", { stockQty: message });
+  }
   if (Object.keys(changed).length) await audit(deps, actorId, "product.updated", p.id, changed);
   if (stockChange) await audit(deps, actorId, "product.stock_changed", p.id, { from: p.stockQty, to: body.stockQty! });
   return detail(deps, updated);
@@ -213,4 +240,35 @@ export async function getCover(deps: Deps, id: string) {
   const p = await load(deps, id);
   if (!p.coverKey) throw new HttpError(404, "Produk ini belum punya sampul.", "NO_COVER");
   return { key: p.coverKey, ...coverFile(p.coverKey) };
+}
+
+// ---- kode lisensi (F9.3, F9.7) ----
+
+const MAX_CODES = 5000;
+const MAX_CODE_LENGTH = 200;
+const CHUNK = 1000;
+const codesError = (message: string) => new HttpError(422, message, "VALIDATION", { codes: message });
+
+export async function addLicenses(deps: Deps & { crypto: AppDeps["crypto"] }, actorId: string, id: string, input: unknown) {
+  const p = await load(deps, id);
+  if (p.type !== "digital" || !p.isLicensed) throw new HttpError(422, "Produk ini tidak memakai kode lisensi.", "NOT_LICENSED");
+
+  const raw = typeof (input as { codes?: unknown } | undefined)?.codes === "string" ? (input as { codes: string }).codes : "";
+  const lines = raw.split(/\r?\n/).map((line, i) => ({ code: line.trim(), n: i + 1 })).filter((l) => l.code);
+  if (!lines.length) throw codesError("Tempel minimal satu kode.");
+  if (lines.length > MAX_CODES) throw codesError("Maksimal 5.000 kode sekali tambah.");
+  const tooLong = lines.find((l) => l.code.length > MAX_CODE_LENGTH);
+  if (tooLong) throw codesError(`Baris ${tooLong.n} terlalu panjang (maksimal ${MAX_CODE_LENGTH} karakter).`);
+
+  // duplikat dibandingkan lewat blind index (huruf besar-kecil dianggap sama); yang sudah ada di database dilewati oleh constraint unik
+  const unique = new Map(lines.map((l) => [deps.crypto.blindIndex(l.code), l.code]));
+  const rows = [...unique].map(([codeIndex, code]) => ({ productId: p.id, codeIndex, codeEnc: deps.crypto.encrypt(code), createdAt: deps.now() }));
+  let added = 0;
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const inserted = await deps.db.insert(licenseCodes).values(rows.slice(i, i + CHUNK)).onConflictDoNothing().returning({ id: licenseCodes.id });
+    added += inserted.length;
+  }
+  const duplicates = lines.length - added;
+  await audit(deps, actorId, "product.licenses_added", p.id, { added, duplicates });
+  return { added, duplicates };
 }

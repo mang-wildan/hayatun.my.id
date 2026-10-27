@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { bigint, bigserial, boolean, check, index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { bigint, bigserial, boolean, check, index, integer, jsonb, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 
@@ -99,4 +99,19 @@ export const productFiles = pgTable("product_files", {
 }, (t) => [
   index("product_files_product_idx").on(t.productId),
   check("product_files_kind_data", sql`(${t.kind} = 'file' and ${t.storageKey} is not null) or (${t.kind} = 'link' and ${t.url} is not null)`),
+]);
+
+// Kode lisensi untuk produk digital berlisensi. Isi kode terenkripsi; `code_index` (blind index) hanya untuk menolak duplikat.
+export const licenseCodes = pgTable("license_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  productId: uuid("product_id").notNull().references(() => products.id),
+  codeEnc: text("code_enc").notNull(),
+  codeIndex: text("code_index").notNull(),
+  status: text("status", { enum: ["available", "reserved", "assigned"] }).notNull().default("available"),
+  orderItemId: uuid("order_item_id"), // diisi saat pesanan dibuat (T28)
+  assignedAt: ts("assigned_at"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+}, (t) => [
+  unique("license_codes_product_code_unique").on(t.productId, t.codeIndex), // F9.7
+  index("license_codes_status_idx").on(t.productId, t.status),
 ]);

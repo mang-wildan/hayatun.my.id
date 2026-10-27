@@ -2,7 +2,7 @@ import { Router } from "express";
 import type { AppDeps } from "../../app.js";
 import { requireAdmin } from "../auth/middleware.js";
 import {
-  addFile, addLink, createProduct, getCover, getProduct, listProducts, removeFile, setActive, setCover, updateProduct,
+  addFile, addLicenses, addLink, createProduct, getCover, getProduct, listProducts, removeFile, setActive, setCover, updateProduct,
 } from "./service.js";
 
 // Semua rute khusus admin (N6). Sengaja tidak ada rute hapus produk (F9.9).
@@ -24,6 +24,9 @@ export function productRoutes(deps: AppDeps) {
     await removeFile(deps, actor(req), req.params.id, req.params.fileId);
     res.status(204).end();
   });
+
+  // kode lisensi hanya bisa ditambah; isinya tidak pernah ditampilkan kembali
+  r.post("/:id/licenses", async (req, res) => { res.json(await addLicenses(deps, actor(req), req.params.id, req.body)); });
 
   r.put("/:id/cover", async (req, res) => { res.json(await setCover(deps, actor(req), req.params.id, req)); });
   r.get("/:id/cover", async (req, res) => {
