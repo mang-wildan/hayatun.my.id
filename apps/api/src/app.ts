@@ -12,6 +12,7 @@ import { loadSession } from "./modules/auth/middleware.js";
 import { authRoutes } from "./modules/auth/routes.js";
 import { addressRoutes } from "./modules/addresses/routes.js";
 import { cartRoutes } from "./modules/cart/routes.js";
+import { checkoutRoutes } from "./modules/checkout/routes.js";
 import { catalogRoutes } from "./modules/catalog/routes.js";
 import { productRoutes } from "./modules/products/routes.js";
 import type { Crypto } from "./modules/crypto/index.js";
@@ -48,6 +49,7 @@ export function createApp(deps: AppDeps) {
   app.use("/api/catalog", catalogRoutes(deps));
   app.use("/api/cart", cartRoutes(deps));
   app.use("/api/addresses", addressRoutes(deps));
+  app.use("/api/checkout", checkoutRoutes(deps));
   app.use(errorHandler);
   return app;
 }

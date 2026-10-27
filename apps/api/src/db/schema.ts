@@ -1,3 +1,4 @@
+import { DIGITAL_STATUSES, ORDER_STATUSES, PHYSICAL_STATUSES } from "@hayatun/shared";
 import { sql } from "drizzle-orm";
 import { bigint, bigserial, boolean, check, index, integer, jsonb, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
@@ -141,3 +142,48 @@ export const addresses = pgTable("addresses", {
   createdAt: ts("created_at").notNull().defaultNow(),
   updatedAt: ts("updated_at").notNull().defaultNow(),
 }, (t) => [index("addresses_user_idx").on(t.userId, t.createdAt)]);
+
+// Pesanan (F3.4). Status mengikuti mesin status di modules/orders; alamat disalin terenkripsi supaya invoice lama tidak berubah.
+export const orders = pgTable("orders", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  invoiceNumber: text("invoice_number").notNull().unique(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  status: text("status", { enum: ORDER_STATUSES }).notNull(),
+  digitalStatus: text("digital_status", { enum: DIGITAL_STATUSES }).notNull(),
+  physicalStatus: text("physical_status", { enum: PHYSICAL_STATUSES }).notNull(),
+  paymentMethod: text("payment_method", { enum: ["manual", "gateway"] }).notNull().default("manual"),
+  subtotal: integer("subtotal").notNull(),
+  shippingCost: integer("shipping_cost").notNull(),
+  total: integer("total").notNull(),
+  expiresAt: ts("expires_at").notNull(),
+  shipRecipientEnc: text("ship_recipient_enc"),
+  shipPhoneEnc: text("ship_phone_enc"),
+  shipAddressEnc: text("ship_address_enc"),
+  shipAreaId: text("ship_area_id"),
+  shipPostalCode: text("ship_postal_code"),
+  courier: text("courier"),
+  courierService: text("courier_service"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+}, (t) => [
+  index("orders_user_idx").on(t.userId, t.createdAt),
+  index("orders_status_idx").on(t.status, t.expiresAt),
+  check("orders_amounts", sql`${t.subtotal} >= 0 and ${t.shippingCost} >= 0 and ${t.total} = ${t.subtotal} + ${t.shippingCost}`),
+]);
+
+// Harga dan nama dikunci saat checkout (F3.4, F9.8)
+export const orderItems = pgTable("order_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderId: uuid("order_id").notNull().references(() => orders.id),
+  productId: uuid("product_id").notNull().references(() => products.id),
+  productType: text("product_type", { enum: ["digital", "physical"] }).notNull(),
+  nameSnapshot: text("name_snapshot").notNull(),
+  unitPrice: integer("unit_price").notNull(),
+  qty: integer("qty").notNull(),
+}, (t) => [index("order_items_order_idx").on(t.orderId), check("order_items_qty_positive", sql`${t.qty} > 0`)]);
+
+// Satu baris per bulan (YYYYMM), dikunci saat mengambil nomor (F6.1)
+export const invoiceCounters = pgTable("invoice_counters", {
+  period: text("period").primaryKey(),
+  lastNumber: integer("last_number").notNull(),
+});
