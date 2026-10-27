@@ -69,7 +69,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npx vitest run apps/api/src/modules/catalog`
 - [x] **T22 Halaman admin produk: formulir, sampul, file, kode lisensi** — F9, N15 · **B**
   Selesai jika: `npm run test:e2e -- admin-products`
-- [ ] **T23 Halaman katalog dan detail produk: kisi 2/3/4, sampul 4:5** — F2, N11, N17 · **B**
+- [x] **T23 Halaman katalog dan detail produk: kisi 2/3/4, sampul 4:5** — F2, N11, N17 · **B**
   Selesai jika: `npm run test:e2e -- catalog a11y`
 
 ## Fase 3 — Keranjang, ongkir, checkout, invoice
