@@ -1,10 +1,11 @@
 import type { OrderStatus } from "@hayatun/shared";
 import { asc, eq } from "drizzle-orm";
 import type { AppDeps } from "../../app.js";
-import { orderItems, orders, storeSettings, users } from "../../db/schema.js";
+import { orderItems, orders, users } from "../../db/schema.js";
 import { HttpError } from "../../errors.js";
 import { recordAudit } from "../audit/index.js";
 import type { SessionUser } from "../auth/sessions.js";
+import { readStore } from "../settings/index.js";
 
 type Deps = Pick<AppDeps, "db" | "crypto" | "config">;
 
@@ -27,13 +28,12 @@ export async function getInvoice(deps: Deps, viewer: SessionUser, orderId: strin
 
   const [buyer] = await deps.db.select({ nameEnc: users.nameEnc, emailEnc: users.emailEnc }).from(users).where(eq(users.id, o.userId));
   const items = await deps.db.select().from(orderItems).where(eq(orderItems.orderId, o.id)).orderBy(asc(orderItems.nameSnapshot));
-  const [store] = await deps.db.select({ value: storeSettings.value }).from(storeSettings).where(eq(storeSettings.key, "store"));
   const open = (v: string | null) => (v ? deps.crypto.decrypt(v) : null);
 
   return {
     number: o.invoiceNumber,
     issuedAt: o.createdAt,
-    store: store?.value ?? { name: "Hayatun", email: deps.config.emailFrom }, // sampai pengaturan toko dibuat (T48)
+    store: await readStore(deps),
     buyer: { name: open(buyer.nameEnc), email: deps.crypto.decrypt(buyer.emailEnc) },
     shippingAddress: o.shipAddressEnc
       ? { recipient: open(o.shipRecipientEnc), phone: open(o.shipPhoneEnc), address: open(o.shipAddressEnc), postalCode: o.shipPostalCode, courier: o.courier, service: o.courierService }
