@@ -14,6 +14,16 @@ describe("createPgBossQueue", () => {
     await q.send("t03.test", { a: 2 }, { retryLimit: 3, retryDelaySec: 600 });
     await expect.poll(() => got.length, { timeout: 15_000 }).toBe(2);
   }, 20_000);
+
+  // regresi flake CI: worker mengambil 1 tugas per 2 detik, sehingga 19 email "stok hampir habis" menahan email verifikasi >30 detik
+  it("tumpukan tugas dikuras cepat, bukan satu per beberapa detik", async () => {
+    const q = await queuePromise;
+    let done = 0;
+    const name = `t03.backlog.${Date.now()}`; // nama unik: sisa tugas dari run sebelumnya tersimpan di database dan tidak boleh ikut terhitung
+    await q.work(name, async () => { done++; });
+    for (let i = 0; i < 30; i++) await q.send(name, { i });
+    await expect.poll(() => done, { timeout: 8_000, interval: 250 }).toBe(30);
+  }, 15_000);
 });
 
 describe("createMemoryQueue", () => {

@@ -28,7 +28,9 @@ export async function createPgBossQueue(url: string, logger?: Logger): Promise<J
     },
     async work<T>(name: string, handler: (data: T) => Promise<void>) {
       await ensure(name);
-      await boss.work(name, async (jobs) => { for (const j of jobs) await handler(j.data as T); });
+      // bawaan pg-boss: 1 tugas per 2 detik (30 per menit), sehingga tumpukan email menahan email yang lebih penting.
+      // Ambil sampai 10 sekaligus dan lanjut tanpa jeda selama batch penuh.
+      await boss.work(name, { batchSize: 10, pollingIntervalSeconds: 1, burstWhenBatchFull: true }, async (jobs) => { for (const j of jobs) await handler(j.data as T); });
     },
     stop: () => boss.stop(),
   };
