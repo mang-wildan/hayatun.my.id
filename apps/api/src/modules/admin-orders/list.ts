@@ -3,6 +3,8 @@ import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { AppDeps } from "../../app.js";
 import { orderItems, orders, users } from "../../db/schema.js";
+import type { SessionUser } from "../auth/sessions.js";
+import { recordBuyerViews } from "../audit/index.js";
 
 type Deps = Pick<AppDeps, "db" | "crypto">;
 
@@ -23,7 +25,7 @@ const querySchema = z.object({
 });
 
 // F13.1. Tanggal dibaca sebagai hari WIB, kedua ujung termasuk. Nomor invoice dicari sebagai teks biasa (tanpa pola LIKE).
-export async function listOrders(deps: Deps, query: unknown) {
+export async function listOrders(deps: Deps, admin: SessionUser, query: unknown) {
   const f = querySchema.parse(query);
   const where = and(
     f.status ? eq(orders.status, f.status) : undefined,
@@ -36,6 +38,7 @@ export async function listOrders(deps: Deps, query: unknown) {
   const [{ total }] = await deps.db.select({ total: sql<number>`count(*)::int` }).from(orders).where(where);
   const rows = await deps.db.select({ o: orders, nameEnc: users.nameEnc }).from(orders).innerJoin(users, eq(users.id, orders.userId))
     .where(where).orderBy(desc(orders.createdAt), desc(orders.id)).limit(PAGE_SIZE).offset((page - 1) * PAGE_SIZE);
+  await recordBuyerViews(deps.db, admin.userId, rows.map(({ o }) => o.id));
   return {
     orders: rows.map(({ o, nameEnc }) => ({
       orderId: o.id, invoiceNumber: o.invoiceNumber, createdAt: o.createdAt, buyerName: nameEnc ? deps.crypto.decrypt(nameEnc) : null, total: o.total,

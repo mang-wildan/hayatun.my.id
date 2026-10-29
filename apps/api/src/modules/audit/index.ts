@@ -10,6 +10,11 @@ export interface AuditEntry {
   details?: Record<string, string | number | boolean>;
 }
 
+// Nama pembeli yang tampil di antrean atau daftar pesanan admin: satu catatan per pesanan (F15.3, N28)
+export async function recordBuyerViews(db: Db, actorId: string, orderIds: string[]): Promise<void> {
+  if (orderIds.length) await db.insert(auditLogs).values(orderIds.map((entityId) => ({ actorId, action: "order.buyer_viewed", entityType: "order", entityId, details: {} })));
+}
+
 export async function recordAudit(db: Db, entry: AuditEntry): Promise<void> {
   await db.insert(auditLogs).values({ ...entry, details: entry.details ?? {} });
 }

@@ -136,7 +136,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npx vitest run apps/api/src/modules/settings && npm run test:e2e -- admin-settings`
 - [x] **T49 Undang dan nonaktifkan admin, sesi dicabut ≤ 1 menit, admin terakhir tidak bisa menonaktifkan diri, admin bisa mematikan TOTP pembeli yang kehilangan HP (dicatat di log aktivitas)** — F15.1, F15.5, F15.6 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/admins`
-- [ ] **T50 Log aktivitas lengkap untuk semua aksi admin dan pembukaan data pribadi, plus halaman log** — F15.3, F15.4, N28 · **A**
+- [x] **T50 Log aktivitas lengkap untuk semua aksi admin dan pembukaan data pribadi, plus halaman log** — F15.3, F15.4, N28 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/audit && npm run test:e2e -- admin-audit`
 - [ ] **T51 Uji matriks otorisasi untuk semua rute** — N6 · **A**
   Selesai jika: `npx vitest run apps/api/src/test/authorization-matrix.test.ts` (tes gagal bila ada rute terdaftar yang tidak masuk matriks)
