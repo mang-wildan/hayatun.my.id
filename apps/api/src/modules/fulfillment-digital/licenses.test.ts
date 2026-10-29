@@ -59,6 +59,14 @@ async function order(who: ReturnType<typeof api>, p: { id: string }, qty = 1, pr
   return o;
 }
 
+// beberapa produk berlisensi dalam satu pesanan; produk digital hanya boleh satu per baris, jadi "beberapa unit" berarti beberapa baris
+async function orderMany(who: ReturnType<typeof api>, ps: { id: string }[], price = 50000) {
+  for (const p of ps) await who.post("/api/cart/items", { productId: p.id }).expect(201);
+  const o = (await who.post("/api/checkout", { expectedTotal: price * ps.length }).expect(201)).body as { orderId: string; invoiceNumber: string };
+  await who.upload(`/api/orders/${o.orderId}/proof`, PDF, "application/pdf").expect(201);
+  return o;
+}
+
 async function overlapped<T>(orderId: string, waiting: number, fire: () => Promise<T>): Promise<T> {
   const client = new pg.Client({ connectionString: process.env.DATABASE_MIGRATION_URL });
   await client.connect();
@@ -79,21 +87,36 @@ async function overlapped<T>(orderId: string, waiting: number, fire: () => Promi
 }
 
 describe("penetapan saat lunas (F7.1)", () => {
-  it("tepat satu kode untuk setiap unit: qty 2 mendapat 2 kode berbeda milik item itu, status Terkirim", async () => {
-    const p = await product({}, "KODE-1\nKODE-2\nKODE-3\nKODE-4");
-    const o = await order(siti, p, 2, 50000);
+  it("tepat satu kode untuk setiap unit: tiap produk dalam pesanan mendapat satu kode miliknya sendiri, sisa stok utuh", async () => {
+    const a = await product({ name: "Aplikasi Kasir" }, "A-1\nA-2\nA-3");
+    const b = await product({ name: "Aplikasi Stok" }, "B-1\nB-2");
+    const o = await orderMany(siti, [a, b]);
     await accept(o.orderId).expect(200);
     expect(await orderRow(o.orderId)).toMatchObject({ status: "LUNAS", digital_status: "TERKIRIM" });
-    const codes = await codeRows(p.id);
-    expect(codes.filter((c) => c.status === "assigned")).toHaveLength(2);
-    expect(codes.filter((c) => c.status === "available")).toHaveLength(2); // sisanya utuh
-    expect(new Set(codes.filter((c) => c.status === "assigned").map((c) => c.order_item_id)).size).toBe(1);
-    expect(codes.filter((c) => c.status === "assigned").every((c) => c.assigned_at)).toBe(true);
+    for (const [prod, left] of [[a, 2], [b, 1]] as const) {
+      const codes = await codeRows(prod.id);
+      expect(codes.filter((c) => c.status === "assigned")).toHaveLength(1);
+      expect(codes.filter((c) => c.status === "available")).toHaveLength(left);
+      expect(codes.filter((c) => c.status === "assigned").every((c) => c.assigned_at && c.order_item_id)).toBe(true);
+    }
     const res = (await licenses(o.orderId).expect(200)).body;
-    expect(res.items).toEqual([{ name: "Aplikasi Kasir", codes: expect.any(Array), missing: 0 }]);
-    expect(res.items[0].codes).toHaveLength(2);
-    expect(new Set(res.items[0].codes).size).toBe(2);
-    for (const c of res.items[0].codes) expect(["KODE-1", "KODE-2", "KODE-3", "KODE-4"]).toContain(c);
+    expect(res.items).toHaveLength(2);
+    expect(res.items.map((i: { name: string }) => i.name).sort()).toEqual(["Aplikasi Kasir", "Aplikasi Stok"]);
+    for (const i of res.items) expect(i).toEqual({ name: i.name, codes: [expect.any(String)], missing: 0 });
+    expect(res.items.find((i: { name: string }) => i.name === "Aplikasi Kasir").codes[0]).toMatch(/^A-/);
+    expect(res.items.find((i: { name: string }) => i.name === "Aplikasi Stok").codes[0]).toMatch(/^B-/);
+  });
+
+  it("satu item dengan lebih dari satu unit (data langsung; checkout digital hanya 1): tiap unit satu kode berbeda", async () => {
+    const p = await product({}, "KODE-1\nKODE-2\nKODE-3");
+    const o = await order(siti, p);
+    await ctx.db.execute(sql`update order_items set qty = 2 where order_id = ${o.orderId}`);
+    await accept(o.orderId).expect(200);
+    const codes = (await licenses(o.orderId).expect(200)).body.items[0];
+    expect(codes.codes).toHaveLength(2);
+    expect(new Set(codes.codes).size).toBe(2);
+    expect(codes.missing).toBe(0);
+    expect((await codeRows(p.id)).filter((c) => c.status === "available")).toHaveLength(1);
   });
 
   it("email Lunas ke pembeli memuat kode yang ditetapkan (F7.5)", async () => {
@@ -117,29 +140,30 @@ describe("penetapan saat lunas (F7.1)", () => {
   });
 
   it("dua pesanan diterima bersamaan: tidak ada kode dipakai dua kali, kode lebih tidak tersentuh", async () => {
-    const p = await product({}, "K1\nK2\nK3\nK4\nK5");
-    const [a, b] = [await order(siti, p, 2, 50000), await order(rina, p, 2, 50000)];
+    const p = await product({}, "K1\nK2\nK3");
+    const [a, b] = [await order(siti, p), await order(rina, p)];
     const [ra, rb] = await Promise.all([accept(a.orderId), accept(b.orderId, api(ctx, adminCookie))]);
     expect([ra.status, rb.status]).toEqual([200, 200]);
     const mine = (await licenses(a.orderId).expect(200)).body.items[0].codes as string[];
     const theirs = (await licenses(b.orderId, rina).expect(200)).body.items[0].codes as string[];
-    expect(mine).toHaveLength(2);
-    expect(theirs).toHaveLength(2);
-    expect(new Set([...mine, ...theirs]).size).toBe(4);
+    expect(mine).toHaveLength(1);
+    expect(theirs).toHaveLength(1);
+    expect(mine[0]).not.toBe(theirs[0]);
     expect((await codeRows(p.id)).filter((c) => c.status === "available")).toHaveLength(1);
   });
 });
 
 describe("stok kode kosong saat penetapan (F7.7)", () => {
   it("tetap Lunas, item ditandai tertunda, admin aktif dikabari, pembeli menerima kode yang ada dan kabar menyusul", async () => {
-    const p = await product({}, "KODE-1\nKODE-2");
-    const o = await order(siti, p, 2, 50000);
-    await dropReserved(p.id, 1);
+    const a = await product({ name: "Aplikasi Kasir" }, "KODE-1");
+    const b = await product({ name: "Aplikasi Stok" }, "B-1");
+    const o = await orderMany(siti, [a, b]);
+    await dropReserved(a.id, 1);
     await accept(o.orderId).expect(200);
     expect(await orderRow(o.orderId)).toMatchObject({ status: "LUNAS", digital_status: "LISENSI_TERTUNDA" });
     const res = (await licenses(o.orderId).expect(200)).body;
-    expect(res.items[0].codes).toHaveLength(1);
-    expect(res.items[0].missing).toBe(1);
+    expect(res.items.find((i: { name: string }) => i.name === "Aplikasi Kasir")).toEqual({ name: "Aplikasi Kasir", codes: [], missing: 1 });
+    expect(res.items.find((i: { name: string }) => i.name === "Aplikasi Stok")).toEqual({ name: "Aplikasi Stok", codes: ["B-1"], missing: 0 });
 
     const all = await ctx.emails();
     const pending = all.filter((m) => m.subject === PENDING);
@@ -148,63 +172,66 @@ describe("stok kode kosong saat penetapan (F7.7)", () => {
       expect(m.text).toContain(o.invoiceNumber);
       expect(m.text).toContain("Aplikasi Kasir");
       expect(m.text).toMatch(/kurang 1|1 kode/);
-      expect(m.text).toContain(`${APP_URL}/admin/produk/${p.id}`);
-      expect(m.text + m.html).not.toMatch(/Siti|Aminah|siti@|KODE-/);
+      expect(m.text).toContain(`${APP_URL}/admin/produk/${a.id}`);
+      expect(m.text + m.html).not.toMatch(/Siti|Aminah|siti@|KODE-|B-1/);
     }
+    expect(pending).toHaveLength(2); // hanya untuk produk yang kurang
     const [lunas] = await mails("siti@hayatun.test", ACCEPTED);
-    expect(lunas.text).toContain(res.items[0].codes[0]);
+    expect(lunas.text).toContain("B-1");
     expect(lunas.text).toContain("menyusul");
     expect(all.filter((m) => m.to === "siti@hayatun.test" && m.subject === PENDING)).toHaveLength(0);
   });
 
   it("kekurangan ditutup dulu dari kode tersedia milik produk yang sama, tanpa menandai tertunda", async () => {
-    const p = await product({}, "KODE-1\nKODE-2\nCADANGAN");
-    const o = await order(siti, p, 2, 50000);
+    const p = await product({}, "KODE-1\nCADANGAN");
+    const o = await order(siti, p);
     await dropReserved(p.id, 1);
     await accept(o.orderId).expect(200);
     expect(await orderRow(o.orderId)).toMatchObject({ digital_status: "TERKIRIM" });
-    expect((await licenses(o.orderId).expect(200)).body.items[0]).toMatchObject({ missing: 0 });
+    expect((await licenses(o.orderId).expect(200)).body.items[0]).toEqual({ name: "Aplikasi Kasir", codes: ["CADANGAN"], missing: 0 });
     expect((await ctx.emails()).filter((m) => m.subject === PENDING)).toHaveLength(0);
   });
 
   it("admin menambah kode: pembeli menerima semua kodenya lewat email, status Terkirim, tepat sekali", async () => {
-    const p = await product({}, "KODE-1\nKODE-2");
-    const o = await order(siti, p, 2, 50000);
-    await dropReserved(p.id, 1);
+    const a = await product({ name: "Aplikasi Kasir" }, "KODE-1");
+    const b = await product({ name: "Aplikasi Stok" }, "B-1");
+    const o = await orderMany(siti, [a, b]);
+    await dropReserved(a.id, 1);
     await accept(o.orderId).expect(200);
-    const before = (await licenses(o.orderId).expect(200)).body.items[0].codes as string[];
 
-    await addCodes(p.id, "BARU-1").expect(200);
+    await addCodes(a.id, "BARU-1").expect(200);
     expect(await orderRow(o.orderId)).toMatchObject({ status: "LUNAS", digital_status: "TERKIRIM" });
-    const after = (await licenses(o.orderId).expect(200)).body.items[0];
-    expect(after.missing).toBe(0);
-    expect(after.codes).toHaveLength(2);
-    expect(after.codes).toContain(before[0]);
-    expect(after.codes).toContain("BARU-1");
+    const res = (await licenses(o.orderId).expect(200)).body.items;
+    expect(res.find((i: { name: string }) => i.name === "Aplikasi Kasir")).toEqual({ name: "Aplikasi Kasir", codes: ["BARU-1"], missing: 0 });
     const delivered = await mails("siti@hayatun.test", DELIVERED);
     expect(delivered).toHaveLength(1);
     expect(delivered[0].text).toContain(o.invoiceNumber);
     expect(delivered[0].text).toContain("BARU-1");
+    expect(delivered[0].text).toContain("B-1"); // kode lengkap, termasuk yang sudah dikirim lebih dulu
     expect(delivered[0].text).toContain(`${APP_URL}/pesanan/${o.orderId}`);
 
-    await addCodes(p.id, "BARU-2").expect(200); // tidak ada lagi yang menunggu
+    await addCodes(a.id, "BARU-2").expect(200); // tidak ada lagi yang menunggu
     expect(await mails("siti@hayatun.test", DELIVERED)).toHaveLength(1);
-    expect((await codeRows(p.id)).filter((c) => c.status === "available")).toHaveLength(1);
+    expect((await codeRows(a.id)).filter((c) => c.status === "available")).toHaveLength(1);
   });
 
-  it("kode kurang dari yang dibutuhkan: ditetapkan sebagian, baru Terkirim dan diemail saat lengkap", async () => {
-    const p = await product({}, "KODE-1\nKODE-2");
-    const o = await order(siti, p, 2, 50000);
-    await dropReserved(p.id, 2);
+  it("kurang di lebih dari satu produk: ditetapkan sebagian, baru Terkirim dan diemail saat semuanya lengkap", async () => {
+    const a = await product({ name: "Aplikasi Kasir" }, "KODE-1");
+    const b = await product({ name: "Aplikasi Stok" }, "B-1");
+    const o = await orderMany(siti, [a, b]);
+    await dropReserved(a.id, 1);
+    await dropReserved(b.id, 1);
     await accept(o.orderId).expect(200);
-    expect((await licenses(o.orderId).expect(200)).body.items[0]).toMatchObject({ codes: [], missing: 2 });
+    expect(((await ctx.emails()).filter((m) => m.subject === PENDING))).toHaveLength(4); // dua produk x dua admin
 
-    await addCodes(p.id, "BARU-1").expect(200);
+    await addCodes(a.id, "BARU-A").expect(200);
     expect(await orderRow(o.orderId)).toMatchObject({ digital_status: "LISENSI_TERTUNDA" });
-    expect((await licenses(o.orderId).expect(200)).body.items[0]).toMatchObject({ codes: ["BARU-1"], missing: 1 });
+    const half = (await licenses(o.orderId).expect(200)).body.items;
+    expect(half.find((i: { name: string }) => i.name === "Aplikasi Kasir")).toMatchObject({ codes: ["BARU-A"], missing: 0 });
+    expect(half.find((i: { name: string }) => i.name === "Aplikasi Stok")).toMatchObject({ codes: [], missing: 1 });
     expect(await mails("siti@hayatun.test", DELIVERED)).toHaveLength(0);
 
-    await addCodes(p.id, "BARU-2").expect(200);
+    await addCodes(b.id, "BARU-B").expect(200);
     expect(await orderRow(o.orderId)).toMatchObject({ digital_status: "TERKIRIM" });
     expect(await mails("siti@hayatun.test", DELIVERED)).toHaveLength(1);
   });
