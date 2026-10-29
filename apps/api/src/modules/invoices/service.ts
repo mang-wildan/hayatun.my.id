@@ -44,6 +44,6 @@ export async function getInvoice(deps: Deps, viewer: SessionUser, orderId: strin
     total: o.total,
     paymentMethod: o.paymentMethod === "manual" ? "Transfer bank" : "Payment gateway",
     status: INVOICE_STATUS[o.status],
-    paidAt: null, // kolom tanggal lunas ditambah bersama verifikasi pembayaran (T35)
+    paidAt: o.paidAt,
   };
 }

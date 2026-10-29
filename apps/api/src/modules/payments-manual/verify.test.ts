@@ -31,6 +31,7 @@ const orderRow = async (id: string) => (await rows<Record<string, unknown>>(sql`
 const proofRows = async (id: string) => rows<{ status: string; reject_reason: string | null }>(sql`select status, reject_reason from payment_proofs where order_id = ${id} order by uploaded_at, id`);
 const audit = async (action: string) => rows<{ actor_id: string; entity_type: string; entity_id: string; details: object }>(sql`select actor_id, entity_type, entity_id, details from audit_logs where action = ${action}`);
 const mails = async (subject: string) => (await ctx.emails()).filter((m) => m.subject === subject);
+const freshAdmin = async () => api(ctx, await ctx.adminCookie());
 const accept = (id: string, who = a) => who.post(`/api/admin/payments/${id}/accept`);
 const reject = (id: string, reason?: string, who = a) => who.post(`/api/admin/payments/${id}/reject`, reason === undefined ? {} : { reason });
 
@@ -212,7 +213,7 @@ describe("tolak bukti (F5.3, F5.4, F5.5, F5.7)", () => {
     const o = await paidDigital();
     const expiresAt = (await orderRow(o.orderId)).expires_at as string;
     ctx.clock.advance(2 * 3600_000);
-    const res = await reject(o.orderId, "Nominal tidak sesuai").expect(200);
+    const res = await reject(o.orderId, "Nominal tidak sesuai", await freshAdmin()).expect(200); // sesi admin lama sudah habis (30 menit diam)
     expect(res.body).toEqual({ status: "MENUNGGU_PEMBAYARAN", expiresAt: new Date(expiresAt).toISOString() });
     expect(await proofRows(o.orderId)).toEqual([{ status: "rejected", reject_reason: "Nominal tidak sesuai" }]);
     await upload(o.orderId); // F5.4
@@ -223,22 +224,23 @@ describe("tolak bukti (F5.3, F5.4, F5.5, F5.7)", () => {
   it("setelah batas 24 jam lewat: tambahan 24 jam sejak penolakan (F5.5), dan unggah ulang berhasil", async () => {
     const o = await paidDigital();
     ctx.clock.advance(DAY + 3600_000); // verifikasi lambat: batas sudah lewat
-    const res = await reject(o.orderId, "Foto buram").expect(200);
+    const res = await reject(o.orderId, "Foto buram", await freshAdmin()).expect(200);
     expect(res.body.expiresAt).toBe(new Date(ctx.clock.now.getTime() + DAY).toISOString());
     ctx.clock.advance(DAY - 1);
     await upload(o.orderId);
   });
 
   it("tepat di batas 24 jam sudah dianggap lewat; 1 ms sebelumnya belum", async () => {
+    // kedua pesanan dibuat dulu: setelah jam dipindah 24 jam, sesi admin lama sudah habis
     const before = await paidDigital();
-    const expiresAt = new Date((await orderRow(before.orderId)).expires_at as string);
-    ctx.clock.now = new Date(expiresAt.getTime() - 1);
-    expect((await reject(before.orderId, "Alasan").expect(200)).body.expiresAt).toBe(expiresAt.toISOString());
-
     const exact = await paidDigital(api(ctx, await ctx.buyerCookie()));
+    const expiresAt = new Date((await orderRow(before.orderId)).expires_at as string);
     const exactExpires = new Date((await orderRow(exact.orderId)).expires_at as string);
+
+    ctx.clock.now = new Date(expiresAt.getTime() - 1);
+    expect((await reject(before.orderId, "Alasan", await freshAdmin()).expect(200)).body.expiresAt).toBe(expiresAt.toISOString());
     ctx.clock.now = exactExpires;
-    expect((await reject(exact.orderId, "Alasan").expect(200)).body.expiresAt).toBe(new Date(exactExpires.getTime() + DAY).toISOString());
+    expect((await reject(exact.orderId, "Alasan", await freshAdmin()).expect(200)).body.expiresAt).toBe(new Date(exactExpires.getTime() + DAY).toISOString());
   });
 
   it("pengingat 3 jam diatur ulang supaya batas yang baru bisa diingatkan lagi", async () => {

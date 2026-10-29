@@ -43,6 +43,7 @@ describe("instruksi bayar (F4.1, F4.2)", () => {
       expiresAt: new Date(ctx.clock.now.getTime() + DAY).toISOString(),
       expired: false,
       canUploadProof: true,
+      lastRejection: null,
       bankAccount: BANK,
       store: { name: "Hayatun", email: "toko@hayatun.my.id" },
     });
@@ -70,7 +71,9 @@ describe("rekening belum diatur: tidak ada rekening karangan", () => {
     expect(res.body.bankAccount).toBeNull();
     expect(res.body.store.email).toBeTruthy();
     expect(res.body.canUploadProof).toBe(true);
-    expect(JSON.stringify(res.body)).not.toMatch(/\d{8,}/); // tidak ada nomor rekening apa pun
+    const { orderId, expiresAt, ...rest } = res.body; // id acak dan waktu bisa memuat deretan angka
+    void orderId; void expiresAt;
+    expect(JSON.stringify(rest)).not.toMatch(/\d{8,}/); // tidak ada nomor rekening apa pun
   });
 
   it.each([{}, { bank: "BCA" }, { bank: "BCA", number: "123" }, { bank: "", number: "123", holder: "X" }, "bukan objek"])("isian setengah jadi %j dianggap belum diatur", async (value) => {

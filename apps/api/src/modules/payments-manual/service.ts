@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import type { AppDeps } from "../../app.js";
-import { orders } from "../../db/schema.js";
+import { orders, paymentProofs } from "../../db/schema.js";
 import { HttpError } from "../../errors.js";
 import type { SessionUser } from "../auth/sessions.js";
 import { readBankAccount, readStore } from "../settings/index.js";
@@ -16,6 +16,8 @@ export async function getPaymentInstructions(deps: Deps, viewer: SessionUser, or
   const [o] = UUID.test(orderId) ? await deps.db.select().from(orders).where(eq(orders.id, orderId)) : [];
   if (!o || (o.userId !== viewer.userId && viewer.role !== "admin")) throw notFound();
   const expired = deps.now() >= o.expiresAt;
+  // alasan penolakan terakhir tampil sampai pembeli mengunggah bukti baru (F5.3)
+  const [last] = await deps.db.select().from(paymentProofs).where(eq(paymentProofs.orderId, o.id)).orderBy(desc(paymentProofs.uploadedAt)).limit(1);
   return {
     orderId: o.id,
     invoiceNumber: o.invoiceNumber,
@@ -23,6 +25,7 @@ export async function getPaymentInstructions(deps: Deps, viewer: SessionUser, or
     total: o.total,
     expiresAt: o.expiresAt,
     expired,
+    lastRejection: last?.status === "rejected" ? { reason: last.rejectReason, at: last.reviewedAt } : null,
     canUploadProof: o.status === "MENUNGGU_PEMBAYARAN" && !expired,
     bankAccount: await readBankAccount(deps),
     store: await readStore(deps),
