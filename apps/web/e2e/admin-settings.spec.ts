@@ -13,6 +13,8 @@ test.beforeAll(async () => {
   await resetProducts();
   admin = await adminCookie(ADMIN_EMAIL);
 });
+// pengaturan toko dipakai spec lain (invoice, legal): kembalikan ke bawaan
+test.afterAll(async () => { await setSetting("store", null); await setSetting("bankAccount", null); });
 test.beforeEach(async ({ context }) => {
   await context.addCookies([admin]);
   await setSetting("store", { name: "Toko Awal", email: "awal@tokouji.id", phone: "+6281200000001" });
@@ -127,7 +129,7 @@ test.describe("rekening tujuan transfer (F15.7)", () => {
     await expect(saved(page, "Rekening tersimpan")).toBeVisible();
     await expect(bankForm(page).getByLabel("Nomor rekening")).toHaveValue("9876543210");
 
-    const mail = await latestEmailTo(ADMIN_EMAIL, "Rekening tujuan transfer diubah");
+    const mail = await latestEmailTo(ADMIN_EMAIL, "Rekening tujuan transfer diubah", "Hayatun Jaya");
     for (const t of ["BCA", "1234567890", "Mandiri", "9876543210", "Hayatun Jaya"]) expect(mail.text).toContain(t);
 
     const ctx = await page.context().browser()!.newContext({ baseURL: "http://127.0.0.1:3000" });

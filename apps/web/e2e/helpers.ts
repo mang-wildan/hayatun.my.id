@@ -31,14 +31,14 @@ import { execFileSync } from "node:child_process";
 import { generateSync } from "otplib";
 import { MAILPIT_URL } from "./env";
 
-export async function latestEmailTo(address: string, subject?: string): Promise<{ subject: string; text: string }> {
+// `contains`: hanya email yang isinya memuat teks itu (bila beberapa email dengan subjek sama dikirim ke alamat yang sama)
+export async function latestEmailTo(address: string, subject?: string, contains?: string): Promise<{ subject: string; text: string }> {
   const deadline = Date.now() + 15_000;
   while (Date.now() < deadline) {
     const found = await (await fetch(`${MAILPIT_URL}/api/v1/search?query=${encodeURIComponent(`to:"${address}"`)}`)).json();
-    const hit = (found.messages ?? []).find((m: { Subject: string }) => !subject || m.Subject === subject);
-    if (hit) {
+    for (const hit of (found.messages ?? []).filter((m: { Subject: string }) => !subject || m.Subject === subject)) {
       const full = await (await fetch(`${MAILPIT_URL}/api/v1/message/${hit.ID}`)).json();
-      return { subject: full.Subject, text: full.Text };
+      if (!contains || full.Text.includes(contains)) return { subject: full.Subject, text: full.Text };
     }
     await new Promise((r) => setTimeout(r, 250));
   }
