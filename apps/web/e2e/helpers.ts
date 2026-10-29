@@ -211,3 +211,24 @@ export async function orderStatusOf(orderId: string) {
   await pool.end();
   return rows[0].status;
 }
+
+// Mengubah kolom pesanan langsung di database (status yang belum punya antarmuka, nomor resi sebelum T42)
+export async function patchOrder(orderId: string, fields: Record<string, string | null>) {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  const keys = Object.keys(fields);
+  await pool.query(`update orders set ${keys.map((k, i) => `${k} = $${i + 2}`).join(", ")} where id = $1`, [orderId, ...keys.map((k) => fields[k])]);
+  await pool.end();
+}
+
+// File unduhan produk digital lewat API admin
+export async function addProductFile(cookie: { name: string; value: string }, productId: string, data: Buffer, filename: string, type = "application/pdf") {
+  const res = await fetch(`${WEB_URL}/api/admin/products/${productId}/files?filename=${encodeURIComponent(filename)}`, { method: "POST", headers: { Cookie: `${cookie.name}=${cookie.value}`, "content-type": type }, body: new Uint8Array(data) });
+  if (!res.ok) throw new Error(`unggah file produk -> ${res.status} ${await res.text()}`);
+}
+
+// Menghapus kode lisensi yang ditahan sebuah produk, untuk memicu "Lisensi tertunda" (jaring pengaman F7.7)
+export async function dropReservedCodes(productId: string) {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  await pool.query("delete from license_codes where product_id = $1 and status = 'reserved'", [productId]);
+  await pool.end();
+}
