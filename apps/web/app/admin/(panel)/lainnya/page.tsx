@@ -11,6 +11,7 @@ export default function Lainnya() {
       <ul className="plain-list">
         <li><Link className="nav-link" href="/admin/pengiriman">Pengiriman</Link></li>
         <li><Link className="nav-link" href="/admin/admin">Admin</Link></li>
+        <li><Link className="nav-link" href="/admin/log">Log aktivitas</Link></li>
         <li><Link className="nav-link" href="/admin/pengaturan">Pengaturan toko</Link></li>
       </ul>
     </>

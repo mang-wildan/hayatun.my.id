@@ -19,6 +19,7 @@ import { invoiceRoutes } from "./modules/invoices/routes.js";
 import { adminPaymentRoutes } from "./modules/payments-manual/admin-routes.js";
 import { digitalOrderRoutes, downloadRoutes } from "./modules/fulfillment-digital/routes.js";
 import { adminOrderRoutes } from "./modules/admin-orders/routes.js";
+import { auditLogRoutes } from "./modules/audit/routes.js";
 import { adminAdminRoutes, adminUserRoutes } from "./modules/admins/routes.js";
 import { accountRoutes } from "./modules/privacy/routes.js";
 import { receiveRoutes, shipmentRoutes } from "./modules/fulfillment-physical/routes.js";
@@ -70,6 +71,7 @@ export function createApp(deps: AppDeps) {
   app.use("/api/admin/orders", adminOrderRoutes(deps));
   app.use("/api/account", accountRoutes(deps));
   app.use("/api/admin/admins", adminAdminRoutes(deps));
+  app.use("/api/admin/audit-logs", auditLogRoutes(deps));
   app.use("/api/admin/users", adminUserRoutes(deps));
   app.use("/api/orders", digitalOrderRoutes(deps));
   app.use("/api/downloads", downloadRoutes(deps));

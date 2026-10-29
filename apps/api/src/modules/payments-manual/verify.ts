@@ -7,7 +7,7 @@ import { orderItems, orders, paymentProofs, products, users } from "../../db/sch
 import { HttpError } from "../../errors.js";
 import { assignLicenses, licensesOf } from "../fulfillment-digital/licenses.js";
 import { notifyAdmins } from "../notifications/admins.js";
-import { recordAudit } from "../audit/index.js";
+import { recordAudit, recordBuyerViews } from "../audit/index.js";
 import { readBankAccount } from "../settings/index.js";
 import type { SessionUser } from "../auth/sessions.js";
 import { emailBuyer } from "../notifications/buyer.js";
@@ -26,7 +26,7 @@ const proofNotFound = () => new HttpError(404, "Bukti bayar tidak ditemukan.", "
 const processed = () => new HttpError(409, "Pesanan ini sudah diproses admin lain.", "ALREADY_PROCESSED");
 
 // F5.1: yang paling lama menunggu dulu. Hanya data yang perlu untuk memutuskan (barang tanpa harga, rekening tujuan), tanpa alamat atau kontak pembeli.
-export async function verificationQueue(deps: Deps) {
+export async function verificationQueue(deps: Deps, admin: SessionUser) {
   const rows = await deps.db
     .select({ orderId: orders.id, invoiceNumber: orders.invoiceNumber, total: orders.total, nameEnc: users.nameEnc, uploadedAt: paymentProofs.uploadedAt, mime: paymentProofs.mime })
     .from(orders)
@@ -35,6 +35,7 @@ export async function verificationQueue(deps: Deps) {
     .where(eq(orders.status, "MENUNGGU_VERIFIKASI"))
     .orderBy(asc(paymentProofs.uploadedAt));
   const lines = rows.length ? await deps.db.select({ orderId: orderItems.orderId, name: orderItems.nameSnapshot, qty: orderItems.qty }).from(orderItems).where(inArray(orderItems.orderId, rows.map((r) => r.orderId))).orderBy(asc(orderItems.id)) : [];
+  await recordBuyerViews(deps.db, admin.userId, rows.map((r) => r.orderId));
   return {
     items: rows.map(({ nameEnc, ...r }) => ({ ...r, buyerName: nameEnc ? deps.crypto.decrypt(nameEnc) : null, items: lines.filter((l) => l.orderId === r.orderId).map(({ name, qty }) => ({ name, qty })) })),
     bankAccount: await readBankAccount(deps),

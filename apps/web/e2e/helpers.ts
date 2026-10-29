@@ -277,3 +277,31 @@ export async function totpEnabledOf(email: string) {
   await pool.end();
   return rows[0].totp_enabled;
 }
+
+// Catatan log langsung di database (aktor admin dari email, atau null untuk aksi sistem)
+export async function seedAudit(rows: { actorEmail?: string; action: string; entityType?: string; entityId?: string; minutesAgo?: number }[]) {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  for (const r of rows) {
+    const actor = r.actorEmail ? (await pool.query<{ id: string }>(`select id from users where email_index = $1`, [crypto.blindIndex(r.actorEmail)])).rows[0].id : null;
+    await pool.query(`insert into audit_logs (actor_id, action, entity_type, entity_id, created_at) values ($1, $2, $3, $4, now() - ($5 || ' minutes')::interval)`, [actor, r.action, r.entityType ?? "order", r.entityId ?? "e2e-x", String(r.minutesAgo ?? 0)]);
+  }
+  await pool.end();
+}
+export async function seedAuditBulk(actorEmail: string, n: number) {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  const { id } = (await pool.query<{ id: string }>(`select id from users where email_index = $1`, [crypto.blindIndex(actorEmail)])).rows[0];
+  await pool.query(`insert into audit_logs (actor_id, action, entity_type, entity_id, created_at) select $1, 'order.shipped', 'order', 'e2e-bulk-' || g, now() - (g || ' seconds')::interval from generate_series(1, $2) g`, [id, n]);
+  await pool.end();
+}
+// Tes halaman log menghitung baris, jadi sisa catatan dari spec lain dikosongkan (hanya database e2e, lewat role pemilik)
+export async function clearAudit() {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  await pool.query(`delete from audit_logs`);
+  await pool.end();
+}
+export async function auditTotal() {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  const { rows } = await pool.query<{ n: number }>(`select count(*)::int as n from audit_logs`);
+  await pool.end();
+  return rows[0].n;
+}
