@@ -129,8 +129,9 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npx vitest run apps/api/src/modules/privacy/delete-account.test.ts`
 - [x] **T46 Hapus otomatis bukti bayar setelah 1 tahun** — F12.3, N29 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/jobs/proof-retention.test.ts`
-- [ ] **T47 Halaman kebijakan privasi serta syarat dan ketentuan** — F12.4, N31 · **C**
+- [x] **T47 Halaman kebijakan privasi serta syarat dan ketentuan** — F12.4, N31 · **C**
   Selesai jika: `npm run test:e2e -- legal`
+  Catatan: teks kebijakan privasi dan syarat dan ketentuan adalah **draf yang belum ditinjau ahli hukum** (SPEC pertanyaan terbuka 9); tinjau sebelum toko dibuka.
 - [ ] **T48 Pengaturan toko dan rekening, email ke semua admin saat rekening berubah** — F13.3, F15.7, N32 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/settings && npm run test:e2e -- admin-settings`
 - [ ] **T49 Undang dan nonaktifkan admin, sesi dicabut ≤ 1 menit, admin terakhir tidak bisa menonaktifkan diri, admin bisa mematikan TOTP pembeli yang kehilangan HP (dicatat di log aktivitas)** — F15.1, F15.5, F15.6 · **A**

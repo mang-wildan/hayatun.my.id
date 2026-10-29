@@ -31,6 +31,7 @@ export function RegisterForm() {
       <TextField label="Email" name="email" type="email" autoComplete="email" value={v.email} onChange={on("email")} error={f.fields.email} />
       <TextField label="Password" name="password" type="password" autoComplete="new-password" hint="Minimal 8 karakter." value={v.password} onChange={on("password")} error={f.fields.password} />
       {f.message && <FormMessage tone="error">{f.message}</FormMessage>}
+      <p className="meta">Dengan mendaftar, kamu menyetujui <Link href="/syarat-dan-ketentuan">Syarat dan ketentuan</Link> serta <Link href="/kebijakan-privasi">Kebijakan privasi</Link>.</p>
       <Button loading={f.loading} loadingLabel="Mendaftarkan…">Daftar</Button>
       <p className="form-links"><span>Sudah punya akun? <Link href="/masuk">Masuk</Link></span></p>
     </form>
