@@ -76,7 +76,7 @@ describe("email pesanan dibuat ke pembeli (F11.1)", () => {
     await checkout(siti);
     const [m] = (await ctx.emails()).filter((x) => x.subject === CREATED);
     expect(m.text).toContain("Rekening tujuan ada di halaman pesanan.");
-    expect(m.text).not.toMatch(/\d{8,}/);
+    expect(m.text.replace(/https?:\/\/\S+/g, "")).not.toMatch(/\d{8,}/); // tautan memuat UUID acak yang bisa berisi 8 angka berurutan
   });
 
   it("satu email per checkout, dan tidak ada email ke admin saat pesanan dibuat", async () => {
