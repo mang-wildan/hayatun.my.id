@@ -32,6 +32,9 @@ test("daftar kosong menjelaskan langkah berikutnya", async ({ page }) => {
 });
 
 test("alur lengkap produk digital: buat, sampul, file, tautan, aktifkan", async ({ page }) => {
+  const coverResponses: string[] = [];
+  page.on("response", (r) => { if (r.url().includes("/cover")) coverResponses.push(`${r.status()} ${r.request().method()}`); });
+  page.on("requestfailed", (r) => { if (r.url().includes("/cover")) coverResponses.push(`gagal: ${r.failure()?.errorText}`); });
   await expectPageOk(page, "/admin/produk/baru", "Produk baru");
   await page.getByLabel("Nama produk").fill("E-book Resep Lebaran");
   await page.getByLabel("Deskripsi").fill("Seratus resep untuk hari raya.");
@@ -51,7 +54,8 @@ test("alur lengkap produk digital: buat, sampul, file, tautan, aktifkan", async 
   await expect(page.getByText("Sampul tersimpan.")).toBeVisible();
   const cover = page.getByRole("img", { name: "Sampul E-book Resep Lebaran" });
   await expect(cover).toBeVisible();
-  expect(await cover.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+  // gambar tampil sebelum selesai dimuat, jadi tunggu; bila tetap rusak, tunjukkan status respons permintaan gambarnya
+  await expect.poll(() => cover.evaluate((img: HTMLImageElement) => img.naturalWidth), { message: `sampul tidak termuat; respons: ${coverResponses.join(", ") || "tidak ada"}` }).toBeGreaterThan(0);
 
   // 3 MB lewat proxy Next.js: memastikan unggahan besar tidak terpotong
   await page.getByLabel("Tambah file").setInputFiles({ name: "ebook.pdf", mimeType: "application/pdf", buffer: Buffer.alloc(3 * 1024 * 1024, 7) });

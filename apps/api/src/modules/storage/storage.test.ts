@@ -1,9 +1,12 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { once } from "node:events";
+import http from "node:http";
+import type { AddressInfo } from "node:net";
 import { mkdtemp, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
-import express from "express";
+import express, { type ErrorRequestHandler } from "express";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { errorHandler } from "../../errors.js";
@@ -186,5 +189,36 @@ describe("send (N5)", () => {
 
   it("key tidak sah ditolak sebelum menyentuh disk", async () => {
     await request(appFor(storage, "../../etc/passwd", "x")).get("/unduh").expect(500);
+  });
+
+  // Browser membatalkan permintaan gambar sebagai hal biasa (ganti halaman, gambar diganti). Itu bukan error server.
+  describe("klien membatalkan permintaan", () => {
+    async function abortedErrors(size: number, abort: (req: http.ClientRequest, res?: http.IncomingMessage) => void, delayMs: number) {
+      const key = await storage.save("products", Buffer.concat([PDF, randomBytes(size)]), { allowed: "any", maxBytes: 60 * MB });
+      const errors: unknown[] = [];
+      const app = express()
+        .get("/unduh", async (_req, res) => {
+          await new Promise((r) => setTimeout(r, delayMs));
+          await storage.send(res, key, { filename: "x.pdf", contentType: "application/pdf" });
+        })
+        .use(((err, _req, res, _next) => { errors.push(err); res.status(500).end(); }) as ErrorRequestHandler);
+      const server = app.listen(0);
+      await once(server, "listening");
+      const req = http.get({ port: (server.address() as AddressInfo).port, path: "/unduh" });
+      req.on("error", () => {});
+      req.on("response", (res) => { res.on("error", () => {}); abort(req, res); });
+      if (delayMs) setTimeout(() => req.destroy(), delayMs / 4); // batal sebelum pengiriman dimulai
+      await new Promise((r) => setTimeout(r, delayMs + 500));
+      server.close();
+      return errors;
+    }
+
+    it("dibatalkan sebelum pengiriman dimulai: tidak ada error", async () => {
+      expect(await abortedErrors(1 * MB, () => {}, 200)).toEqual([]);
+    });
+
+    it("dibatalkan di tengah pengiriman file besar: tidak ada error", async () => {
+      expect(await abortedErrors(40 * MB, (req, res) => { res!.once("data", () => req.destroy()); }, 0)).toEqual([]);
+    });
   });
 });
