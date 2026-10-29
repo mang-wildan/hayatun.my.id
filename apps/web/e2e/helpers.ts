@@ -239,3 +239,18 @@ export async function clearShipments() {
   await pool.query("update orders set physical_status = 'DITERIMA' where physical_status in ('DIPROSES', 'DIKIRIM')");
   await pool.end();
 }
+
+// Mengosongkan semua pesanan (dan isinya) supaya daftar dan ringkasan admin tidak bergantung pada tes lain
+export async function clearOrders() {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  await pool.query("truncate orders restart identity cascade");
+  await pool.end();
+}
+
+// n pesanan Kedaluwarsa tambahan milik pembeli pesanan pertama, untuk menguji halaman berikutnya
+export async function bulkOrders(n: number) {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  await pool.query(`insert into orders (invoice_number, user_id, status, digital_status, physical_status, subtotal, shipping_cost, total, expires_at, created_at)
+    select 'INV/BULK/' || lpad(g::text, 4, '0'), (select user_id from orders limit 1), 'KEDALUWARSA', 'TIDAK_ADA', 'TIDAK_ADA', 1000, 0, 1000, now(), now() - (g || ' minutes')::interval from generate_series(1, $1::int) g`, [n]);
+  await pool.end();
+}
