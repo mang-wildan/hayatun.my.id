@@ -44,7 +44,7 @@ export function AdminOrderList({ orders }: { orders: AdminOrder[] }) {
             <li key={o.orderId} data-testid="admin-pesanan-item" className="admin-order">
               <span className="mono" data-testid="nomor-invoice">{o.invoiceNumber}</span>
               <span className="meta">{formatWIB(new Date(o.createdAt))}</span>
-              <span>{o.buyerName}</span>
+              <span>{o.buyerName ?? "Akun dihapus"}</span>
               <strong>{formatRupiah(o.total)}</strong>
               <OrderStatusBadge status={o.status} />
               {o.status === "LUNAS" && <Button type="button" variant="danger" aria-label={`Batalkan pesanan ${o.invoiceNumber}`} onClick={() => open(o)}>Batalkan pesanan</Button>}

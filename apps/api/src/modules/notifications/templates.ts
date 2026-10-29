@@ -16,7 +16,8 @@ export type EmailTemplate =
   | "order_shipped"
   | "tracking_updated"
   | "order_cancelled"
-  | "order_refunded";
+  | "order_refunded"
+  | "account_deleted";
 
 export interface EmailData { name?: string; link?: string; productName?: string; available?: number; invoiceNumber?: string; total?: string; deadline?: string; reason?: string; bank?: { bank: string; number: string; holder: string } | null; licenses?: { name: string; codes: string[]; missing?: number }[]; missing?: number; courier?: string; trackingNumber?: string }
 
@@ -141,6 +142,10 @@ const CONTENT: Record<EmailTemplate, Content> = {
     subject: "Pesananmu dikembalikan",
     paragraphs: (d) => [`Pesanan ${d.invoiceNumber} ditandai dikembalikan oleh toko. Akses unduhan untuk pesanan ini ikut dicabut.`, "Kalau ada yang ingin ditanyakan, hubungi toko lewat kontak di halaman pesanan."],
     button: { label: "Lihat pesanan" },
+  },
+  account_deleted: {
+    subject: "Akunmu sudah dihapus",
+    paragraphs: ["Akunmu sudah kami hapus: nama, nomor HP, alamat, dan sesi masukmu dihapus, dan kamu tidak bisa masuk lagi dengan akun itu.", "Data invoice dan transaksi tetap kami simpan selama 10 tahun sebagai catatan pembukuan, tanpa data pribadimu. Kalau kamu ingin belanja lagi, kamu bisa mendaftar baru kapan saja."],
   },
   admin_invite: {
     subject: "Undangan jadi admin Hayatun",
