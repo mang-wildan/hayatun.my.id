@@ -97,12 +97,24 @@ describe("antrean verifikasi (F5.1)", () => {
     await accept(second.orderId).expect(200); // sudah diproses: keluar dari antrean
     const res = (await a.get("/api/admin/payments").expect(200)).body;
     expect(res.items.map((i: { orderId: string }) => i.orderId)).toEqual([first.orderId, third.orderId]);
-    expect(res.items[0]).toEqual({ orderId: first.orderId, invoiceNumber: first.invoiceNumber, buyerName: expect.any(String), total: 75000, uploadedAt: expect.any(String), mime: "application/pdf" });
+    expect(res.items[0]).toEqual({ orderId: first.orderId, invoiceNumber: first.invoiceNumber, buyerName: expect.any(String), total: 75000, uploadedAt: expect.any(String), mime: "application/pdf", items: [{ name: "E-book", qty: 1 }] });
     expect(JSON.stringify(res)).not.toMatch(/Pajajaran|0812|@hayatun\.test/);
   });
 
-  it("antrean kosong: daftar kosong", async () => {
-    expect((await a.get("/api/admin/payments").expect(200)).body).toEqual({ items: [] });
+  it("antrean kosong: daftar kosong dan rekening belum diatur", async () => {
+    expect((await a.get("/api/admin/payments").expect(200)).body).toEqual({ items: [], bankAccount: null });
+  });
+
+  it("memuat rekening tujuan untuk panel periksa, dan nama serta jumlah tiap barang tanpa harga satuan", async () => {
+    await ctx.db.execute(sql`insert into store_settings (key, value) values ('bankAccount', ${JSON.stringify({ bank: "BCA", number: "1234567890", holder: "Hayatun Toko" })}::jsonb)`);
+    const o = await paidMixed();
+    const res = (await a.get("/api/admin/payments").expect(200)).body;
+    expect(res.bankAccount).toEqual({ bank: "BCA", number: "1234567890", holder: "Hayatun Toko" });
+    expect(res.items).toHaveLength(1);
+    expect(res.items[0].orderId).toBe(o.orderId);
+    expect(res.items[0].items).toEqual(expect.arrayContaining([{ name: "Aplikasi Kasir", qty: 1 }, { name: "Nastar", qty: 2 }]));
+    expect(res.items[0].items).toHaveLength(2);
+    expect(JSON.stringify(res.items[0].items)).not.toMatch(/120000|50000/);
   });
 
   it("pesanan yang ditolak kembali menunggu pembayaran dan keluar dari antrean", async () => {

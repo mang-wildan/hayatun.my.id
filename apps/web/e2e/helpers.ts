@@ -186,3 +186,24 @@ export async function uploadProofApi(cookie: { name: string; value: string }, or
   const res = await fetch(`${WEB_URL}/api/orders/${orderId}/proof`, { method: "POST", headers: { Cookie: `${cookie.name}=${cookie.value}`, "content-type": type }, body: new Uint8Array(file) });
   if (!res.ok) throw new Error(`unggah bukti -> ${res.status} ${await res.text()}`);
 }
+
+// Mengosongkan antrean verifikasi dari tes lain yang berbagi database (pesanannya dibatalkan, buktinya tetap)
+export async function clearQueue() {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  await pool.query("update orders set status = 'DIBATALKAN' where status = 'MENUNGGU_VERIFIKASI'");
+  await pool.end();
+}
+
+export async function auditCount(action: string, entityId: string) {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  const { rows } = await pool.query<{ n: number }>("select count(*)::int as n from audit_logs where action = $1 and entity_id = $2", [action, entityId]);
+  await pool.end();
+  return rows[0].n;
+}
+
+export async function orderStatusOf(orderId: string) {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  const { rows } = await pool.query<{ status: string }>("select o.status from orders o where o.id = $1", [orderId]);
+  await pool.end();
+  return rows[0].status;
+}
