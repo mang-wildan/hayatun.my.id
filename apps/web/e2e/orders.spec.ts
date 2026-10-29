@@ -192,7 +192,7 @@ test.describe("bagian digital (F7)", () => {
     expect(await code.evaluate((e) => getComputedStyle(e).fontFamily)).toContain("JetBrains");
     await digital(page).getByRole("button", { name: "Salin kode lisensi KODE-AAA-111" }).click();
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("KODE-AAA-111");
-    await expect(digital(page).getByRole("button", { name: "Tersalin" })).toBeVisible();
+    await expect(digital(page).getByText("Tersalin")).toBeVisible();
   });
 
   test("lisensi tertunda: status dan pesan menyusul; kode muncul setelah admin menambah stok", async ({ page }) => {
@@ -260,7 +260,7 @@ test.describe("bagian fisik (F8)", () => {
     await open(page, id);
     await expect(digital(page).getByTestId("status-digital")).toHaveText("Terkirim");
     await expect(physical(page).getByTestId("status-fisik")).toHaveText("Diproses");
-    await expect(digital(page).getByRole("button", { name: /^Unduh / })).toBeVisible();
+    await expect(digital(page).getByRole("link", { name: "Buka tautan Unduh" })).toBeVisible(); // produk campuran hanya berisi tautan
     await expect(page.getByTestId("barang")).toContainText("Rp330.000");
   });
 });
