@@ -4,9 +4,11 @@ export type EmailTemplate =
   | "reset_password"
   | "login_locked"
   | "admin_invite"
-  | "low_stock";
+  | "low_stock"
+  | "order_expired"
+  | "order_reminder";
 
-export interface EmailData { name?: string; link?: string; productName?: string; available?: number }
+export interface EmailData { name?: string; link?: string; productName?: string; available?: number; invoiceNumber?: string; total?: string; deadline?: string }
 
 const BRAND = "#9D174D";
 const ACTION = "#166534";
@@ -52,6 +54,23 @@ const CONTENT: Record<EmailTemplate, Content> = {
     ],
     button: { label: "Atur stok" },
   },
+  order_expired: {
+    subject: "Pesananmu kedaluwarsa",
+    paragraphs: (d) => [
+      `Pesanan ${d.invoiceNumber} kedaluwarsa karena bukti bayar belum diunggah sampai batas waktunya.`,
+      "Kalau masih mau membeli, silakan checkout ulang ya. Stok yang tadinya ditahan untukmu sudah dilepas.",
+    ],
+    button: { label: "Lihat pesanan" },
+  },
+  order_reminder: {
+    subject: "Batas bayar pesananmu tinggal 3 jam",
+    paragraphs: (d) => [
+      `Batas unggah bukti bayar pesanan ${d.invoiceNumber} tinggal 3 jam, yaitu ${d.deadline}.`,
+      `Total yang perlu ditransfer: ${d.total}.`,
+      "Kalau sudah transfer, unggah buktinya supaya pesananmu bisa segera kami cek.",
+    ],
+    button: { label: "Bayar sekarang" },
+  },
   admin_invite: {
     subject: "Undangan jadi admin Hayatun",
     paragraphs: ["Kamu diundang menjadi admin toko Hayatun. Klik tombol di bawah untuk membuat password dan memasang verifikasi dua langkah."],
@@ -64,6 +83,7 @@ export function renderEmail(template: EmailTemplate, data: EmailData): { subject
   const c = CONTENT[template];
   if (c.button && !data.link) throw new Error(`Templat ${template} butuh data link`);
   if (template === "low_stock" && (data.productName === undefined || data.available === undefined)) throw new Error("Templat low_stock butuh data productName dan available");
+  if ((template === "order_expired" || template === "order_reminder") && !data.invoiceNumber) throw new Error(`Templat ${template} butuh data invoiceNumber`);
   const paragraphs = typeof c.paragraphs === "function" ? c.paragraphs(data) : c.paragraphs;
   const greeting = data.name ? `Halo ${data.name},` : "Halo,";
 

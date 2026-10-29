@@ -13,14 +13,20 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const PROOF = { allowed: ["jpg", "png", "pdf"], maxBytes: 5 * 1024 * 1024 } as const; // F4.3
 const MIME = { jpg: "image/jpeg", png: "image/png", pdf: "application/pdf" } as const;
 
-const notFound = () => new HttpError(404, "Pesanan tidak ditemukan.", "ORDER_NOT_FOUND");
-const expired = () => new HttpError(409, "Batas waktu pembayaran pesanan ini sudah lewat. Silakan checkout ulang ya.", "ORDER_EXPIRED"); // F4.8
+export const notFound = () => new HttpError(404, "Pesanan tidak ditemukan.", "ORDER_NOT_FOUND");
+export const expired = () => new HttpError(409, "Batas waktu pembayaran pesanan ini sudah lewat. Silakan checkout ulang ya.", "ORDER_EXPIRED"); // F4.8
 const notAllowed = () => new HttpError(409, "Pesanan ini tidak sedang menunggu bukti bayar.", "PROOF_NOT_ALLOWED");
 
 // ARCHITECTURE §5.2: periksa status dulu, lalu ukuran dan jenis dari isi, enkripsi, simpan, dan ubah status dalam satu transaksi
-export async function uploadProof(deps: Deps, viewer: SessionUser, orderId: string, req: Request) {
+// pesanan milik pembeli itu sendiri; admin pun tidak bertindak atas nama pembeli
+export async function findOwnOrder(deps: Pick<AppDeps, "db">, viewer: SessionUser, orderId: string) {
   const [o] = UUID.test(orderId) ? await deps.db.select().from(orders).where(eq(orders.id, orderId)) : [];
-  if (!o || o.userId !== viewer.userId) throw notFound(); // admin pun tidak mengunggah atas nama pembeli
+  if (!o || o.userId !== viewer.userId) throw notFound();
+  return o;
+}
+
+export async function uploadProof(deps: Deps, viewer: SessionUser, orderId: string, req: Request) {
+  const o = await findOwnOrder(deps, viewer, orderId);
   const isExpired = () => o.status === "KEDALUWARSA" || (o.status === "MENUNGGU_PEMBAYARAN" && deps.now() >= o.expiresAt);
   if (isExpired()) throw expired();
   if (o.status !== "MENUNGGU_PEMBAYARAN") throw notAllowed();

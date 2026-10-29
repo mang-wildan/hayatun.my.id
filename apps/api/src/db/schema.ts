@@ -163,6 +163,7 @@ export const orders = pgTable("orders", {
   shipPostalCode: text("ship_postal_code"),
   courier: text("courier"),
   courierService: text("courier_service"),
+  reminderSentAt: ts("reminder_sent_at"), // pengingat 3 jam sudah dikirim (F4.5); ditandai atomik supaya tidak ganda
   createdAt: ts("created_at").notNull().defaultNow(),
   updatedAt: ts("updated_at").notNull().defaultNow(),
 }, (t) => [

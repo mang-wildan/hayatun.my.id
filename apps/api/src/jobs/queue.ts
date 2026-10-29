@@ -6,6 +6,7 @@ export interface SendOptions { retryLimit?: number; retryDelaySec?: number; star
 export interface JobQueue {
   send(name: string, data: object, opts?: SendOptions): Promise<void>;
   work<T = unknown>(name: string, handler: (data: T) => Promise<void>): Promise<void>;
+  schedule(name: string, cron: string): Promise<void>; // tugas berkala; zona waktu cron UTC
 }
 
 export async function createPgBossQueue(url: string, logger?: Logger): Promise<JobQueue & { stop(): Promise<void> }> {
@@ -32,6 +33,10 @@ export async function createPgBossQueue(url: string, logger?: Logger): Promise<J
       // Ambil sampai 10 sekaligus dan lanjut tanpa jeda selama batch penuh.
       await boss.work(name, { batchSize: 10, pollingIntervalSeconds: 1, burstWhenBatchFull: true }, async (jobs) => { for (const j of jobs) await handler(j.data as T); });
     },
+    async schedule(name, cron) {
+      await ensure(name);
+      await boss.schedule(name, cron, {});
+    },
     stop: () => boss.stop(),
   };
 }
@@ -40,8 +45,11 @@ export async function createPgBossQueue(url: string, logger?: Logger): Promise<J
 export function createMemoryQueue() {
   const jobs: { name: string; data: object }[] = [];
   const handlers = new Map<string, (data: unknown) => Promise<void>>();
+  const schedules: { name: string; cron: string }[] = [];
   return {
     jobs,
+    schedules,
+    async schedule(name: string, cron: string) { schedules.push({ name, cron }); },
     async send(name: string, data: object) { jobs.push({ name, data }); },
     async work<T>(name: string, handler: (data: T) => Promise<void>) { handlers.set(name, handler as (data: unknown) => Promise<void>); },
     async runAll() {
