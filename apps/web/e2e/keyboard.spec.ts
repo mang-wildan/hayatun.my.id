@@ -12,6 +12,7 @@ test.beforeAll(async () => {
   await resetProducts();
   admin = await adminCookie();
 });
+test.afterAll(async () => { await resetProducts(); }); // katalog kembali kosong untuk spec lain
 test.beforeEach(async ({ context }) => {
   await clearQueue();
   await setSetting("bankAccount", BANK);
@@ -44,6 +45,15 @@ async function press(page: Page, target: Locator, what: string, key = "Enter") {
 async function typeInto(page: Page, field: Locator, what: string, text: string) {
   await tabTo(page, field, what);
   await page.keyboard.type(text);
+}
+
+// Enter atau Spasi pada input file membuka pemilih file. Chromium headless kadang melewatkan satu tekanan, jadi dicoba bergantian.
+async function openChooser(page: Page) {
+  for (const key of ["Enter", "Space", "Enter", "Space"]) {
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser", { timeout: 2500 }).catch(() => null), page.keyboard.press(key)]);
+    if (chooser) return chooser;
+  }
+  throw new Error("pemilih file tidak terbuka lewat Enter atau Spasi");
 }
 
 // Fokus tidak pernah mendarat di konten halaman di luar dialog (DESIGN §5). <dialog> modal bawaan boleh melepas fokus ke
@@ -108,7 +118,7 @@ test.describe("unggah bukti hanya dengan keyboard", () => {
     await page.goto(`/pesanan/${orderId}`);
     const input = page.getByLabel("Bukti bayar");
     await tabTo(page, input, "kolom Bukti bayar");
-    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.keyboard.press("Enter")]);
+    const chooser = await openChooser(page);
     await chooser.setFiles({ name: "transfer.png", mimeType: "image/png", buffer: PNG_1X1 });
     await expect(page.getByTestId("pratinjau")).toContainText("transfer.png");
     await press(page, page.getByRole("button", { name: "Upload bukti bayar" }), "Upload bukti bayar");
@@ -180,6 +190,7 @@ test.describe("verifikasi admin hanya dengan keyboard", () => {
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(reject, "fokus kembali ke Tolak setelah Esc").toBeFocused();
     await page.keyboard.press("Enter");
+    await expect(page.getByRole("dialog")).toBeVisible(); // tunggu dialog terbuka sebelum Tab
     await typeInto(page, page.getByLabel("Alasan penolakan"), "Alasan penolakan", "Foto buram, tolong unggah ulang");
     await press(page, page.getByRole("dialog").getByRole("button", { name: "Ya, tolak" }), "Ya, tolak");
     await expect(page.getByRole("status").filter({ hasText: /ditolak/ })).toBeVisible();

@@ -20,7 +20,7 @@ test.beforeAll(async ({ browser }) => {
   orderId = (await userApi(a, "POST", "/api/checkout", { expectedTotal: 75000 })).orderId as string;
   invoiceNumber = (await userApi(a, "GET", `/api/invoices/${orderId}`)).number as string;
 });
-test.afterAll(async () => { for (const c of [anon, buyerA, buyerB, admin]) await c.close(); });
+test.afterAll(async () => { for (const c of [anon, buyerA, buyerB, admin]) await c.close(); await resetProducts(); });
 
 const fill = (path: string) => path.startsWith("/pesanan/") ? path.replace("[id]", orderId) : path.replace("[slug]", "tidak-ada").replace("[id]", "00000000-0000-4000-8000-000000000001").replace("[orderId]", orderId);
 async function open(ctx: BrowserContext, path: string) {

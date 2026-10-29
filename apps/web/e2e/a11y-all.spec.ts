@@ -30,7 +30,7 @@ test.beforeAll(async ({ browser }) => {
   await userApi(s, "POST", "/api/addresses", ADDRESS);
   ids = { slug: book.slug, productId: book.id, orderId };
 });
-test.afterAll(async () => { for (const c of [anon, admin, owner, shopper]) await c.close(); });
+test.afterAll(async () => { for (const c of [anon, admin, owner, shopper]) await c.close(); await resetProducts(); }); // katalog kembali kosong untuk spec lain
 
 // peran yang dipakai untuk membuka tiap halaman, dan jalur akhir yang harus tampil (tanpa redirect yang tak disengaja)
 function plan(path: string): { ctx: BrowserContext; url: string } {
