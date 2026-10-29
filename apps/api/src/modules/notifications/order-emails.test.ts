@@ -38,7 +38,6 @@ async function buyer(email: string, name: string) {
   return api(ctx, `hayatun_sid=${(await createSession(ctx.db, { id, role: "buyer" }, ctx.clock.now)).token}`);
 }
 const setBank = (v: object | null) => ctx.db.execute(v ? sql`insert into store_settings (key, value) values ('bankAccount', ${JSON.stringify(v)}::jsonb) on conflict (key) do update set value = excluded.value` : sql`delete from store_settings where key = 'bankAccount'`);
-const mailsTo = async (to: string, subject?: string) => (await ctx.emails()).filter((m) => m.to === to && (!subject || m.subject === subject));
 const breakQueue = () => { ctx.queue.send = async () => { throw new Error("antrean mati"); }; };
 const status = async (id: string) => ((await ctx.db.execute(sql`select status from orders where id = ${id}`)).rows[0] as { status: string }).status;
 
