@@ -18,6 +18,7 @@ export const users = pgTable("users", {
   totpEnabled: boolean("totp_enabled").notNull().default(false),
   totpLastStep: bigint("totp_last_step", { mode: "number" }), // langkah waktu kode terakhir yang diterima, agar kode tidak dipakai ulang
   deletedAt: ts("deleted_at"),
+  deletionRequestedAt: ts("deletion_requested_at"), // permintaan hapus akun (F1.5); diproses tugas berkala saat tak ada pesanan yang menunda (F12.5)
   createdAt: ts("created_at").notNull().defaultNow(),
 });
 

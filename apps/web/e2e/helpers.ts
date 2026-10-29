@@ -254,3 +254,13 @@ export async function bulkOrders(n: number) {
     select 'INV/BULK/' || lpad(g::text, 4, '0'), (select user_id from orders limit 1), 'KEDALUWARSA', 'TIDAK_ADA', 'TIDAK_ADA', 1000, 0, 1000, now(), now() - (g || ' minutes')::interval from generate_series(1, $1::int) g`, [n]);
   await pool.end();
 }
+
+// Pembeli dengan password sungguhan (untuk tes yang meminta password lagi): daftar, verifikasi lewat email, lalu masuk
+export async function passwordBuyer(password = "rahasia-hayatun-1", name = "Budi Hapus") {
+  const email = `hapus-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@hayatun.test`;
+  await createVerifiedBuyer(email, password, name);
+  const res = await fetch(`${WEB_URL}/api/auth/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, password }) });
+  if (!res.ok) throw new Error(`login -> ${res.status}`);
+  const token = res.headers.getSetCookie().map((c) => c.split(";")[0]).find((c) => c.startsWith("hayatun_sid="))!.slice("hayatun_sid=".length);
+  return { email, cookie: { name: "hayatun_sid", value: token, url: WEB_URL } };
+}
