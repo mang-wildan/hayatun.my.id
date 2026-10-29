@@ -138,7 +138,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npx vitest run apps/api/src/modules/admins`
 - [x] **T50 Log aktivitas lengkap untuk semua aksi admin dan pembukaan data pribadi, plus halaman log** — F15.3, F15.4, N28 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/audit && npm run test:e2e -- admin-audit`
-- [ ] **T51 Uji matriks otorisasi untuk semua rute** — N6 · **A**
+- [x] **T51 Uji matriks otorisasi untuk semua rute** — N6 · **A**
   Selesai jika: `npx vitest run apps/api/src/test/authorization-matrix.test.ts` (tes gagal bila ada rute terdaftar yang tidak masuk matriks)
 
 ## Fase 7 — Kualitas, operasi, dan rilis
