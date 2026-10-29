@@ -12,9 +12,11 @@ export type EmailTemplate =
   | "order_created"
   | "proof_uploaded"
   | "license_delivered"
-  | "license_pending";
+  | "license_pending"
+  | "order_shipped"
+  | "tracking_updated";
 
-export interface EmailData { name?: string; link?: string; productName?: string; available?: number; invoiceNumber?: string; total?: string; deadline?: string; reason?: string; bank?: { bank: string; number: string; holder: string } | null; licenses?: { name: string; codes: string[]; missing?: number }[]; missing?: number }
+export interface EmailData { name?: string; link?: string; productName?: string; available?: number; invoiceNumber?: string; total?: string; deadline?: string; reason?: string; bank?: { bank: string; number: string; holder: string } | null; licenses?: { name: string; codes: string[]; missing?: number }[]; missing?: number; courier?: string; trackingNumber?: string }
 
 const BRAND = "#9D174D";
 const ACTION = "#166534";
@@ -118,6 +120,16 @@ const CONTENT: Record<EmailTemplate, Content> = {
     paragraphs: (d) => [`Pesanan ${d.invoiceNumber} sudah Lunas, tapi kode lisensi "${d.productName}" kurang ${d.missing}.`, "Tambah kode supaya pembeli segera mendapatkannya; kami kirim otomatis begitu kodenya masuk."],
     button: { label: "Tambah kode" },
   },
+  order_shipped: {
+    subject: "Pesananmu sedang dikirim",
+    paragraphs: (d) => [`Pesanan ${d.invoiceNumber} sudah dikirim lewat ${d.courier}.`, `Nomor resi: ${d.trackingNumber}`, "Pakai nomor itu untuk melacak kirimanmu di situs ekspedisi."],
+    button: { label: "Lihat pesanan" },
+  },
+  tracking_updated: {
+    subject: "Nomor resi pesananmu diperbarui",
+    paragraphs: (d) => [`Nomor resi pesanan ${d.invoiceNumber} diperbarui. Ekspedisi: ${d.courier}.`, `Nomor resi baru: ${d.trackingNumber}`],
+    button: { label: "Lihat pesanan" },
+  },
   admin_invite: {
     subject: "Undangan jadi admin Hayatun",
     paragraphs: ["Kamu diundang menjadi admin toko Hayatun. Klik tombol di bawah untuk membuat password dan memasang verifikasi dua langkah."],
@@ -130,10 +142,11 @@ export function renderEmail(template: EmailTemplate, data: EmailData): { subject
   const c = CONTENT[template];
   if (c.button && !data.link) throw new Error(`Templat ${template} butuh data link`);
   if (template === "low_stock" && (data.productName === undefined || data.available === undefined)) throw new Error("Templat low_stock butuh data productName dan available");
-  if (["order_expired", "order_reminder", "payment_accepted", "payment_rejected", "order_created", "proof_uploaded", "license_delivered", "license_pending"].includes(template) && !data.invoiceNumber) throw new Error(`Templat ${template} butuh data invoiceNumber`);
+  if (["order_expired", "order_reminder", "payment_accepted", "payment_rejected", "order_created", "proof_uploaded", "license_delivered", "license_pending", "order_shipped", "tracking_updated"].includes(template) && !data.invoiceNumber) throw new Error(`Templat ${template} butuh data invoiceNumber`);
   if (["order_created", "proof_uploaded"].includes(template) && !data.total) throw new Error(`Templat ${template} butuh data total`);
   if (template === "license_delivered" && !data.licenses?.length) throw new Error("Templat license_delivered butuh data licenses");
   if (template === "license_pending" && (data.productName === undefined || !data.missing)) throw new Error("Templat license_pending butuh data productName dan missing");
+  if (["order_shipped", "tracking_updated"].includes(template) && (!data.courier || !data.trackingNumber)) throw new Error(`Templat ${template} butuh data courier dan trackingNumber`);
   if (template === "order_created" && !data.deadline) throw new Error("Templat order_created butuh data deadline");
   if (template === "payment_rejected" && (!data.reason || !data.deadline)) throw new Error("Templat payment_rejected butuh data reason dan deadline");
   const paragraphs = typeof c.paragraphs === "function" ? c.paragraphs(data) : c.paragraphs;

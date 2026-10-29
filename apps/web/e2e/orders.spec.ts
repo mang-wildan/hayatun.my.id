@@ -233,7 +233,7 @@ test.describe("bagian fisik (F8)", () => {
     await expect(physical(page)).toContainText("SiCepat REG");
     await expect(physical(page)).toContainText("Nomor resi belum ada.");
     await expect(physical(page).getByTestId("nomor-resi")).toHaveCount(0);
-    await expect(page.locator("main")).not.toContainText(/Pajajaran|081234567890|Cicendo/);
+    await expect(page.locator("main")).not.toContainText(/Pajajaran|81234567890|Cicendo/);
     expect(await current(page).count()).toBe(1); // garis waktu pembayaran tidak ikut memuat langkah kirim
     await expect(physical(page).getByRole("list", { name: "Tahap pengiriman" }).locator('[aria-current="step"]')).toHaveText(/Diproses/);
   });

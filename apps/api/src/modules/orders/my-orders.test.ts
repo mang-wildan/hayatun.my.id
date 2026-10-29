@@ -108,7 +108,7 @@ describe("detail pesanan", () => {
     res = (await siti.get(`/api/orders/${o.orderId}`).expect(200)).body;
     expect(res.shipping.trackingNumber).toBe("SCP1234567890");
     expect(res.physicalStatus).toBe("DIKIRIM");
-    expect(JSON.stringify(res)).not.toMatch(/Pajajaran|0812|Budi|Santoso|Cicendo|40172/);
+    expect(JSON.stringify(res)).not.toMatch(/Pajajaran|81234567890|Budi|Santoso|Cicendo|40172/);
   });
 
   it("paidAt terisi setelah diterima admin", async () => {

@@ -183,6 +183,6 @@ describe("log tidak memuat data alamat (N30, N27)", () => {
     let out = "";
     const logger = createLogger({ logLevel: "info" }, new Writable({ write(chunk, _e, done) { out += chunk; done(); } }));
     logger.info({ recipient: "Budi Santoso", phone: "081234567890", address: "Jl. Pajajaran 12", body: { recipient: "Budi Santoso", phone: "0812", address: "Jl. Pajajaran 12" } }, "alamat");
-    expect(out).not.toMatch(/Budi|0812|Pajajaran/);
+    expect(out).not.toMatch(/Budi|81234567890|Pajajaran/);
   });
 });

@@ -14,7 +14,7 @@ import { autoReceiveOrders } from "./auto-receive.js";
 const SHIPPED = "Pesananmu sedang dikirim";
 const UPDATED = "Nomor resi pesananmu diperbarui";
 const PDF = Buffer.concat([Buffer.from("%PDF-1.7\n"), randomBytes(300)]);
-const ADDRESS = { recipient: "Budi Santoso", phone: "081234567890", address: "Jl. Pajajaran No. 12 RT 03/RW 05, Cicendo", areaId: "Cicendo", postalCode: "40172" };
+const ADDRESS = { recipient: "Budi Santoso", phone: "+6281234567890", address: "Jl. Pajajaran No. 12 RT 03/RW 05, Cicendo", areaId: "Cicendo", postalCode: "40172" };
 const MIN = 60_000;
 const DAY = 24 * 3600_000;
 const RESI = "SCP1234567890";
@@ -100,7 +100,7 @@ describe("daftar pengiriman admin (F8.1)", () => {
     expect(res.items.map((i: { orderId: string }) => i.orderId)).toEqual([first.orderId, second.orderId, shipped.orderId]);
     expect(res.items[0]).toEqual({
       orderId: first.orderId, invoiceNumber: first.invoiceNumber, paidAt: expect.any(String), physicalStatus: "DIPROSES", courier: "SiCepat", service: "REG",
-      recipient: "Budi Santoso", phone: "081234567890", address: "Jl. Pajajaran No. 12 RT 03/RW 05, Cicendo", areaId: "Cicendo", postalCode: "40172",
+      recipient: "Budi Santoso", phone: "+6281234567890", address: "Jl. Pajajaran No. 12 RT 03/RW 05, Cicendo", areaId: "Cicendo", postalCode: "40172",
       trackingNumber: null, shippedAt: null, items: [{ name: "Nastar", qty: 2 }],
     });
     expect(res.items[2]).toMatchObject({ physicalStatus: "DIKIRIM", trackingNumber: RESI, shippedAt: expect.any(String) });
@@ -132,7 +132,7 @@ describe("daftar pengiriman admin (F8.1)", () => {
     let log = await audit("order.address_viewed");
     expect(log.map((l) => l.entity_id).sort()).toEqual([a.orderId, b.orderId].sort());
     expect(log.every((l) => l.actor_id)).toBe(true);
-    expect(JSON.stringify(log)).not.toMatch(/Pajajaran|0812|Budi/);
+    expect(JSON.stringify(log)).not.toMatch(/Pajajaran|81234567890|Budi/);
     await admin.get("/api/admin/shipments").expect(200);
     log = await audit("order.address_viewed");
     expect(log).toHaveLength(4);
@@ -174,7 +174,7 @@ describe("mengisi resi (F8.2, F8.4)", () => {
     expect(m.text).toContain("SiCepat REG");
     expect(m.text).toContain(RESI);
     expect(m.text).toContain(`${APP_URL}/pesanan/${o.orderId}`);
-    expect(m.text + m.html).not.toMatch(/Pajajaran|0812|Santoso|Cicendo/);
+    expect(m.text + m.html).not.toMatch(/Pajajaran|81234567890|Santoso|Cicendo/);
     const log = await audit("order.shipped");
     expect(log).toHaveLength(1);
     expect(log[0]).toMatchObject({ entity_id: o.orderId, details: { trackingNumber: RESI } });

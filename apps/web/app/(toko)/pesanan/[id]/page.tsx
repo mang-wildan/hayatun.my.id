@@ -90,7 +90,7 @@ export default async function Pesanan({ params }: { params: Promise<{ id: string
       </section>
 
       {["TERKIRIM", "LISENSI_TERTUNDA", "DICABUT"].includes(d.digitalStatus) && d.paidAt && <DigitalSection orderId={id} status={d.digitalStatus} files={files} licenses={licenses} links={links} />}
-      {["DIPROSES", "DIKIRIM", "DITERIMA"].includes(d.physicalStatus) && <PhysicalSection status={d.physicalStatus} shipping={d.shipping} />}
+      {["DIPROSES", "DIKIRIM", "DITERIMA"].includes(d.physicalStatus) && <PhysicalSection orderId={id} status={d.physicalStatus} shipping={d.shipping} />}
 
       {status === "MENUNGGU_VERIFIKASI" && <p role="status">Bukti bayar terkirim. Kami akan segera mengeceknya.</p>}
       {status === "KEDALUWARSA" && (

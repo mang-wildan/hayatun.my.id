@@ -47,7 +47,7 @@ test.describe("daftar pengiriman (F8.1)", () => {
     await expect(toShip(page).getByTestId("pengiriman-item")).toHaveCount(1);
     await expect(row).toContainText("Budi Santoso");
     await expect(row).toContainText("Jl. Pajajaran No. 12 RT 03/RW 05, Cicendo");
-    await expect(row).toContainText("081234567890");
+    await expect(row).toContainText("+6281234567890");
     await expect(row).toContainText("SiCepat REG");
     await expect(row).toContainText("Nastar Lengkap × 1");
     await expect(row.getByTestId("nomor-invoice")).toHaveText(/^INV\/\d{4}\/\d{2}\/\d{4,}$/);

@@ -98,7 +98,7 @@ describe("antrean verifikasi (F5.1)", () => {
     const res = (await a.get("/api/admin/payments").expect(200)).body;
     expect(res.items.map((i: { orderId: string }) => i.orderId)).toEqual([first.orderId, third.orderId]);
     expect(res.items[0]).toEqual({ orderId: first.orderId, invoiceNumber: first.invoiceNumber, buyerName: expect.any(String), total: 75000, uploadedAt: expect.any(String), mime: "application/pdf", items: [{ name: "E-book", qty: 1 }] });
-    expect(JSON.stringify(res)).not.toMatch(/Pajajaran|0812|@hayatun\.test/);
+    expect(JSON.stringify(res)).not.toMatch(/Pajajaran|81234567890|@hayatun\.test/);
   });
 
   it("antrean kosong: daftar kosong dan rekening belum diatur", async () => {
