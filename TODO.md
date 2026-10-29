@@ -125,7 +125,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
 
 ## Fase 6 — Privasi, admin, dan pengaturan
 
-- [ ] **T45 Hapus akun: anonimkan dalam 3×24 jam, tunda bila ada pesanan aktif, invoice tetap 10 tahun** — F1.5, F12.2, F12.5, N29 · **A**
+- [x] **T45 Hapus akun: anonimkan dalam 3×24 jam, tunda bila ada pesanan aktif, invoice tetap 10 tahun** — F1.5, F12.2, F12.5, N29 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/privacy/delete-account.test.ts`
 - [ ] **T46 Hapus otomatis bukti bayar setelah 1 tahun** — F12.3, N29 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/jobs/proof-retention.test.ts`

@@ -69,7 +69,7 @@ describe("meminta hapus akun (F1.5)", () => {
     const wrong = await requestDeletion(siti, "salah-password").expect(403);
     expect(wrong.body.fields.password).toBe("Password salah.");
     expect((await requestDeletion(siti, "").expect(422)).body.fields.password).toBe("Password wajib diisi.");
-    expect((await requestDeletion(siti, undefined).expect(422)).body.fields.password).toBe("Password wajib diisi.");
+    expect((await siti.post("/api/account/deletion", {}).expect(422)).body.fields.password).toBe("Password wajib diisi.");
     expect((await user(sitiId)).deletion_requested_at).toBeNull();
     expect(await audit("account.deletion_requested")).toEqual([]);
   });
@@ -82,6 +82,9 @@ describe("meminta hapus akun (F1.5)", () => {
     const log = await audit("account.deletion_requested");
     expect(log).toHaveLength(1);
     expect(log[0]).toMatchObject({ actor_id: sitiId, entity_id: sitiId });
+    ctx.clock.advance(60_000);
+    expect((await requestDeletion().expect(200)).body.requestedAt).toBe(res.requestedAt); // diajukan ulang: waktu asli dan satu log
+    expect(await audit("account.deletion_requested")).toHaveLength(1);
     await request(ctx.app).get("/api/account/deletion").expect(401);
   });
 
@@ -201,7 +204,7 @@ describe("pesanan yang menunda penghapusan (F12.5)", () => {
     const o = await digital(siti, false);
     await siti.upload(`/api/orders/${o.orderId}/proof`, PDF, "application/pdf").expect(201);
     const res = (await requestDeletion().expect(200)).body;
-    expect(res.blockers).toEqual([{ invoiceNumber: o.invoiceNumber, reason: "Menunggu verifikasi" }]);
+    expect(res.blockers).toEqual([{ orderId: o.orderId, invoiceNumber: o.invoiceNumber, reason: "Menunggu verifikasi" }]);
     expect(await sweep()).toBe(0);
     expect((await user(sitiId)).status).toBe("active");
     expect((await user(sitiId)).deletion_requested_at).not.toBeNull(); // permintaan tetap tercatat
@@ -213,7 +216,7 @@ describe("pesanan yang menunda penghapusan (F12.5)", () => {
 
   it("Menunggu Pembayaran menunda; selesai setelah pembeli membatalkannya", async () => {
     const o = await digital(siti, false);
-    expect((await requestDeletion().expect(200)).body.blockers).toEqual([{ invoiceNumber: o.invoiceNumber, reason: "Menunggu pembayaran" }]);
+    expect((await requestDeletion().expect(200)).body.blockers).toEqual([{ orderId: o.orderId, invoiceNumber: o.invoiceNumber, reason: "Menunggu pembayaran" }]);
     expect(await sweep()).toBe(0);
     await siti.post(`/api/orders/${o.orderId}/cancel`).expect(200);
     expect(await sweep()).toBe(1);
@@ -221,7 +224,7 @@ describe("pesanan yang menunda penghapusan (F12.5)", () => {
 
   it("fisik Diproses dan Dikirim menunda; selesai setelah Diterima", async () => {
     const o = await physical();
-    expect((await requestDeletion().expect(200)).body.blockers).toEqual([{ invoiceNumber: o.invoiceNumber, reason: "Pesanan fisik belum diterima" }]);
+    expect((await requestDeletion().expect(200)).body.blockers).toEqual([{ orderId: o.orderId, invoiceNumber: o.invoiceNumber, reason: "Pesanan fisik belum diterima" }]);
     expect(await sweep()).toBe(0);
     await admin.post(`/api/admin/shipments/${o.orderId}/tracking`, { trackingNumber: "SCP1234567890" }).expect(200);
     expect(await sweep()).toBe(0);
