@@ -7,7 +7,7 @@ import { emailBuyer as sendToBuyer } from "../notifications/buyer.js";
 import { releaseHold } from "../orders/hold.js";
 import { transition } from "../orders/state-machine.js";
 
-type Deps = Pick<AppDeps, "db" | "queue" | "crypto" | "config" | "now">;
+type Deps = Pick<AppDeps, "db" | "queue" | "crypto" | "config" | "logger" | "now">;
 
 const JOB = "orders.sweep";
 const REMIND_BEFORE_MS = 3 * 3600_000; // F4.5

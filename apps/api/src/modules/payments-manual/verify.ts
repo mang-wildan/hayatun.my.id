@@ -11,7 +11,7 @@ import type { SessionUser } from "../auth/sessions.js";
 import { emailBuyer } from "../notifications/buyer.js";
 import { transition } from "../orders/state-machine.js";
 
-type Deps = Pick<AppDeps, "db" | "crypto" | "storage" | "queue" | "config" | "now">;
+type Deps = Pick<AppDeps, "db" | "crypto" | "storage" | "queue" | "config" | "logger" | "now">;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const EXTENSION_MS = 24 * 3600_000; // F5.5

@@ -16,7 +16,7 @@ const { db, pool } = createDb(config.databaseUrl);
 const queue = await createPgBossQueue(config.databaseUrl, logger);
 const crypto = createCrypto({ keys: config.encryptionKeys, activeKeyId: config.activeKeyId, blindIndexKey: config.blindIndexKey });
 await registerEmailWorker(queue, { mailer: createSmtpMailer(config), crypto, logger });
-await registerOrderJobs(queue, { db, queue, crypto, config, now: () => new Date() });
+await registerOrderJobs(queue, { db, queue, crypto, config, logger, now: () => new Date() });
 
 const server = createApp({ config, db, logger, queue, crypto, storage: createStorage(config.storage), shipping: createShippingProvider(config), now: () => new Date() })
   .listen(config.apiPort, "127.0.0.1", () => logger.info({ port: config.apiPort }, "API berjalan"));

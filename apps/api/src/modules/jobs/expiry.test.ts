@@ -25,7 +25,7 @@ const REMINDER_SUBJECT = "Batas bayar pesananmu tinggal 3 jam";
 const ADDRESS = { recipient: "Budi Santoso", phone: "081234567890", address: "Jl. Pajajaran No. 12 RT 03/RW 05, Cicendo", areaId: "Cicendo", postalCode: "40172" };
 const PDF = Buffer.from("%PDF-1.7\nbukti transfer");
 
-const deps = () => ({ db: ctx.db, queue: ctx.queue, crypto: ctx.crypto, config: ctx.config, now: () => ctx.clock.now });
+const deps = () => ({ db: ctx.db, queue: ctx.queue, crypto: ctx.crypto, config: ctx.config, logger: ctx.logger, now: () => ctx.clock.now });
 const sweep = (opts?: { batchSize?: number }) => sweepOrders(deps(), opts);
 const status = async (id: string) => ((await ctx.db.execute(sql`select status from orders where id = ${id}`)).rows[0] as { status: string }).status;
 const reserved = async (productId: string) => ((await ctx.db.execute(sql`select stock_reserved from products where id = ${productId}`)).rows[0] as { stock_reserved: number }).stock_reserved;
