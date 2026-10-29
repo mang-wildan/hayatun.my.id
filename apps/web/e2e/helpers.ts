@@ -165,3 +165,24 @@ export async function setOrderStatus(orderId: string, status: string) {
   await pool.query("update orders set status = $1 where id = $2", [status, orderId]);
   await pool.end();
 }
+
+// Pengaturan toko (kunci seperti "bankAccount") langsung di database, karena halaman pengaturan baru ada di T48
+export async function setSetting(key: string, value: object | null) {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  if (value === null) await pool.query("delete from store_settings where key = $1", [key]);
+  else await pool.query("insert into store_settings (key, value) values ($1, $2::jsonb) on conflict (key) do update set value = excluded.value", [key, JSON.stringify(value)]);
+  await pool.end();
+}
+
+// Membuat batas bayar lewat tanpa menunggu 24 jam (statusnya sengaja tidak diubah, seperti saat tugas kedaluwarsa belum jalan)
+export async function expireOrderNow(orderId: string) {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  await pool.query("update orders set expires_at = now() - interval '1 minute' where id = $1", [orderId]);
+  await pool.end();
+}
+
+// Unggah bukti bayar lewat API (isi file apa adanya)
+export async function uploadProofApi(cookie: { name: string; value: string }, orderId: string, file: Buffer, type = "application/pdf") {
+  const res = await fetch(`${WEB_URL}/api/orders/${orderId}/proof`, { method: "POST", headers: { Cookie: `${cookie.name}=${cookie.value}`, "content-type": type }, body: new Uint8Array(file) });
+  if (!res.ok) throw new Error(`unggah bukti -> ${res.status} ${await res.text()}`);
+}
