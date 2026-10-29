@@ -13,6 +13,7 @@ import { authRoutes } from "./modules/auth/routes.js";
 import { addressRoutes } from "./modules/addresses/routes.js";
 import { cartRoutes } from "./modules/cart/routes.js";
 import { checkoutRoutes } from "./modules/checkout/routes.js";
+import { storeRoutes } from "./modules/settings/routes.js";
 import { catalogRoutes } from "./modules/catalog/routes.js";
 import { invoiceRoutes } from "./modules/invoices/routes.js";
 import { adminPaymentRoutes } from "./modules/payments-manual/admin-routes.js";
@@ -55,6 +56,7 @@ export function createApp(deps: AppDeps) {
   app.use("/api/auth", authRoutes(deps));
   app.use("/api/admin/products", productRoutes(deps));
   app.use("/api/catalog", catalogRoutes(deps));
+  app.use("/api/store", storeRoutes(deps));
   app.use("/api/cart", cartRoutes(deps));
   app.use("/api/addresses", addressRoutes(deps));
   app.use("/api/checkout", checkoutRoutes(deps));

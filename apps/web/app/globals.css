@@ -383,3 +383,11 @@ code, .mono { font-family: var(--font-mono); }
 .summary-table td { white-space: nowrap; }
 .pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .pager .btn { flex: 0 0 auto; }
+
+/* ---- halaman legal dan footer toko ---- */
+.doc { max-width: 800px; padding: var(--space-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); display: grid; gap: var(--space-6); overflow-wrap: anywhere; }
+.doc > * { margin: 0; }
+@media (min-width: 768px) { .doc { padding: var(--space-8); } }
+.site-footer { padding: var(--space-4) var(--space-4) var(--space-8); }
+.site-footer nav { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); max-width: 1200px; margin: 0 auto; }
+.site-footer .nav-link { padding: 0 var(--space-3); }
