@@ -232,3 +232,10 @@ export async function dropReservedCodes(productId: string) {
   await pool.query("delete from license_codes where product_id = $1 and status = 'reserved'", [productId]);
   await pool.end();
 }
+
+// Mengosongkan daftar pengiriman admin dari tes lain yang berbagi database
+export async function clearShipments() {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  await pool.query("update orders set physical_status = 'DITERIMA' where physical_status in ('DIPROSES', 'DIKIRIM')");
+  await pool.end();
+}
