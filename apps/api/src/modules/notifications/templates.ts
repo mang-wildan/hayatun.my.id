@@ -18,9 +18,12 @@ export type EmailTemplate =
   | "order_cancelled"
   | "order_refunded"
   | "account_deleted"
-  | "bank_account_changed";
+  | "bank_account_changed"
+  | "admin_added"
+  | "admin_disabled"
+  | "totp_reset_by_admin";
 
-export interface EmailData { name?: string; link?: string; productName?: string; available?: number; invoiceNumber?: string; total?: string; deadline?: string; reason?: string; bank?: { bank: string; number: string; holder: string } | null; licenses?: { name: string; codes: string[]; missing?: number }[]; missing?: number; courier?: string; trackingNumber?: string; changedBy?: string; changedAt?: string; oldBank?: { bank: string; number: string; holder: string } | null }
+export interface EmailData { name?: string; link?: string; productName?: string; available?: number; invoiceNumber?: string; total?: string; deadline?: string; reason?: string; bank?: { bank: string; number: string; holder: string } | null; licenses?: { name: string; codes: string[]; missing?: number }[]; missing?: number; courier?: string; trackingNumber?: string; changedBy?: string; changedAt?: string; oldBank?: { bank: string; number: string; holder: string } | null; target?: string }
 
 const BRAND = "#9D174D";
 const ACTION = "#166534";
@@ -158,6 +161,20 @@ const CONTENT: Record<EmailTemplate, Content> = {
     ],
     button: { label: "Buka pengaturan" },
   },
+  admin_added: {
+    subject: "Admin baru ditambahkan",
+    paragraphs: (d) => [`${d.changedBy} mengundang admin baru (${d.target}) pada ${d.changedAt}.`, "Undangan berlaku 72 jam. Kalau kamu tidak mengenal admin ini, periksa daftar admin dan nonaktifkan bila perlu."],
+    button: { label: "Buka daftar admin" },
+  },
+  admin_disabled: {
+    subject: "Admin dinonaktifkan",
+    paragraphs: (d) => [`${d.changedBy} menonaktifkan admin ${d.target} pada ${d.changedAt}.`, "Semua sesi admin itu sudah berakhir dan ia tidak bisa masuk lagi."],
+    button: { label: "Buka daftar admin" },
+  },
+  totp_reset_by_admin: {
+    subject: "Verifikasi dua langkahmu dimatikan oleh toko",
+    paragraphs: ["Verifikasi dua langkah di akunmu dimatikan oleh admin toko, biasanya setelah kamu meminta bantuan karena kehilangan HP. Semua sesi masukmu ikut berakhir, jadi kamu perlu masuk lagi.", "Kamu bisa memasangnya lagi kapan saja dari halaman keamanan akun. Kalau ini bukan kamu yang meminta, segera atur ulang passwordmu lewat Lupa password dan hubungi toko."],
+  },
   admin_invite: {
     subject: "Undangan jadi admin Hayatun",
     paragraphs: ["Kamu diundang menjadi admin toko Hayatun. Klik tombol di bawah untuk membuat password dan memasang verifikasi dua langkah."],
@@ -176,6 +193,7 @@ export function renderEmail(template: EmailTemplate, data: EmailData): { subject
   if (template === "license_pending" && (data.productName === undefined || !data.missing)) throw new Error("Templat license_pending butuh data productName dan missing");
   if (["order_shipped", "tracking_updated"].includes(template) && (!data.courier || !data.trackingNumber)) throw new Error(`Templat ${template} butuh data courier dan trackingNumber`);
   if (template === "bank_account_changed" && (!data.bank || !data.changedBy || !data.changedAt)) throw new Error("Templat bank_account_changed butuh data bank, changedBy, dan changedAt");
+  if ((template === "admin_added" || template === "admin_disabled") && (!data.changedBy || !data.changedAt || !data.target)) throw new Error(`Templat ${template} butuh data changedBy, changedAt, dan target`);
   if (template === "order_created" && !data.deadline) throw new Error("Templat order_created butuh data deadline");
   if (template === "payment_rejected" && (!data.reason || !data.deadline)) throw new Error("Templat payment_rejected butuh data reason dan deadline");
   const paragraphs = typeof c.paragraphs === "function" ? c.paragraphs(data) : c.paragraphs;

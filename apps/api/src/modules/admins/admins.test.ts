@@ -22,6 +22,7 @@ beforeEach(async () => {
   aCookie = await ctx.adminCookie();
   bCookie = await ctx.adminCookie();
   await ctx.createUser({ email: "admin-undangan@hayatun.test", role: "admin", status: "invited" });
+  await ctx.db.execute(sql`update users set name_enc = null where email_index = ${ctx.crypto.blindIndex("admin-undangan@hayatun.test")}`); // undangan sungguhan belum punya nama
   buyerId = await ctx.createUser({ email: "siti@hayatun.test", password: PASSWORD, name: "Siti Aminah", totpSecret: SECRET });
 });
 afterEach(() => ctx.close());
@@ -100,6 +101,7 @@ describe("mengundang admin (F15.1)", () => {
     await invite("admin-undangan@hayatun.test").expect(201);
     await invite("admin-undangan@hayatun.test").expect(201);
     expect(await mails(INVITE)).toHaveLength(2);
+    expect(await mails("Admin baru ditambahkan")).toHaveLength(0); // kirim ulang bukan admin baru
     expect((await rows(sql`select 1 from users where email_index = ${ctx.crypto.blindIndex("admin-undangan@hayatun.test")}`))).toHaveLength(1);
   });
 

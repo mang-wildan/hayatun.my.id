@@ -134,7 +134,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Catatan: teks kebijakan privasi dan syarat dan ketentuan adalah **draf yang belum ditinjau ahli hukum** (SPEC pertanyaan terbuka 9); tinjau sebelum toko dibuka.
 - [x] **T48 Pengaturan toko dan rekening, email ke semua admin saat rekening berubah** — F13.3, F15.7, N32 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/settings && npm run test:e2e -- admin-settings`
-- [ ] **T49 Undang dan nonaktifkan admin, sesi dicabut ≤ 1 menit, admin terakhir tidak bisa menonaktifkan diri, admin bisa mematikan TOTP pembeli yang kehilangan HP (dicatat di log aktivitas)** — F15.1, F15.5, F15.6 · **A**
+- [x] **T49 Undang dan nonaktifkan admin, sesi dicabut ≤ 1 menit, admin terakhir tidak bisa menonaktifkan diri, admin bisa mematikan TOTP pembeli yang kehilangan HP (dicatat di log aktivitas)** — F15.1, F15.5, F15.6 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/admins`
 - [ ] **T50 Log aktivitas lengkap untuk semua aksi admin dan pembukaan data pribadi, plus halaman log** — F15.3, F15.4, N28 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/audit && npm run test:e2e -- admin-audit`
