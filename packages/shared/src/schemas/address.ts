@@ -4,7 +4,7 @@ export const MAX_ADDRESSES = 5;
 
 const BAD_PHONE = "Format nomor HP belum benar. Contoh: 081234567890.";
 // nomor seluler Indonesia; disimpan sebagai +62…
-const phone = z
+export const phoneSchema = z
   .string({ error: "Nomor HP diisi dulu ya." })
   .trim()
   .min(1, "Nomor HP diisi dulu ya.")
@@ -14,7 +14,7 @@ const phone = z
 
 export const addressFieldsSchema = z.object({
   recipient: z.string({ error: "Nama penerima diisi dulu ya." }).trim().min(1, "Nama penerima diisi dulu ya.").max(100, "Nama penerima maksimal 100 karakter."),
-  phone,
+  phone: phoneSchema,
   address: z
     .string({ error: "Alamat lengkap diisi dulu ya." })
     .trim()

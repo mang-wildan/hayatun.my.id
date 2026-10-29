@@ -17,9 +17,10 @@ export type EmailTemplate =
   | "tracking_updated"
   | "order_cancelled"
   | "order_refunded"
-  | "account_deleted";
+  | "account_deleted"
+  | "bank_account_changed";
 
-export interface EmailData { name?: string; link?: string; productName?: string; available?: number; invoiceNumber?: string; total?: string; deadline?: string; reason?: string; bank?: { bank: string; number: string; holder: string } | null; licenses?: { name: string; codes: string[]; missing?: number }[]; missing?: number; courier?: string; trackingNumber?: string }
+export interface EmailData { name?: string; link?: string; productName?: string; available?: number; invoiceNumber?: string; total?: string; deadline?: string; reason?: string; bank?: { bank: string; number: string; holder: string } | null; licenses?: { name: string; codes: string[]; missing?: number }[]; missing?: number; courier?: string; trackingNumber?: string; changedBy?: string; changedAt?: string; oldBank?: { bank: string; number: string; holder: string } | null }
 
 const BRAND = "#9D174D";
 const ACTION = "#166534";
@@ -147,6 +148,16 @@ const CONTENT: Record<EmailTemplate, Content> = {
     subject: "Akunmu sudah dihapus",
     paragraphs: ["Akunmu sudah kami hapus: nama, nomor HP, alamat, dan sesi masukmu dihapus, dan kamu tidak bisa masuk lagi dengan akun itu.", "Data invoice dan transaksi tetap kami simpan selama 10 tahun sebagai catatan pembukuan, tanpa data pribadimu. Kalau kamu ingin belanja lagi, kamu bisa mendaftar baru kapan saja."],
   },
+  bank_account_changed: {
+    subject: "Rekening tujuan transfer diubah",
+    paragraphs: (d) => [
+      `Rekening tujuan transfer toko diubah oleh ${d.changedBy} pada ${d.changedAt}.`,
+      d.oldBank ? `Rekening lama: ${d.oldBank.bank} ${d.oldBank.number} a.n. ${d.oldBank.holder}` : "Rekening lama: sebelumnya belum diatur.",
+      `Rekening baru: ${d.bank!.bank} ${d.bank!.number} a.n. ${d.bank!.holder}`,
+      "Kalau perubahan ini bukan dari admin yang berwenang, segera periksa akun admin dan ganti passwordnya, karena perubahan rekening sering dipakai untuk penipuan.",
+    ],
+    button: { label: "Buka pengaturan" },
+  },
   admin_invite: {
     subject: "Undangan jadi admin Hayatun",
     paragraphs: ["Kamu diundang menjadi admin toko Hayatun. Klik tombol di bawah untuk membuat password dan memasang verifikasi dua langkah."],
@@ -164,6 +175,7 @@ export function renderEmail(template: EmailTemplate, data: EmailData): { subject
   if (template === "license_delivered" && !data.licenses?.length) throw new Error("Templat license_delivered butuh data licenses");
   if (template === "license_pending" && (data.productName === undefined || !data.missing)) throw new Error("Templat license_pending butuh data productName dan missing");
   if (["order_shipped", "tracking_updated"].includes(template) && (!data.courier || !data.trackingNumber)) throw new Error(`Templat ${template} butuh data courier dan trackingNumber`);
+  if (template === "bank_account_changed" && (!data.bank || !data.changedBy || !data.changedAt)) throw new Error("Templat bank_account_changed butuh data bank, changedBy, dan changedAt");
   if (template === "order_created" && !data.deadline) throw new Error("Templat order_created butuh data deadline");
   if (template === "payment_rejected" && (!data.reason || !data.deadline)) throw new Error("Templat payment_rejected butuh data reason dan deadline");
   const paragraphs = typeof c.paragraphs === "function" ? c.paragraphs(data) : c.paragraphs;
