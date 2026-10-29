@@ -190,7 +190,7 @@ test.describe("batalkan pesanan (F4.6)", () => {
     await expect(dialog).toBeHidden();
     await expect(status(page)).toHaveText("Menunggu pembayaran");
     await page.getByRole("button", { name: "Batalkan pesanan" }).click();
-    await dialog.getByRole("button", { name: "Batal" }).click();
+    await dialog.getByRole("button", { name: "Batal", exact: true }).click();
     await expect(status(page)).toHaveText("Menunggu pembayaran");
     await page.getByRole("button", { name: "Batalkan pesanan" }).click();
     await dialog.getByRole("button", { name: "Ya, batalkan" }).click();
@@ -236,6 +236,17 @@ test.describe("keyboard dan aksesibilitas (N11–N16)", () => {
       }
     });
   }
+
+  test("HP: nomor invoice, nomor rekening, total, dan tombol Salin tetap utuh di satu baris", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 800 });
+    await open(page, await newOrder());
+    for (const el of [page.getByTestId("nomor-invoice"), page.getByTestId("nomor-rekening"), page.getByTestId("total")]) {
+      expect((await el.boundingBox())!.height, "nilai tidak boleh terpotong ke baris kedua").toBeLessThan(40);
+    }
+    for (const button of await page.getByRole("button", { name: /^Salin/ }).all()) {
+      expect((await button.boundingBox())!.height, "teks tombol tidak boleh terpotong (tinggi sentuh 44)").toBeLessThanOrEqual(48);
+    }
+  });
 
   test("HP: area sentuh minimal 44px dan pratinjau tidak melebarkan halaman", async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 800 });

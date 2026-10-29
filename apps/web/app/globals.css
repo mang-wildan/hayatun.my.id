@@ -260,8 +260,9 @@ code, .mono { font-family: var(--font-mono); }
 .summary-items li { display: flex; justify-content: space-between; gap: var(--space-4); overflow-wrap: anywhere; }
 .summary-items .meta { display: block; }
 .summary-rows { margin: 0; display: grid; gap: var(--space-2); max-width: 28rem; }
-.summary-rows > div { display: flex; justify-content: space-between; gap: var(--space-4); }
-.summary-rows dd { margin: 0; font-weight: 600; }
+.summary-rows > div { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-1) var(--space-4); } /* tidak muat: nilai turun ke baris berikutnya, bukan terpotong */
+.summary-rows dd { margin: 0; font-weight: 600; display: flex; align-items: center; justify-content: flex-end; gap: var(--space-2); margin-left: auto; text-align: right; }
+.summary-rows .link-button { white-space: nowrap; }
 .summary-rows .grand { padding-top: var(--space-2); border-top: 1px solid var(--line); font-size: 1.25rem; font-weight: 600; }
 @media (min-width: 768px) {
   .checkout-bar { grid-template-columns: 1fr auto; align-items: center; margin: 0; border: 1px solid var(--line); border-radius: var(--radius-card); position: static; }
@@ -293,3 +294,17 @@ code, .mono { font-family: var(--font-mono); }
   .page { padding: 0; max-width: none; }
   .invoice { max-width: none; padding: 0; border: 0; box-shadow: none; border-radius: 0; }
 }
+
+/* ---- instruksi bayar dan unggah bukti (DESIGN §5) ---- */
+.upload-area { display: grid; gap: var(--space-2); align-content: center; min-height: 160px; padding: var(--space-4); background: var(--surface); border: 2px dashed var(--line-strong); border-radius: var(--radius-card); }
+.upload-area input[type="file"] { width: 100%; min-width: 0; }
+.upload-area .error { display: flex; gap: var(--space-2); color: var(--danger-text); }
+.upload-area .error svg { flex: none; width: 20px; height: 20px; }
+.upload-area:has(input[aria-invalid="true"]) { border-color: var(--danger-text); }
+.preview { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-3); align-items: center; padding: var(--space-3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-control); }
+.preview img { width: 72px; height: 72px; object-fit: cover; border-radius: var(--radius-control); background: var(--brand-tint); }
+.preview > div { min-width: 0; overflow-wrap: anywhere; }
+.preview .btn { grid-column: 1 / -1; }
+@media (min-width: 768px) { .preview { grid-template-columns: auto minmax(0, 1fr) auto; } .preview .btn { grid-column: auto; } }
+.upload-area input[type="file"] { min-height: 44px; }
+.upload-area input[type="file"]::file-selector-button { min-height: 44px; margin-right: var(--space-3); padding: 0 var(--space-4); font: inherit; font-weight: 600; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-control); cursor: pointer; }

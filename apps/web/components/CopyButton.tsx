@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 
-export function CopyButton({ text }: { text: string }) {
+// `label` memberi nama yang jelas bagi pembaca layar bila ada beberapa tombol Salin di satu halaman
+export function CopyButton({ text, label }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
       type="button"
       className="link-button"
+      aria-label={label}
       onClick={async () => {
         await navigator.clipboard.writeText(text).catch(() => {});
         setCopied(true);
