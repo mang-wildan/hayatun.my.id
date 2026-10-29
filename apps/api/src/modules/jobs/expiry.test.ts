@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import pg from "pg";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createMemoryQueue } from "../../jobs/queue.js";
 import { APP_URL, createTestContext, type TestContext } from "../../test/context.js";
@@ -116,7 +117,7 @@ describe("kedaluwarsa otomatis (F4.4)", () => {
     const ids: string[] = [];
     for (let i = 0; i < 25; i++) {
       ids.push((await digitalOrder(api(ctx, await ctx.buyerCookie()))).orderId);
-      ctx.clock.advance(HOUR); // dibuat di jam yang berbeda-beda
+      ctx.clock.advance(20 * 60_000); // dibuat di waktu yang berbeda-beda (di bawah 30 menit supaya sesi admin tidak habis)
     }
     ctx.clock.advance(3 * DAY); // server mati 3 hari
     expect(await sweep({ batchSize: 10 })).toMatchObject({ expired: 25 });
@@ -177,6 +178,26 @@ describe("pengingat 3 jam sebelum batas (F4.5)", () => {
   });
 });
 
+// Memastikan permintaan benar-benar tumpang tindih: baris pesanan dikunci dari koneksi lain sampai semuanya tertahan
+async function overlapped<T>(orderId: string, waiting: number, fire: () => Promise<T>): Promise<T> {
+  const client = new pg.Client({ connectionString: process.env.DATABASE_MIGRATION_URL });
+  await client.connect();
+  try {
+    await client.query("begin");
+    await client.query("select id from orders where id = $1 for update", [orderId]);
+    const running = fire();
+    for (let i = 0; i < 150; i++) {
+      const { rows } = await client.query<{ n: number }>("select count(distinct pid)::int as n from pg_locks where not granted");
+      if (rows[0].n >= waiting) break;
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    await client.query("commit");
+    return await running;
+  } finally {
+    await client.end();
+  }
+}
+
 describe("dibatalkan pembeli (F4.6)", () => {
   const cancel = (id: string, who = b) => who.post(`/api/orders/${id}/cancel`);
 
@@ -216,6 +237,23 @@ describe("dibatalkan pembeli (F4.6)", () => {
     expect((await cancel(orderId, a).expect(404)).body).toEqual(notFound);
     expect((await cancel("ngawur").expect(404)).body).toEqual(notFound);
     expect(await status(orderId)).toBe("MENUNGGU_PEMBAYARAN");
+  });
+
+  it("klik batal ganda bersamaan: satu berhasil, yang lain ditolak; stok dilepas tepat sekali", async () => {
+    const { f, orderId } = await heldOrder();
+    const results = await overlapped(orderId, 2, () => Promise.all([cancel(orderId), cancel(orderId)]));
+    expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+    expect(await reserved(f.id)).toBe(0);
+  });
+
+  it("batal dan unggah bukti bersamaan: tepat satu menang, stok tidak dilepas bila bukti yang menang", async () => {
+    const { f, orderId } = await heldOrder();
+    const [c, u] = await overlapped(orderId, 2, () => Promise.all([cancel(orderId), b.upload(`/api/orders/${orderId}/proof`, PDF, "application/pdf")]));
+    // tepat satu menang: batal (200) atau unggah (201); yang kalah 409
+    expect([c.status, u.status].sort()).toEqual(c.status === 200 ? [200, 409] : [201, 409]);
+    const s = await status(orderId);
+    expect(s).toBe(c.status === 200 ? "DIBATALKAN" : "MENUNGGU_VERIFIKASI");
+    expect(await reserved(f.id)).toBe(s === "DIBATALKAN" ? 0 : 2);
   });
 
   it("batal dan kedaluwarsa bersamaan: stok dilepas tepat sekali", async () => {

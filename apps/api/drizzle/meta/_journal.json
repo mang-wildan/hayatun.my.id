@@ -71,6 +71,13 @@
       "when": 1793097646456,
       "tag": "0009_payment_proofs",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793232783874,
+      "tag": "0010_order_reminder",
+      "breakpoints": true
     }
   ]
 }
