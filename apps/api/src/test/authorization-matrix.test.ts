@@ -3,9 +3,9 @@ import { readFileSync } from "node:fs";
 import { sql } from "drizzle-orm";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createSession } from "./modules/auth/sessions.js";
-import { createTestContext, type TestContext } from "./test/context.js";
-import { api, makeProduct } from "./test/products.js";
+import { createSession } from "../modules/auth/sessions.js";
+import { createTestContext, type TestContext } from "./context.js";
+import { api, makeProduct } from "./products.js";
 
 // N6: siapa boleh memanggil apa. Setiap rute API ada di tabel ini; tes "tabel lengkap" gagal bila rute baru tidak dimasukkan.
 //  public  = tanpa login; user = pembeli atau admin; buyer = pembeli saja; admin = admin saja
@@ -134,7 +134,7 @@ const SIDE_EFFECT_FREE_ALLOWED = (key: string) => key !== "POST /api/auth/logout
 
 describe("tabel lengkap", () => {
   it("setiap rute API aplikasi ada di tabel, dan setiap baris tabel adalah rute sungguhan", () => {
-    const mounts = [...new Set([...readFileSync(new URL("./app.ts", import.meta.url), "utf8").matchAll(/app\.use\("(\/api[^"]*)"/g)].map((m) => m[1]))];
+    const mounts = [...new Set([...readFileSync(new URL("../app.ts", import.meta.url), "utf8").matchAll(/app\.use\("(\/api[^"]*)"/g)].map((m) => m[1]))];
     const found: string[] = [];
     for (const l of (ctx.app as any).router.stack) { // eslint-disable-line @typescript-eslint/no-explicit-any
       if (!l.handle?.stack) continue;
