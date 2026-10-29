@@ -132,6 +132,11 @@ describe("daftar pesanan admin (F13.1)", () => {
     for (const [qs, field, message] of bad) expect((await list(qs).expect(422)).body.fields[field], qs).toBe(message);
   });
 
+  it("kolom kosong dari formulir (Semua status, tanggal kosong) berarti tanpa filter", async () => {
+    await seed({ invoice: "INV/2026/10/0001" });
+    expect((await list("?status=&type=&from=&to=&q=&page=").expect(200)).body).toMatchObject({ total: 1, page: 1 });
+  });
+
   it("hanya admin: pembeli 403, tanpa masuk 401", async () => {
     await list("", siti).expect(403);
     await siti.get("/api/admin/orders/summary").expect(403);

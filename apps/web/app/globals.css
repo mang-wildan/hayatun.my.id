@@ -369,3 +369,17 @@ code, .mono { font-family: var(--font-mono); }
 .shipment { display: grid; gap: var(--space-2); align-content: start; padding: var(--space-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); overflow-wrap: anywhere; }
 .shipment p { margin: 0; }
 .shipment form { display: grid; gap: var(--space-3); margin-top: var(--space-2); }
+
+/* ---- pesanan admin ---- */
+.filters { display: grid; gap: var(--space-3); padding: var(--space-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); }
+@media (min-width: 768px) { .filters { grid-template-columns: repeat(3, 1fr); } }
+.field select { min-height: 48px; padding: 0 var(--space-3); width: 100%; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-control); }
+.filter-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: end; }
+.filter-actions .btn { flex: 1; }
+.admin-order { overflow-wrap: anywhere; }
+.admin-order .btn { min-height: 44px; }
+.table-scroll { overflow-x: auto; max-width: 100%; }
+.summary-table { min-width: 28rem; }
+.summary-table td { white-space: nowrap; }
+.pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.pager .btn { flex: 0 0 auto; }

@@ -183,7 +183,7 @@ test.describe("membatalkan pesanan (F10)", () => {
     await expect(dialog.getByText("Catatan wajib diisi.")).toBeVisible();
     await expect(dialog.getByLabel("Catatan")).toHaveAttribute("aria-invalid", "true");
     await expect(row).toContainText("Lunas");
-    await dialog.getByRole("button", { name: "Batal" }).click();
+    await dialog.getByRole("button", { name: "Batal", exact: true }).click();
     await expect(dialog).toBeHidden();
     await expect(row).toContainText("Lunas");
 
