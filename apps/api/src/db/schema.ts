@@ -206,4 +206,5 @@ export const paymentProofs = pgTable("payment_proofs", {
   reviewedBy: uuid("reviewed_by").references(() => users.id),
   reviewedAt: ts("reviewed_at"),
   uploadedAt: ts("uploaded_at").notNull().defaultNow(),
+  fileDeletedAt: ts("file_deleted_at"), // file dihapus 1 tahun setelah diunggah; barisnya tetap sebagai catatan (F12.3)
 }, (t) => [index("payment_proofs_order_idx").on(t.orderId, t.uploadedAt)]);

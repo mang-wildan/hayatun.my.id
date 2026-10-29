@@ -1,0 +1,1 @@
+ALTER TABLE "payment_proofs" ADD COLUMN "file_deleted_at" timestamp with time zone;
