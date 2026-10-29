@@ -140,7 +140,12 @@ export function createStorage({ dir, internalPrefix }: { dir: string; internalPr
         return void res.end();
       }
       res.setHeader("Content-Length", info!.size);
-      await pipeline(createReadStream(path), res);
+      try {
+        await pipeline(createReadStream(path), res);
+      } catch (err) {
+        if (res.destroyed) return; // browser membatalkan permintaan (ganti halaman, gambar diganti): bukan error server
+        throw err;
+      }
     },
   };
 }
