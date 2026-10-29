@@ -264,3 +264,16 @@ export async function passwordBuyer(password = "rahasia-hayatun-1", name = "Budi
   const token = res.headers.getSetCookie().map((c) => c.split(";")[0]).find((c) => c.startsWith("hayatun_sid="))!.slice("hayatun_sid=".length);
   return { email, cookie: { name: "hayatun_sid", value: token, url: WEB_URL } };
 }
+
+// Menyalakan TOTP untuk pembeli yang dibuat lewat buyerCookie, supaya tes bisa mematikannya sebagai admin
+export async function enableTotp(email: string) {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  await pool.query("update users set totp_enabled = true, totp_secret_enc = $2 where email_index = $1", [crypto.blindIndex(email), crypto.encrypt("JBSWY3DPEHPK3PXP")]);
+  await pool.end();
+}
+export async function totpEnabledOf(email: string) {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  const { rows } = await pool.query<{ totp_enabled: boolean }>("select totp_enabled from users where email_index = $1", [crypto.blindIndex(email)]);
+  await pool.end();
+  return rows[0].totp_enabled;
+}
