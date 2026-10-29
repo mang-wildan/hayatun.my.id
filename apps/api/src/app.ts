@@ -16,7 +16,7 @@ import { checkoutRoutes } from "./modules/checkout/routes.js";
 import { catalogRoutes } from "./modules/catalog/routes.js";
 import { invoiceRoutes } from "./modules/invoices/routes.js";
 import { adminPaymentRoutes } from "./modules/payments-manual/admin-routes.js";
-import { licenseRoutes } from "./modules/fulfillment-digital/routes.js";
+import { digitalOrderRoutes, downloadRoutes } from "./modules/fulfillment-digital/routes.js";
 import { orderRoutes } from "./modules/payments-manual/routes.js";
 import { productRoutes } from "./modules/products/routes.js";
 import type { Crypto } from "./modules/crypto/index.js";
@@ -39,8 +39,8 @@ export function createApp(deps: AppDeps) {
   app.use(pinoHttp({
     logger: deps.logger,
     genReqId: (req) => (req.headers["x-request-id"] as string | undefined) ?? randomUUID(),
-    // N30: tanpa query string di log
-    serializers: { req: (r) => ({ id: r.id, method: r.method, url: r.url?.split("?")[0] }) },
+    // N30: tanpa query string di log, dan token unduhan (ada di path) disamarkan
+    serializers: { req: (r) => ({ id: r.id, method: r.method, url: r.url?.split("?")[0].replace(/^\/api\/downloads\/[^/]+/, "/api/downloads/[disamarkan]") }) },
   }));
   app.use(helmet());
   app.use("/api", checkOrigin(deps.config.appUrl));
@@ -56,7 +56,8 @@ export function createApp(deps: AppDeps) {
   app.use("/api/checkout", checkoutRoutes(deps));
   app.use("/api/invoices", invoiceRoutes(deps));
   app.use("/api/orders", orderRoutes(deps));
-  app.use("/api/orders", licenseRoutes(deps));
+  app.use("/api/orders", digitalOrderRoutes(deps));
+  app.use("/api/downloads", downloadRoutes(deps));
   app.use("/api/admin/payments", adminPaymentRoutes(deps));
   app.use(errorHandler);
   return app;

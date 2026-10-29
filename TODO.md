@@ -112,7 +112,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
 
 - [x] **T39 Penetapan lisensi saat lunas dan lisensi tertunda** — F7.1, F7.5, F7.7 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/fulfillment-digital/licenses.test.ts`
-- [ ] **T40 Token unduh 15 menit, terikat akun, dikirim lewat X-Accel-Redirect, token tidak tercatat di log** — F7.2, F7.3, F7.4, F7.6, N5, N30 · **A**
+- [x] **T40 Token unduh 15 menit, terikat akun, dikirim lewat X-Accel-Redirect, token tidak tercatat di log** — F7.2, F7.3, F7.4, F7.6, N5, N30 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/fulfillment-digital/downloads.test.ts`
 - [ ] **T41 Halaman pesanan saya dan detail: garis waktu, unduh, lisensi, resi** — F7, F8, N14 · **B**
   Selesai jika: `npm run test:e2e -- orders`
@@ -152,7 +152,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npx vitest run apps/api/src/test/third-party-outage.test.ts`
 - [ ] **T56 Pengamanan server: aaPanel, SSH, firewalld, SELinux, pengguna `hayatun`, PostgreSQL lokal** — N7, N34 · **A**
   Selesai jika: `sudo ops/check-server.sh` (di server)
-- [ ] **T57 Nginx: TLS 1.2+, HSTS, rute `/api`, lokasi internal file, batas unggah, log tanpa query string** — N1, N5, N30 · **A**
+- [ ] **T57 Nginx: TLS 1.2+, HSTS, rute `/api`, lokasi internal file, batas unggah, log tanpa query string dan tanpa token di path `/api/downloads/<token>` (N30, dari T40)** — N1, N5, N30 · **A**
   Selesai jika: `sudo nginx -t && ops/check-edge.sh https://hayatun.my.id`
 - [ ] **T58 PM2, skrip deploy dengan health check dan rollback** — N22, N36 · **B**
   Selesai jika: `ops/deploy.sh --dry-run && curl -fsS https://hayatun.my.id/api/health`

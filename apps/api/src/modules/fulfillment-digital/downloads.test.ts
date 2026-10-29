@@ -185,12 +185,15 @@ describe("membuka tautan (F7.3, F7.6, N5)", () => {
     expect((await siti.get(url).expect(404)).body).toMatchObject({ code: "FILE_NOT_FOUND" });
   });
 
-  it("tautan produk lain milik pembeli lain tidak bisa dibuka dengan token orang lain walau akunnya sama-sama pembeli", async () => {
+  it("token terikat ke akun: pembeli lain yang juga berhak atas produk yang sama tetap tidak bisa memakainya", async () => {
     const o = await purchased(siti);
+    await rina.post("/api/cart/items", { productId: o.p.id }).expect(201);
+    const mine = (await rina.post("/api/checkout", { expectedTotal: 75000 }).expect(201)).body as { orderId: string };
+    await rina.upload(`/api/orders/${mine.orderId}/proof`, PROOF, "application/pdf").expect(201);
+    await admin.post(`/api/admin/payments/${mine.orderId}/accept`).expect(200);
     const url = await tokenUrl(siti, o);
-    const mine = await purchased(rina); // rina membeli produk lain; tokennya tidak membuka file siti dan sebaliknya
-    await rina.get(url).expect(403);
-    await rina.get(await tokenUrl(rina, mine)).expect(200);
+    expect((await rina.get(url).expect(403)).body).toMatchObject(INVALID);
+    await rina.get(await tokenUrl(rina, { orderId: mine.orderId, file: o.file })).expect(200); // tautan miliknya sendiri bekerja
   });
 });
 
