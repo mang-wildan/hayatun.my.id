@@ -8,9 +8,11 @@ export type EmailTemplate =
   | "order_expired"
   | "order_reminder"
   | "payment_accepted"
-  | "payment_rejected";
+  | "payment_rejected"
+  | "order_created"
+  | "proof_uploaded";
 
-export interface EmailData { name?: string; link?: string; productName?: string; available?: number; invoiceNumber?: string; total?: string; deadline?: string; reason?: string }
+export interface EmailData { name?: string; link?: string; productName?: string; available?: number; invoiceNumber?: string; total?: string; deadline?: string; reason?: string; bank?: { bank: string; number: string; holder: string } | null }
 
 const BRAND = "#9D174D";
 const ACTION = "#166534";
@@ -87,6 +89,20 @@ const CONTENT: Record<EmailTemplate, Content> = {
     ],
     button: { label: "Unggah bukti baru" },
   },
+  order_created: {
+    subject: "Pesananmu sudah dibuat, tinggal bayar",
+    paragraphs: (d) => [
+      `Pesanan ${d.invoiceNumber} sudah kami catat. Transfer ${d.total} sebelum ${d.deadline}.`,
+      d.bank ? `Transfer ke ${d.bank.bank} ${d.bank.number} a.n. ${d.bank.holder}.` : "Rekening tujuan ada di halaman pesanan.",
+      "Setelah transfer, unggah bukti bayarnya supaya pesananmu bisa segera kami cek.",
+    ],
+    button: { label: "Unggah bukti bayar" },
+  },
+  proof_uploaded: {
+    subject: "Ada bukti bayar baru",
+    paragraphs: (d) => [`Pembeli mengunggah bukti bayar untuk pesanan ${d.invoiceNumber} sebesar ${d.total}.`, "Cek dan putuskan terima atau tolak."],
+    button: { label: "Periksa bukti" },
+  },
   admin_invite: {
     subject: "Undangan jadi admin Hayatun",
     paragraphs: ["Kamu diundang menjadi admin toko Hayatun. Klik tombol di bawah untuk membuat password dan memasang verifikasi dua langkah."],
@@ -99,7 +115,9 @@ export function renderEmail(template: EmailTemplate, data: EmailData): { subject
   const c = CONTENT[template];
   if (c.button && !data.link) throw new Error(`Templat ${template} butuh data link`);
   if (template === "low_stock" && (data.productName === undefined || data.available === undefined)) throw new Error("Templat low_stock butuh data productName dan available");
-  if (["order_expired", "order_reminder", "payment_accepted", "payment_rejected"].includes(template) && !data.invoiceNumber) throw new Error(`Templat ${template} butuh data invoiceNumber`);
+  if (["order_expired", "order_reminder", "payment_accepted", "payment_rejected", "order_created", "proof_uploaded"].includes(template) && !data.invoiceNumber) throw new Error(`Templat ${template} butuh data invoiceNumber`);
+  if (["order_created", "proof_uploaded"].includes(template) && !data.total) throw new Error(`Templat ${template} butuh data total`);
+  if (template === "order_created" && !data.deadline) throw new Error("Templat order_created butuh data deadline");
   if (template === "payment_rejected" && (!data.reason || !data.deadline)) throw new Error("Templat payment_rejected butuh data reason dan deadline");
   const paragraphs = typeof c.paragraphs === "function" ? c.paragraphs(data) : c.paragraphs;
   const greeting = data.name ? `Halo ${data.name},` : "Halo,";

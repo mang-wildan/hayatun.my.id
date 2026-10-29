@@ -154,6 +154,8 @@ describe("antrean email mati tidak menahan perubahan pesanan (F11.4)", () => {
     expect((await sweepOrders(deps)).expired).toBe(1);
     expect(await status(a2.orderId)).toBe("KEDALUWARSA");
 
+    adminCookie = await ctx.adminCookie(); // sesi admin lama habis karena jam maju
+    admin = api(ctx, adminCookie);
     const low = await publish({ name: "Aplikasi Kasir", isLicensed: true });
     await admin.post(`/api/admin/products/${low.id}/licenses`, { codes: "K1\nK2" }).expect(200);
     await expect(checkLowStock(deps, low.id)).resolves.toBeUndefined();

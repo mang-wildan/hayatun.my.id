@@ -10,7 +10,7 @@ import { enqueueEmail, registerEmailWorker } from "./worker.js";
 
 const LINK = "https://hayatun.my.id/verifikasi-email?token=TOKEN-RAHASIA-123";
 // low_stock punya data sendiri dan dites di modules/products/low-stock.test.ts
-type Tpl = Exclude<EmailTemplate, "low_stock" | "order_expired" | "order_reminder" | "payment_accepted" | "payment_rejected">; // butuh data khusus; diuji di modulnya
+type Tpl = Exclude<EmailTemplate, "low_stock" | "order_expired" | "order_reminder" | "payment_accepted" | "payment_rejected" | "order_created" | "proof_uploaded">; // butuh data khusus; diuji di modulnya
 const SUBJECTS: Record<Tpl, string> = {
   verify_email: "Verifikasi email akun Hayatun-mu",
   email_already_registered: "Ada yang mencoba daftar dengan emailmu",

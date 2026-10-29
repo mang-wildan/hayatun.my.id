@@ -126,7 +126,7 @@ describe("checkLowStock (dipakai juga oleh checkout di T28)", () => {
   it("produk berlisensi: terkirim sekali saat kode tersedia turun ke ≤ 3, diatur ulang saat kode ditambah", async () => {
     const { checkLowStock, LOW_STOCK_THRESHOLD } = await import("./low-stock.js");
     expect(LOW_STOCK_THRESHOLD).toBe(3);
-    const deps = { db: ctx.db, queue: ctx.queue, crypto: ctx.crypto, config: ctx.config, now: () => ctx.clock.now };
+    const deps = { db: ctx.db, queue: ctx.queue, crypto: ctx.crypto, config: ctx.config, logger: ctx.logger, now: () => ctx.clock.now };
     const p = await makeProduct(ctx, admin, { ...DIGITAL, name: "Aplikasi Kasir", isLicensed: true });
     await a.post(`/api/admin/products/${p.id}/licenses`, { codes: "K1\nK2\nK3\nK4\nK5" }).expect(200);
     // menahan n kode yang masih tersedia (id berupa UUID acak, jadi tanpa `status = 'available'` kode yang sudah tertahan bisa ikut terpilih dan jumlahnya tidak pasti)

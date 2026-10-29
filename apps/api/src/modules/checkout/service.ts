@@ -1,3 +1,4 @@
+import { formatRupiah, formatWIB } from "@hayatun/shared";
 import { z } from "zod";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import type { AppDeps } from "../../app.js";
@@ -5,8 +6,10 @@ import { addresses, cartItems, licenseCodes, orderItems, orders, products, users
 import { HttpError } from "../../errors.js";
 import { getCart } from "../cart/service.js";
 import { nextInvoiceNumber } from "../invoices/numbering.js";
+import { emailBuyer } from "../notifications/buyer.js";
 import { initialState } from "../orders/state-machine.js";
 import { checkLowStock } from "../products/low-stock.js";
+import { readBankAccount } from "../settings/index.js";
 import { getRates } from "../shipping/index.js";
 
 type Deps = Pick<AppDeps, "db" | "crypto" | "now" | "config" | "logger" | "shipping" | "queue">;
@@ -153,6 +156,10 @@ export async function checkout(deps: Deps, userId: string, input: unknown) {
     return { order, total, productIds: locked.filter((pr) => pr.type === "physical" || pr.isLicensed).map((pr) => pr.id) };
   });
 
+  await emailBuyer(deps, userId, "order_created", {
+    invoiceNumber: result.order.invoiceNumber, total: formatRupiah(result.total), deadline: formatWIB(result.order.expiresAt),
+    bank: await readBankAccount(deps), link: `${deps.config.appUrl}/pesanan/${result.order.id}`,
+  });
   for (const id of result.productIds) await checkLowStock(deps, id); // F9.5
   return { orderId: result.order.id, invoiceNumber: result.order.invoiceNumber, total: result.total, expiresAt: result.order.expiresAt };
 }

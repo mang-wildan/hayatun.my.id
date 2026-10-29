@@ -1,13 +1,15 @@
+import { formatRupiah } from "@hayatun/shared";
 import { and, eq, gt } from "drizzle-orm";
 import type { Request } from "express";
 import type { AppDeps } from "../../app.js";
 import { orders, paymentProofs } from "../../db/schema.js";
 import { HttpError } from "../../errors.js";
 import type { SessionUser } from "../auth/sessions.js";
+import { notifyAdmins } from "../notifications/admins.js";
 import { transition } from "../orders/state-machine.js";
 import { readUpload } from "../storage/index.js";
 
-type Deps = Pick<AppDeps, "db" | "crypto" | "storage" | "now">;
+type Deps = Pick<AppDeps, "db" | "crypto" | "storage" | "queue" | "config" | "logger" | "now">;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const PROOF = { allowed: ["jpg", "png", "pdf"], maxBytes: 5 * 1024 * 1024 } as const; // F4.3
@@ -34,7 +36,7 @@ export async function uploadProof(deps: Deps, viewer: SessionUser, orderId: stri
   const { buffer, type } = await readUpload(req, PROOF); // F4.7: status tidak berubah bila ditolak
   const key = await deps.storage.save("proofs", deps.crypto.encryptBuffer(buffer), { allowed: "any", maxBytes: PROOF.maxBytes + 1024 });
   try {
-    return await deps.db.transaction(async (tx) => {
+    const result = await deps.db.transaction(async (tx) => {
       const next = transition({ status: o.status, digital: o.digitalStatus, physical: o.physicalStatus }, { type: "PROOF_UPLOADED" });
       const now = deps.now();
       // syarat diulang di UPDATE: unggahan bersamaan atau batas yang lewat di tengah unggahan hanya meloloskan satu
@@ -44,6 +46,8 @@ export async function uploadProof(deps: Deps, viewer: SessionUser, orderId: stri
       const [proof] = await tx.insert(paymentProofs).values({ orderId: o.id, storageKey: key, mime: MIME[type], sizeBytes: buffer.length, uploadedAt: now }).returning({ id: paymentProofs.id });
       return { proofId: proof.id, status: next.status };
     });
+    await notifyAdmins(deps, "proof_uploaded", { invoiceNumber: o.invoiceNumber, total: formatRupiah(o.total), link: `${deps.config.appUrl}/admin?periksa=${o.id}` });
+    return result;
   } catch (err) {
     await deps.storage.remove(key); // tidak ada file tanpa catatan
     throw err;

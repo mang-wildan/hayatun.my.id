@@ -8,7 +8,7 @@ import { licenseCodes, productFiles, products } from "../../db/schema.js";
 import { HttpError } from "../../errors.js";
 import { recordAudit } from "../audit/index.js";
 
-type Deps = Pick<AppDeps, "config" | "db" | "storage" | "now" | "queue" | "crypto">;
+type Deps = Pick<AppDeps, "config" | "db" | "storage" | "now" | "queue" | "crypto" | "logger">;
 type Product = typeof products.$inferSelect;
 type ProductFile = typeof productFiles.$inferSelect;
 type Details = Record<string, string | number | boolean>;
