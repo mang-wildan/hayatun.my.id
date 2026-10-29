@@ -12,7 +12,7 @@ export function ConfirmDialog({ open, title, children, confirmLabel, variant = "
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
-    if (open && !d.open) d.showModal();
+    if (open && !d.open) { d.showModal(); d.querySelector<HTMLElement>("[data-autofocus]")?.focus(); } // kolom isian utama langsung terfokus, tanpa klik tambahan
     if (!open && d.open) d.close();
   }, [open]);
   return (
