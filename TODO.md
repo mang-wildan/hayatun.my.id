@@ -118,7 +118,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npm run test:e2e -- orders`
 - [x] **T42 Resi isi/ubah, email, konfirmasi diterima, Diterima otomatis 14 hari** — F8.1–F8.5 · **B**
   Selesai jika: `npx vitest run apps/api/src/modules/fulfillment-physical && npm run test:e2e -- admin-shipping`
-- [ ] **T43 Pembatalan/pengembalian oleh admin, cabut akses unduh, stok kembali bila belum dikirim** — F10.1–F10.4, F7.8 · **A**
+- [x] **T43 Pembatalan/pengembalian oleh admin, cabut akses unduh, stok kembali bila belum dikirim** — F10.1–F10.4, F7.8 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/admin-orders/cancel.test.ts`
 - [ ] **T44 Daftar pesanan admin dengan filter dan ringkasan bulanan** — F13.1, F13.2 · **B**
   Selesai jika: `npx vitest run apps/api/src/modules/admin-orders/list.test.ts && npm run test:e2e -- admin-orders`
