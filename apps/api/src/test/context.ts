@@ -109,7 +109,7 @@ export async function createTestContext(over: { mailer?: Mailer } = {}) {
   }
 
   return {
-    app, db, crypto, config, queue, storage, shipping, clock, createUser, emails,
+    app, db, crypto, config, logger, queue, storage, shipping, clock, createUser, emails,
     adminCookie: () => cookieFor("admin"),
     buyerCookie: () => cookieFor("buyer"),
     post: (path: string, body?: object, cookie?: string) => {
