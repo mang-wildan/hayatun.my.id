@@ -163,6 +163,8 @@ export const orders = pgTable("orders", {
   shipPostalCode: text("ship_postal_code"),
   courier: text("courier"),
   courierService: text("courier_service"),
+  verifiedBy: uuid("verified_by").references(() => users.id), // admin yang menerima bukti (F5.2)
+  paidAt: ts("paid_at"),
   reminderSentAt: ts("reminder_sent_at"), // pengingat 3 jam sudah dikirim (F4.5); ditandai atomik supaya tidak ganda
   createdAt: ts("created_at").notNull().defaultNow(),
   updatedAt: ts("updated_at").notNull().defaultNow(),
@@ -197,5 +199,8 @@ export const paymentProofs = pgTable("payment_proofs", {
   mime: text("mime").notNull(), // dari isi file, bukan dari kiriman pembeli
   sizeBytes: integer("size_bytes").notNull(),
   status: text("status", { enum: ["pending", "accepted", "rejected"] }).notNull().default("pending"),
+  rejectReason: text("reject_reason"),
+  reviewedBy: uuid("reviewed_by").references(() => users.id),
+  reviewedAt: ts("reviewed_at"),
   uploadedAt: ts("uploaded_at").notNull().defaultNow(),
 }, (t) => [index("payment_proofs_order_idx").on(t.orderId, t.uploadedAt)]);

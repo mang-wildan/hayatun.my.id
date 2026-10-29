@@ -2,8 +2,8 @@ import { formatWIB } from "@hayatun/shared";
 import { and, asc, eq, gt, isNull, lte } from "drizzle-orm";
 import type { AppDeps } from "../../app.js";
 import type { JobQueue } from "../../jobs/queue.js";
-import { orders, users } from "../../db/schema.js";
-import { enqueueEmail } from "../notifications/worker.js";
+import { orders } from "../../db/schema.js";
+import { emailBuyer as sendToBuyer } from "../notifications/buyer.js";
 import { releaseHold } from "../orders/hold.js";
 import { transition } from "../orders/state-machine.js";
 
@@ -15,9 +15,7 @@ const REMIND_BEFORE_MS = 3 * 3600_000; // F4.5
 const rupiah = (n: number) => `Rp${n.toLocaleString("id-ID")}`;
 
 async function emailBuyer(deps: Deps, o: { id: string; userId: string; invoiceNumber: string; total: number; expiresAt: Date }, template: "order_expired" | "order_reminder") {
-  const [u] = await deps.db.select({ emailEnc: users.emailEnc, nameEnc: users.nameEnc }).from(users).where(eq(users.id, o.userId));
-  await enqueueEmail(deps.queue, deps.crypto, template, deps.crypto.decrypt(u.emailEnc), {
-    name: u.nameEnc ? deps.crypto.decrypt(u.nameEnc) : undefined,
+  await sendToBuyer(deps, o.userId, template, {
     invoiceNumber: o.invoiceNumber,
     total: rupiah(o.total),
     deadline: formatWIB(o.expiresAt),

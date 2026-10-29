@@ -6,9 +6,11 @@ export type EmailTemplate =
   | "admin_invite"
   | "low_stock"
   | "order_expired"
-  | "order_reminder";
+  | "order_reminder"
+  | "payment_accepted"
+  | "payment_rejected";
 
-export interface EmailData { name?: string; link?: string; productName?: string; available?: number; invoiceNumber?: string; total?: string; deadline?: string }
+export interface EmailData { name?: string; link?: string; productName?: string; available?: number; invoiceNumber?: string; total?: string; deadline?: string; reason?: string }
 
 const BRAND = "#9D174D";
 const ACTION = "#166534";
@@ -71,6 +73,20 @@ const CONTENT: Record<EmailTemplate, Content> = {
     ],
     button: { label: "Bayar sekarang" },
   },
+  payment_accepted: {
+    subject: "Pembayaranmu sudah kami terima",
+    paragraphs: (d) => [`Pembayaran untuk pesanan ${d.invoiceNumber} sudah kami terima dan diverifikasi. Terima kasih!`],
+    button: { label: "Lihat pesanan" },
+  },
+  payment_rejected: {
+    subject: "Bukti bayarmu belum bisa diterima",
+    paragraphs: (d) => [
+      `Bukti bayar untuk pesanan ${d.invoiceNumber} belum bisa kami terima.`,
+      `Alasannya: ${d.reason}`,
+      `Kamu masih bisa mengunggah bukti yang baru sampai ${d.deadline}.`,
+    ],
+    button: { label: "Unggah bukti baru" },
+  },
   admin_invite: {
     subject: "Undangan jadi admin Hayatun",
     paragraphs: ["Kamu diundang menjadi admin toko Hayatun. Klik tombol di bawah untuk membuat password dan memasang verifikasi dua langkah."],
@@ -83,7 +99,8 @@ export function renderEmail(template: EmailTemplate, data: EmailData): { subject
   const c = CONTENT[template];
   if (c.button && !data.link) throw new Error(`Templat ${template} butuh data link`);
   if (template === "low_stock" && (data.productName === undefined || data.available === undefined)) throw new Error("Templat low_stock butuh data productName dan available");
-  if ((template === "order_expired" || template === "order_reminder") && !data.invoiceNumber) throw new Error(`Templat ${template} butuh data invoiceNumber`);
+  if (["order_expired", "order_reminder", "payment_accepted", "payment_rejected"].includes(template) && !data.invoiceNumber) throw new Error(`Templat ${template} butuh data invoiceNumber`);
+  if (template === "payment_rejected" && (!data.reason || !data.deadline)) throw new Error("Templat payment_rejected butuh data reason dan deadline");
   const paragraphs = typeof c.paragraphs === "function" ? c.paragraphs(data) : c.paragraphs;
   const greeting = data.name ? `Halo ${data.name},` : "Halo,";
 

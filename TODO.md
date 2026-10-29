@@ -99,7 +99,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npx vitest run apps/api/src/modules/payments-manual/upload.test.ts`
 - [x] **T34 Kedaluwarsa otomatis, pengingat 3 jam, batal oleh pembeli, mengejar tugas tertinggal** — F4.4, F4.5, F4.6, N25 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/jobs/expiry.test.ts`
-- [ ] **T35 API verifikasi: terima/tolak, alasan wajib, tambahan 24 jam, dua admin bersamaan, pembukaan bukti dicatat** — F5.1–F5.7, N24, N28 · **A**
+- [x] **T35 API verifikasi: terima/tolak, alasan wajib, tambahan 24 jam, dua admin bersamaan, pembukaan bukti dicatat** — F5.1–F5.7, N24, N28 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/payments-manual/verify.test.ts`
 - [ ] **T36 Halaman instruksi bayar dan unggah bukti, nomor bisa disalin** — F4, N8, N21 · **B**
   Selesai jika: `npm run test:e2e -- payment`
