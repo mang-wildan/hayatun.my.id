@@ -92,6 +92,13 @@
       "when": 1793246855854,
       "tag": "0012_bright_the_anarchist",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793250892357,
+      "tag": "0013_great_magus",
+      "breakpoints": true
     }
   ]
 }

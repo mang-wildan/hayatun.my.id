@@ -91,7 +91,7 @@ describe("kedaluwarsa otomatis (F4.4)", () => {
     expect(mail.text).toMatch(/checkout ulang/i);
     expect(mail.text).toContain(`${APP_URL}/pesanan/${orderId}`);
     expect(mail.text).not.toContain("9876543210"); // rekening
-    expect(mail.text).not.toMatch(/Pajajaran|0812/); // alamat dan nomor HP
+    expect(mail.text).not.toMatch(/Pajajaran|81234567890/); // alamat dan nomor HP
   });
 
   it("pesanan yang buktinya sudah diunggah tidak ikut kedaluwarsa", async () => {

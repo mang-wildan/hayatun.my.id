@@ -109,7 +109,7 @@ describe("email bukti baru ke admin (F11.2)", () => {
       expect(m.text).toContain(o.invoiceNumber);
       expect(m.text).toContain("Rp75.000");
       expect(m.text).toContain(`${APP_URL}/admin?periksa=${o.orderId}`);
-      expect(m.text + m.html).not.toMatch(/Siti|Aminah|siti@|0812|Pajajaran/);
+      expect(m.text + m.html).not.toMatch(/Siti|Aminah|siti@|81234567890|Pajajaran/);
     }
     expect(sent.find((m) => m.to === "admin-dua@hayatun.test")!.text).toContain("Halo Dewi");
   });

@@ -46,7 +46,7 @@ describe("data yang dikirim ke penyedia terbatas (N27)", () => {
     const withPersonal = { ...DEST, recipient: "Budi Santoso", phone: "081234567890", address: "Jl. Pajajaran 12" };
     await getRates(deps(fake), withPersonal);
     expect(Object.keys(fake.requests[0]).sort()).toEqual(["destinationAreaId", "originAreaId", "postalCode", "weightG"]);
-    expect(JSON.stringify(fake.requests)).not.toMatch(/Budi|0812|Pajajaran/);
+    expect(JSON.stringify(fake.requests)).not.toMatch(/Budi|81234567890|Pajajaran/);
   });
 });
 

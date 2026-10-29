@@ -1,12 +1,13 @@
 import { STATUS_LABELS, STATUS_TONES, type PhysicalStatus } from "@hayatun/shared";
 import { CopyButton } from "@/components/CopyButton";
 import type { OrderDetail } from "@/lib/orders";
+import { ReceivedButton } from "./ReceivedButton";
 import { Steps } from "./Steps";
 
 const STAGES: PhysicalStatus[] = ["DIPROSES", "DIKIRIM", "DITERIMA"];
 
 // F8: status kiriman, ekspedisi, dan nomor resi
-export function PhysicalSection({ status, shipping }: { status: PhysicalStatus; shipping: OrderDetail["shipping"] }) {
+export function PhysicalSection({ orderId, status, shipping }: { orderId: string; status: PhysicalStatus; shipping: OrderDetail["shipping"] }) {
   return (
     <section className="stack" aria-labelledby="fisik-h">
       <h2 id="fisik-h">Fisik</h2>
@@ -23,6 +24,7 @@ export function PhysicalSection({ status, shipping }: { status: PhysicalStatus; 
           </div>
         </dl>
       )}
+      {status === "DIKIRIM" && <ReceivedButton orderId={orderId} />}
     </section>
   );
 }

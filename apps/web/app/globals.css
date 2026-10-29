@@ -362,3 +362,10 @@ code, .mono { font-family: var(--font-mono); }
 .plain-list { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-2); overflow-wrap: anywhere; }
 .license-row { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); overflow-wrap: anywhere; }
 .license-row .meta { flex-basis: 100%; }
+
+/* ---- pengiriman admin ---- */
+.shipment-cards { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-3); }
+@media (min-width: 768px) { .shipment-cards { grid-template-columns: 1fr 1fr; } }
+.shipment { display: grid; gap: var(--space-2); align-content: start; padding: var(--space-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); overflow-wrap: anywhere; }
+.shipment p { margin: 0; }
+.shipment form { display: grid; gap: var(--space-3); margin-top: var(--space-2); }
