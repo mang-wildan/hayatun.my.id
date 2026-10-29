@@ -10,9 +10,11 @@ export type EmailTemplate =
   | "payment_accepted"
   | "payment_rejected"
   | "order_created"
-  | "proof_uploaded";
+  | "proof_uploaded"
+  | "license_delivered"
+  | "license_pending";
 
-export interface EmailData { name?: string; link?: string; productName?: string; available?: number; invoiceNumber?: string; total?: string; deadline?: string; reason?: string; bank?: { bank: string; number: string; holder: string } | null }
+export interface EmailData { name?: string; link?: string; productName?: string; available?: number; invoiceNumber?: string; total?: string; deadline?: string; reason?: string; bank?: { bank: string; number: string; holder: string } | null; licenses?: { name: string; codes: string[]; missing?: number }[]; missing?: number }
 
 const BRAND = "#9D174D";
 const ACTION = "#166534";
@@ -21,6 +23,9 @@ const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
 interface Content { subject: string; paragraphs: string[] | ((d: EmailData) => string[]); button?: { label: string }; note?: string }
+
+const licenseLines = (d: EmailData) => (d.licenses ?? []).filter((l) => l.codes.length).map((l) => `Kode lisensi ${l.name}: ${l.codes.join(", ")}`);
+const licenseLater = (d: EmailData) => ((d.licenses ?? []).some((l) => l.missing) ? ["Sebagian kode lisensi menyusul: kami kirim lewat email begitu stok kodenya ditambah."] : []);
 
 // subjek tetap dan tidak memuat data pengguna, jadi tidak bisa disisipi header
 const CONTENT: Record<EmailTemplate, Content> = {
@@ -77,7 +82,7 @@ const CONTENT: Record<EmailTemplate, Content> = {
   },
   payment_accepted: {
     subject: "Pembayaranmu sudah kami terima",
-    paragraphs: (d) => [`Pembayaran untuk pesanan ${d.invoiceNumber} sudah kami terima dan diverifikasi. Terima kasih!`],
+    paragraphs: (d) => [`Pembayaran untuk pesanan ${d.invoiceNumber} sudah kami terima dan diverifikasi. Terima kasih!`, ...licenseLines(d), ...licenseLater(d)],
     button: { label: "Lihat pesanan" },
   },
   payment_rejected: {
@@ -103,6 +108,16 @@ const CONTENT: Record<EmailTemplate, Content> = {
     paragraphs: (d) => [`Pembeli mengunggah bukti bayar untuk pesanan ${d.invoiceNumber} sebesar ${d.total}.`, "Cek dan putuskan terima atau tolak."],
     button: { label: "Periksa bukti" },
   },
+  license_delivered: {
+    subject: "Kode lisensimu sudah tersedia",
+    paragraphs: (d) => [`Kode lisensi untuk pesanan ${d.invoiceNumber} sudah lengkap.`, ...licenseLines(d)],
+    button: { label: "Lihat pesanan" },
+  },
+  license_pending: {
+    subject: "Lisensi tertunda, stok kode perlu ditambah",
+    paragraphs: (d) => [`Pesanan ${d.invoiceNumber} sudah Lunas, tapi kode lisensi "${d.productName}" kurang ${d.missing}.`, "Tambah kode supaya pembeli segera mendapatkannya; kami kirim otomatis begitu kodenya masuk."],
+    button: { label: "Tambah kode" },
+  },
   admin_invite: {
     subject: "Undangan jadi admin Hayatun",
     paragraphs: ["Kamu diundang menjadi admin toko Hayatun. Klik tombol di bawah untuk membuat password dan memasang verifikasi dua langkah."],
@@ -115,8 +130,10 @@ export function renderEmail(template: EmailTemplate, data: EmailData): { subject
   const c = CONTENT[template];
   if (c.button && !data.link) throw new Error(`Templat ${template} butuh data link`);
   if (template === "low_stock" && (data.productName === undefined || data.available === undefined)) throw new Error("Templat low_stock butuh data productName dan available");
-  if (["order_expired", "order_reminder", "payment_accepted", "payment_rejected", "order_created", "proof_uploaded"].includes(template) && !data.invoiceNumber) throw new Error(`Templat ${template} butuh data invoiceNumber`);
+  if (["order_expired", "order_reminder", "payment_accepted", "payment_rejected", "order_created", "proof_uploaded", "license_delivered", "license_pending"].includes(template) && !data.invoiceNumber) throw new Error(`Templat ${template} butuh data invoiceNumber`);
   if (["order_created", "proof_uploaded"].includes(template) && !data.total) throw new Error(`Templat ${template} butuh data total`);
+  if (template === "license_delivered" && !data.licenses?.length) throw new Error("Templat license_delivered butuh data licenses");
+  if (template === "license_pending" && (data.productName === undefined || !data.missing)) throw new Error("Templat license_pending butuh data productName dan missing");
   if (template === "order_created" && !data.deadline) throw new Error("Templat order_created butuh data deadline");
   if (template === "payment_rejected" && (!data.reason || !data.deadline)) throw new Error("Templat payment_rejected butuh data reason dan deadline");
   const paragraphs = typeof c.paragraphs === "function" ? c.paragraphs(data) : c.paragraphs;

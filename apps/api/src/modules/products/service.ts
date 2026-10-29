@@ -2,6 +2,7 @@ import { createProductSchema, linkSchema, productRuleErrors, updateProductSchema
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import type { Request } from "express";
 import type { AppDeps } from "../../app.js";
+import { deliverPendingLicenses } from "../fulfillment-digital/licenses.js";
 import { checkLowStock, LOW_STOCK_THRESHOLD } from "./low-stock.js";
 import { licenseCounts, stockOf, type Stock } from "./stock.js";
 import { licenseCodes, productFiles, products } from "../../db/schema.js";
@@ -254,6 +255,7 @@ export async function addLicenses(deps: Deps, actorId: string, id: string, input
   const duplicates = lines.length - added;
   await audit(deps, actorId, "product.licenses_added", p.id, { added, duplicates });
   if (added) await checkLowStock(deps, p.id); // stok pulih: atur ulang penanda
+  await deliverPendingLicenses(deps, p.id); // juga saat semuanya duplikat: pengiriman yang gagal sebelumnya bisa diulang
 
   return { added, duplicates };
 }
