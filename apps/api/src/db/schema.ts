@@ -163,6 +163,7 @@ export const orders = pgTable("orders", {
   shipPostalCode: text("ship_postal_code"),
   courier: text("courier"),
   courierService: text("courier_service"),
+  trackingNumber: text("tracking_number"), // diisi admin saat dikirim (T42)
   verifiedBy: uuid("verified_by").references(() => users.id), // admin yang menerima bukti (F5.2)
   paidAt: ts("paid_at"),
   reminderSentAt: ts("reminder_sent_at"), // pengingat 3 jam sudah dikirim (F4.5); ditandai atomik supaya tidak ganda

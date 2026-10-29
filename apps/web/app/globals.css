@@ -61,7 +61,12 @@ code, .mono { font-family: var(--font-mono); }
   transition: color 150ms var(--ease);
 }
 .brand:hover { color: var(--action); }
+.top-bar { flex-wrap: wrap; } /* HP sempit: menu turun ke baris kedua, bukan menimpa nama toko */
 .top-bar nav { display: flex; align-items: center; gap: var(--space-2); }
+@media (max-width: 479px) {
+  .top-bar nav:has(> :nth-child(4)) { flex-basis: 100%; justify-content: space-between; gap: 0; }
+  .top-bar nav:has(> :nth-child(4)) > * { padding: 0 var(--space-2); }
+}
 .nav-link, .link-button {
   display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; padding: 0 var(--space-3);
   border: 0; background: none; font: inherit; font-weight: 500; color: var(--ink); text-decoration: none; cursor: pointer; border-radius: var(--radius-control);
@@ -311,8 +316,8 @@ code, .mono { font-family: var(--font-mono); }
 
 /* ---- antrean verifikasi (DESIGN §6) ---- */
 .admin-nav a { position: relative; }
-.count { position: absolute; top: 6px; left: calc(50% + 6px); min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--action); color: #FFFFFF; font-size: 0.75rem; font-weight: 700; line-height: 20px; text-align: center; }
-@media (min-width: 1024px) { .count { position: static; margin-left: auto; } }
+.admin-nav .count { position: absolute; top: 6px; left: calc(50% + 6px); min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--action); color: #FFFFFF; font-size: 0.75rem; font-weight: 700; line-height: 20px; text-align: center; }
+@media (min-width: 1024px) { .admin-nav .count { position: static; margin-left: auto; } }
 .queue-cards { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-3); }
 @media (min-width: 768px) { .queue-cards { grid-template-columns: 1fr 1fr; } }
 .queue-cards li { display: grid; gap: var(--space-2); align-content: start; padding: var(--space-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); overflow-wrap: anywhere; }
@@ -339,3 +344,21 @@ code, .mono { font-family: var(--font-mono); }
   .verify[data-open] { padding-right: calc(380px + var(--space-6)); }
   .verify-panel { inset: 80px var(--space-8) var(--space-4) auto; width: 380px; z-index: 5; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); overflow: hidden; }
 }
+
+/* ---- pesanan saya dan detail (DESIGN §6) ---- */
+.order-cards { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-3); }
+@media (min-width: 768px) { .order-cards { grid-template-columns: 1fr 1fr; } }
+.order-cards li { position: relative; display: grid; gap: var(--space-2); align-content: start; padding: var(--space-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); }
+.order-cards li:hover { background: var(--brand-tint); }
+.order-cards a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; }
+.order-cards a::after { content: ""; position: absolute; inset: 0; }
+.order-cards .badge { justify-self: start; }
+.steps { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-3); }
+.steps li { position: relative; padding-left: var(--space-8); min-height: 24px; }
+.steps li::before { content: "○"; position: absolute; left: 0; width: 24px; text-align: center; color: var(--ink-soft); font-variant-emoji: text; }
+.steps li[data-state="done"]::before { content: "✓"; color: var(--ok); font-weight: 700; }
+.steps li[data-state="current"] { font-weight: 600; }
+.steps li[data-state="current"]::before { content: "●"; color: var(--action); }
+.plain-list { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-2); overflow-wrap: anywhere; }
+.license-row { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); overflow-wrap: anywhere; }
+.license-row .meta { flex-basis: 100%; }

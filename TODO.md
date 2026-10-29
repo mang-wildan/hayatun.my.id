@@ -114,7 +114,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npx vitest run apps/api/src/modules/fulfillment-digital/licenses.test.ts`
 - [x] **T40 Token unduh 15 menit, terikat akun, dikirim lewat X-Accel-Redirect, token tidak tercatat di log** — F7.2, F7.3, F7.4, F7.6, N5, N30 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/fulfillment-digital/downloads.test.ts`
-- [ ] **T41 Halaman pesanan saya dan detail: garis waktu, unduh, lisensi, resi** — F7, F8, N14 · **B**
+- [x] **T41 Halaman pesanan saya dan detail: garis waktu, unduh, lisensi, resi** — F7, F8, N14 · **B**
   Selesai jika: `npm run test:e2e -- orders`
 - [ ] **T42 Resi isi/ubah, email, konfirmasi diterima, Diterima otomatis 14 hari** — F8.1–F8.5 · **B**
   Selesai jika: `npx vitest run apps/api/src/modules/fulfillment-physical && npm run test:e2e -- admin-shipping`

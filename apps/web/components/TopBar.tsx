@@ -17,6 +17,7 @@ export async function TopBar() {
             <Link href="/keranjang" className="nav-link" aria-label={count ? `Keranjang, ${count} item` : "Keranjang"}>
               Keranjang{count > 0 && <span className="count" aria-hidden="true">{count}</span>}
             </Link>
+            {user.role !== "admin" && <Link href="/pesanan" className="nav-link">Pesanan</Link>}
             <Link href={user.role === "admin" ? "/admin" : "/akun/keamanan"} className="nav-link">Akun</Link>
             <LogoutButton />
           </>
