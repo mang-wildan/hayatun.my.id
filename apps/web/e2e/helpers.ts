@@ -77,6 +77,10 @@ export async function resetAdmins() {
   const admins = "(select id from users where role = 'admin')";
   await pool.query(`delete from sessions where user_id in ${admins}`);
   await pool.query(`delete from auth_tokens where user_id in ${admins}`);
+  // jejak keputusan verifikasi dari tes lain menunjuk ke admin ini
+  await pool.query(`update orders set verified_by = null where verified_by in ${admins}`);
+  await pool.query(`update payment_proofs set reviewed_by = null where reviewed_by in ${admins}`);
+  await pool.query(`delete from audit_logs where actor_id in ${admins}`);
   await pool.query(`delete from users where role = 'admin'`);
   await pool.end();
 }
@@ -185,4 +189,25 @@ export async function expireOrderNow(orderId: string) {
 export async function uploadProofApi(cookie: { name: string; value: string }, orderId: string, file: Buffer, type = "application/pdf") {
   const res = await fetch(`${WEB_URL}/api/orders/${orderId}/proof`, { method: "POST", headers: { Cookie: `${cookie.name}=${cookie.value}`, "content-type": type }, body: new Uint8Array(file) });
   if (!res.ok) throw new Error(`unggah bukti -> ${res.status} ${await res.text()}`);
+}
+
+// Mengosongkan antrean verifikasi dari tes lain yang berbagi database (pesanannya dibatalkan, buktinya tetap)
+export async function clearQueue() {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  await pool.query("update orders set status = 'DIBATALKAN' where status = 'MENUNGGU_VERIFIKASI'");
+  await pool.end();
+}
+
+export async function auditCount(action: string, entityId: string) {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  const { rows } = await pool.query<{ n: number }>("select count(*)::int as n from audit_logs where action = $1 and entity_id = $2", [action, entityId]);
+  await pool.end();
+  return rows[0].n;
+}
+
+export async function orderStatusOf(orderId: string) {
+  const pool = new pg.Pool({ connectionString: E2E_API_ENV.DATABASE_MIGRATION_URL });
+  const { rows } = await pool.query<{ status: string }>("select o.status from orders o where o.id = $1", [orderId]);
+  await pool.end();
+  return rows[0].status;
 }

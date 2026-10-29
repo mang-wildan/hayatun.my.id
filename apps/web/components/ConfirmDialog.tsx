@@ -18,7 +18,7 @@ export function ConfirmDialog({ open, title, children, confirmLabel, variant = "
   return (
     <dialog ref={ref} className="dialog" aria-labelledby={titleId} onClose={onCancel}>
       <h2 id={titleId}>{title}</h2>
-      <p>{children}</p>
+      <div>{children}</div>
       <div className="dialog-actions">
         <Button type="button" variant="secondary" onClick={onCancel}>Batal</Button>
         <Button type="button" variant={variant} onClick={onConfirm}>{confirmLabel}</Button>

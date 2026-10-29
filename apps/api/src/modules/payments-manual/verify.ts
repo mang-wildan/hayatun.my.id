@@ -6,6 +6,7 @@ import type { AppDeps } from "../../app.js";
 import { licenseCodes, orderItems, orders, paymentProofs, products, users } from "../../db/schema.js";
 import { HttpError } from "../../errors.js";
 import { recordAudit } from "../audit/index.js";
+import { readBankAccount } from "../settings/index.js";
 import type { SessionUser } from "../auth/sessions.js";
 import { emailBuyer } from "../notifications/buyer.js";
 import { transition } from "../orders/state-machine.js";
@@ -22,7 +23,7 @@ const orderNotFound = () => new HttpError(404, "Pesanan tidak ditemukan.", "ORDE
 const proofNotFound = () => new HttpError(404, "Bukti bayar tidak ditemukan.", "PROOF_NOT_FOUND");
 const processed = () => new HttpError(409, "Pesanan ini sudah diproses admin lain.", "ALREADY_PROCESSED");
 
-// F5.1: yang paling lama menunggu dulu. Hanya data yang perlu untuk memutuskan, tanpa alamat atau kontak pembeli.
+// F5.1: yang paling lama menunggu dulu. Hanya data yang perlu untuk memutuskan (barang tanpa harga, rekening tujuan), tanpa alamat atau kontak pembeli.
 export async function verificationQueue(deps: Deps) {
   const rows = await deps.db
     .select({ orderId: orders.id, invoiceNumber: orders.invoiceNumber, total: orders.total, nameEnc: users.nameEnc, uploadedAt: paymentProofs.uploadedAt, mime: paymentProofs.mime })
@@ -31,7 +32,11 @@ export async function verificationQueue(deps: Deps) {
     .innerJoin(users, eq(users.id, orders.userId))
     .where(eq(orders.status, "MENUNGGU_VERIFIKASI"))
     .orderBy(asc(paymentProofs.uploadedAt));
-  return { items: rows.map(({ nameEnc, ...r }) => ({ ...r, buyerName: nameEnc ? deps.crypto.decrypt(nameEnc) : null })) };
+  const lines = rows.length ? await deps.db.select({ orderId: orderItems.orderId, name: orderItems.nameSnapshot, qty: orderItems.qty }).from(orderItems).where(inArray(orderItems.orderId, rows.map((r) => r.orderId))).orderBy(asc(orderItems.id)) : [];
+  return {
+    items: rows.map(({ nameEnc, ...r }) => ({ ...r, buyerName: nameEnc ? deps.crypto.decrypt(nameEnc) : null, items: lines.filter((l) => l.orderId === r.orderId).map(({ name, qty }) => ({ name, qty })) })),
+    bankAccount: await readBankAccount(deps),
+  };
 }
 
 // N28: pembukaan bukti dicatat SEBELUM file dikirim, jadi tidak ada pembukaan yang lolos dari log

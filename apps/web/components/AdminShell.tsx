@@ -14,7 +14,7 @@ const MENU = [
   { href: "/admin/lainnya", label: "Lainnya", d: "M4 7h16M4 12h16M4 17h16" },
 ];
 
-export function AdminShell({ children, current = "/admin" }: { children: ReactNode; current?: string }) {
+export function AdminShell({ children, current = "/admin", queueCount = 0 }: { children: ReactNode; current?: string; queueCount?: number }) {
   return (
     <div className="admin">
       <header className="admin-top">
@@ -25,9 +25,10 @@ export function AdminShell({ children, current = "/admin" }: { children: ReactNo
         <ul>
           {MENU.map((m) => (
             <li key={m.href}>
-              <Link href={m.href} aria-current={m.href === current ? "page" : undefined}>
+              <Link href={m.href} aria-current={m.href === current ? "page" : undefined} aria-label={m.href === "/admin" && queueCount > 0 ? `${m.label}, ${queueCount} bukti menunggu` : undefined}>
                 {icon(m.d)}
                 {m.label}
+                {m.href === "/admin" && queueCount > 0 && <span className="count" aria-hidden="true">{queueCount}</span>}
               </Link>
             </li>
           ))}
