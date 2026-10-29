@@ -143,7 +143,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
 
 ## Fase 7 — Kualitas, operasi, dan rilis
 
-- [ ] **T52 Aksesibilitas semua halaman di 360/768/1280 px dan alur keyboard penuh** — N11, N12, N13, N14, N15, N16 · **B**
+- [x] **T52 Aksesibilitas semua halaman di 360/768/1280 px dan alur keyboard penuh** — N11, N12, N13, N14, N15, N16 · **B**
   Selesai jika: `npm run test:e2e -- a11y keyboard`
 - [ ] **T53 Uji kegunaan dengan 5 orang (checkout dan verifikasi admin)** — N8, N9 · **C**
   Selesai jika: `npm run test:e2e -- usability-steps && grep -Eq "Berhasil tanpa bantuan: [45]/5" docs/uji-kegunaan.md`
