@@ -6,6 +6,7 @@ import { orders } from "../../db/schema.js";
 import { emailBuyer as sendToBuyer } from "../notifications/buyer.js";
 import { autoReceiveOrders } from "../fulfillment-physical/auto-receive.js";
 import { processAccountDeletions } from "../privacy/delete-account.js";
+import { deleteExpiredProofs } from "./proof-retention.js";
 import { releaseHold } from "../orders/hold.js";
 import { transition } from "../orders/state-machine.js";
 
@@ -56,7 +57,7 @@ export async function sweepOrders(deps: Deps, { batchSize = 100 } = {}) {
 }
 
 // Disapu tiap menit: kedaluwarsa paling lambat sekitar 1 menit dari jadwalnya (N25 meminta ≤ 5 menit)
-export async function registerOrderJobs(queue: JobQueue, deps: Deps): Promise<void> {
-  await queue.work(JOB, async () => { await sweepOrders(deps); await autoReceiveOrders(deps); await processAccountDeletions(deps); });
+export async function registerOrderJobs(queue: JobQueue, deps: Deps & Pick<AppDeps, "storage">): Promise<void> {
+  await queue.work(JOB, async () => { await sweepOrders(deps); await autoReceiveOrders(deps); await processAccountDeletions(deps); await deleteExpiredProofs(deps); });
   await queue.schedule(JOB, "* * * * *");
 }

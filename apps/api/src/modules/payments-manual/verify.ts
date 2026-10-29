@@ -41,10 +41,18 @@ export async function verificationQueue(deps: Deps) {
   };
 }
 
+// F12.3: setelah 1 tahun yang tersisa hanya catatan siapa dan kapan memverifikasi
+async function proofDeleted(deps: Deps, orderId: string) {
+  const [o] = await deps.db.select({ status: orders.status, paidAt: orders.paidAt, nameEnc: users.nameEnc }).from(orders).leftJoin(users, eq(users.id, orders.verifiedBy)).where(eq(orders.id, orderId));
+  const note = o?.status === "LUNAS" && o.paidAt && o.nameEnc ? `Lunas, diverifikasi oleh ${deps.crypto.decrypt(o.nameEnc)} pada ${formatWIB(o.paidAt)}` : undefined;
+  return new HttpError(410, "Bukti bayar sudah dihapus setelah 1 tahun.", "PROOF_DELETED", undefined, { note });
+}
+
 // N28: pembukaan bukti dicatat SEBELUM file dikirim, jadi tidak ada pembukaan yang lolos dari log
 export async function openProof(deps: Deps, admin: SessionUser, orderId: string, res: Response) {
   const [p] = UUID.test(orderId) ? await deps.db.select().from(paymentProofs).where(eq(paymentProofs.orderId, orderId)).orderBy(desc(paymentProofs.uploadedAt)).limit(1) : [];
   if (!p) throw proofNotFound();
+  if (p.fileDeletedAt) throw await proofDeleted(deps, orderId); // tidak ada data yang dibuka, jadi tidak dicatat sebagai pembukaan
   await recordAudit(deps.db, { actorId: admin.userId, action: "payment_proof.viewed", entityType: "order", entityId: orderId });
   const file = deps.crypto.decryptBuffer(await deps.storage.read(p.storageKey));
   res.setHeader("Content-Type", p.mime);
