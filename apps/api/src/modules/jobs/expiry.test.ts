@@ -269,7 +269,7 @@ describe("dibatalkan pembeli (F4.6)", () => {
 describe("penjadwalan (N25)", () => {
   it("tugas sapu terdaftar tiap menit dan menjalankan kedaluwarsa", async () => {
     const queue = createMemoryQueue();
-    await registerOrderJobs(queue, { ...deps(), queue });
+    await registerOrderJobs(queue, { ...deps(), queue, storage: ctx.storage });
     expect(queue.schedules).toContainEqual({ name: "orders.sweep", cron: "* * * * *" });
     const { orderId } = await digitalOrder();
     ctx.clock.advance(DAY);

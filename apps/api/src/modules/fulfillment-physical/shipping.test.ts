@@ -321,7 +321,7 @@ describe("Diterima otomatis 14 hari sejak dikirim (F8.3)", () => {
     const o = await processing();
     await track(o.orderId, RESI).expect(200);
     const queue = createMemoryQueue();
-    await registerOrderJobs(queue, { ...deps(), queue, crypto: ctx.crypto, config: ctx.config, logger: ctx.logger });
+    await registerOrderJobs(queue, { ...deps(), queue, crypto: ctx.crypto, config: ctx.config, logger: ctx.logger, storage: ctx.storage });
     ctx.clock.advance(14 * DAY);
     await queue.send("orders.sweep", {});
     await queue.runAll();
