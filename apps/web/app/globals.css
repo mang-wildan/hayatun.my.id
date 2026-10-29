@@ -308,3 +308,34 @@ code, .mono { font-family: var(--font-mono); }
 @media (min-width: 768px) { .preview { grid-template-columns: auto minmax(0, 1fr) auto; } .preview .btn { grid-column: auto; } }
 .upload-area input[type="file"] { min-height: 44px; }
 .upload-area input[type="file"]::file-selector-button { min-height: 44px; margin-right: var(--space-3); padding: 0 var(--space-4); font: inherit; font-weight: 600; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-control); cursor: pointer; }
+
+/* ---- antrean verifikasi (DESIGN §6) ---- */
+.admin-nav a { position: relative; }
+.count { position: absolute; top: 6px; left: calc(50% + 6px); min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--action); color: #FFFFFF; font-size: 0.75rem; font-weight: 700; line-height: 20px; text-align: center; }
+@media (min-width: 1024px) { .count { position: static; margin-left: auto; } }
+.queue-cards { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-3); }
+@media (min-width: 768px) { .queue-cards { grid-template-columns: 1fr 1fr; } }
+.queue-cards li { display: grid; gap: var(--space-2); align-content: start; padding: var(--space-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); overflow-wrap: anywhere; }
+.queue-cards .badge { justify-self: start; }
+.queue-cards .btn { width: 100%; }
+.queue-table tbody tr { position: relative; }
+.queue-table tbody tr:hover, .queue-table tr[aria-current="true"] { background: var(--brand-tint); }
+.queue-table td a::after { content: ""; position: absolute; inset: 0; }
+.queue-table .sort { min-height: 44px; padding: 0; border: 0; background: none; font: inherit; font-weight: 600; color: inherit; cursor: pointer; }
+.queue-table th[aria-sort="ascending"] .sort::after { content: " ↑"; }
+.queue-table th[aria-sort="descending"] .sort::after { content: " ↓"; }
+.queue-table[data-compact] .col-status { display: none; }
+.queue-table td:nth-child(1), .queue-table td:nth-child(3) { white-space: nowrap; }
+
+.verify-panel { position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column; background: var(--canvas-admin); }
+.verify-body { flex: 1; min-height: 0; overflow: auto; padding: var(--space-4); display: grid; gap: var(--space-3); align-content: start; }
+.verify-lines { margin: 0; padding-left: var(--space-4); }
+.proof-frame { overflow: auto; touch-action: pan-x pan-y pinch-zoom; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--surface); }
+.proof-frame img { display: block; width: 100%; height: auto; }
+.verify-actions { display: flex; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--surface); border-top: 1px solid var(--line); }
+.verify-actions .btn { flex: 1; min-width: 0; padding: 0 var(--space-3); }
+@media (min-width: 1024px) {
+  /* tetap di layar sepanjang daftar digulir, jadi Terima/Tolak selalu terlihat */
+  .verify[data-open] { padding-right: calc(380px + var(--space-6)); }
+  .verify-panel { inset: 80px var(--space-8) var(--space-4) auto; width: 380px; z-index: 5; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); overflow: hidden; }
+}

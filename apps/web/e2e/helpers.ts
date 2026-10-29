@@ -77,6 +77,10 @@ export async function resetAdmins() {
   const admins = "(select id from users where role = 'admin')";
   await pool.query(`delete from sessions where user_id in ${admins}`);
   await pool.query(`delete from auth_tokens where user_id in ${admins}`);
+  // jejak keputusan verifikasi dari tes lain menunjuk ke admin ini
+  await pool.query(`update orders set verified_by = null where verified_by in ${admins}`);
+  await pool.query(`update payment_proofs set reviewed_by = null where reviewed_by in ${admins}`);
+  await pool.query(`delete from audit_logs where actor_id in ${admins}`);
   await pool.query(`delete from users where role = 'admin'`);
   await pool.end();
 }

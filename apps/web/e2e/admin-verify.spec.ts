@@ -194,6 +194,21 @@ test.describe("memeriksa bukti (F5.2)", () => {
     await expect(panel(page)).toContainText(a.invoiceNumber);
   });
 
+  test("PC: tombol Terima/Tolak tetap terlihat walau bukti tinggi, dan nomor invoice serta total tidak patah di tengah", async ({ page }) => {
+    await page.setViewportSize(PC);
+    const o = await queued(1250000);
+    await page.goto("/admin");
+    await periksa(page, o);
+    for (const name of ["Terima", "Tolak"]) {
+      const b = await panel(page).getByRole("button", { name, exact: true }).boundingBox();
+      expect(b!.y + b!.height).toBeLessThanOrEqual(PC.height);
+    }
+    const row = items(page).filter({ hasText: o.invoiceNumber });
+    for (const cell of [row.getByRole("link", { name: o.invoiceNumber }), row.getByText("Rp1.250.000")]) {
+      expect(await cell.evaluate((e) => { const r = document.createRange(); r.selectNodeContents(e); return r.getClientRects().length; })).toBe(1); // satu baris teks
+    }
+  });
+
   test("tombol Kembali menutup pemeriksaan, dan tautan ?periksa= langsung membuka bukti", async ({ page }) => {
     await page.setViewportSize(HP);
     const o = await queued();
@@ -290,16 +305,17 @@ test.describe("menerima dan menolak (F5.2, F5.3)", () => {
     expect(await orderStatusOf(o.orderId)).toBe("LUNAS");
   });
 
-  test("tombol terkunci selama permintaan berjalan: klik ganda hanya menghasilkan satu keputusan", async ({ page }) => {
+  test("selama permintaan berjalan Terima dan Tolak terkunci, jadi keputusan tidak bisa dikirim dua kali", async ({ page }) => {
     await page.setViewportSize(HP);
     const o = await queued();
     let calls = 0;
-    await page.route("**/api/admin/payments/*/accept", async (route) => { calls++; await new Promise((r) => setTimeout(r, 400)); await route.continue(); });
+    await page.route("**/api/admin/payments/*/accept", async (route) => { calls++; await new Promise((r) => setTimeout(r, 800)); await route.continue(); });
     await page.goto("/admin");
     await periksa(page, o);
     await panel(page).getByRole("button", { name: "Terima", exact: true }).click();
-    const yes = page.getByRole("dialog").getByRole("button", { name: "Ya, terima" });
-    await yes.dblclick();
+    await page.getByRole("dialog").getByRole("button", { name: "Ya, terima" }).click();
+    await expect(panel(page).getByRole("button", { name: "Terima", exact: true })).toBeDisabled();
+    await expect(panel(page).getByRole("button", { name: "Tolak", exact: true })).toBeDisabled();
     await expect(notice(page)).toContainText("diterima");
     expect(calls).toBe(1);
   });
