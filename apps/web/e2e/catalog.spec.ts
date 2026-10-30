@@ -79,7 +79,7 @@ test.describe("beranda dan katalog (F2, DESIGN §6)", () => {
     const img = frame.getByRole("img", { name: "E-book Resep Lebaran" });
     expect(await img.evaluate((e) => getComputedStyle(e).objectFit)).toBe("contain");
     // sampul disajikan lewat pengoptimal gambar Next (dikecilkan ke WebP), asalnya tetap sampul produk ini
-    await expect(img).toHaveAttribute("src", new RegExp(`^/_next/image\\?url=%2Fapi%2Fcatalog%2F${ebook.slug}%2Fcover%3Fv%3D\\d+&w=\\d+&q=75$`));
+    await expect(img).toHaveAttribute("src", new RegExp(`^/_next/image\\?url=%2Fapi%2Fcatalog%2F${ebook.slug}%2Fcover%3Fv%3D\\d+&w=\\d+&q=60$`));
     const served = await page.request.get((await img.getAttribute("src"))!); // gambar uji 1x1 piksel tidak bisa di-decode browser, jadi yang dicek jawaban pengoptimalnya
     expect(served.status()).toBe(200);
     expect(served.headers()["content-type"]).toMatch(/^image\//);
