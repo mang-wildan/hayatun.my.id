@@ -115,3 +115,48 @@ jobs:
           path: .lighthouseci
           include-hidden-files: true # folder diawali titik dilewati secara bawaan
           retention-days: 7
+
+  # N7: pemindaian OWASP ZAP baseline (pasif, tanpa login) terhadap aplikasi produksi yang dijalankan di runner. Temuan tinggi memblokir PR.
+  # Ini plain http di localhost: temuan HTTPS/HSTS baru terlihat pada run ke staging lewat Nginx (docs/zap.md).
+  zap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+      mailpit:
+        image: axllent/mailpit
+        ports: ["1025:1025", "8025:8025"]
+    env:
+      DATABASE_URL: postgres://hayatun_app:hayatun@127.0.0.1:5432/hayatun_test
+      DATABASE_MIGRATION_URL: postgres://hayatun_migrate:hayatun@127.0.0.1:5432/hayatun_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Siapkan database
+        run: |
+          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 -f ops/postgres-init.sql
+          npm -w apps/api run db:migrate
+      - run: npm run build
+      - name: Jalankan aplikasi
+        run: |
+          npm -w apps/api run perf-serve > /tmp/serve.log 2>&1 &
+          for _ in $(seq 1 120); do grep -q "perf-serve siap" /tmp/serve.log && exit 0; sleep 1; done
+          cat /tmp/serve.log; exit 1
+      - name: ZAP baseline (N7)
+        run: ops/zap-baseline.sh http://127.0.0.1:3000
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-report
+          path: zap-report
+          retention-days: 7
