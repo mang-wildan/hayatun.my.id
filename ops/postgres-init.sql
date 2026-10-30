@@ -7,3 +7,6 @@ CREATE DATABASE hayatun OWNER hayatun_migrate;
 CREATE DATABASE hayatun_test OWNER hayatun_migrate;
 -- Tabel antrean palsu untuk tes peringatan (ops/alerts.test.ts).
 CREATE DATABASE hayatun_alerts_test OWNER hayatun_migrate;
+-- Dua database tambahan hanya untuk tes cadangan dan pulih (ops/backup.test.ts): sumber dan tujuan pemulihan.
+CREATE DATABASE hayatun_backup_test OWNER hayatun_migrate;
+CREATE DATABASE hayatun_restore_test OWNER hayatun_migrate;
