@@ -49,4 +49,4 @@ Pemindaian staging adalah yang dihitung untuk N7. Simpan `zap.html` hasilnya ber
 npm audit --audit-level=high
 ```
 
-Berjalan di CI pada job `test` dan memblokir PR bila ada temuan tinggi/kritis. Keadaan saat ini: 0 tinggi/kritis; 4 temuan sedang pada `esbuild` lewat `drizzle-kit` (alat pengembangan untuk migrasi, tidak ikut ke produksi). Perbaikannya butuh pembaruan besar `drizzle-kit` dan tidak diwajibkan N34 (hanya tinggi/kritis); dipantau, bukan diabaikan.
+Berjalan di CI pada job `test` dan memblokir PR bila ada temuan tinggi/kritis. Keadaan saat ini: 0 tinggi/kritis; 4 temuan sedang pada `esbuild` lewat `drizzle-kit` (alat pengembangan; `npm audit --omit=dev` melaporkan 0 temuan). Perbaikannya butuh pembaruan besar `drizzle-kit` dan tidak diwajibkan N34 (hanya tinggi/kritis); dipantau, bukan diabaikan.
