@@ -42,6 +42,8 @@ export function createCrypto({ keys, activeKeyId, blindIndexKey }: CryptoOptions
   };
 
   return {
+    activeKeyId, // dipakai skrip rotasi kunci (T62)
+
     // format: v1:<keyId>:<iv>:<tag>:<ciphertext>, masing-masing base64url
     encrypt(plain: string): string {
       const { iv, tag, ct } = seal(Buffer.from(plain, "utf8"));

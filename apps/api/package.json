@@ -10,7 +10,8 @@
     "start": "tsx src/server.ts",
     "admin:bootstrap": "tsx src/scripts/bootstrap-admin-cli.ts",
     "load-test": "tsx src/scripts/perf/load-test.ts",
-    "perf-serve": "tsx src/scripts/perf/serve.ts"
+    "perf-serve": "tsx src/scripts/perf/serve.ts",
+    "rotate-keys": "tsx src/scripts/rotate-keys-cli.ts"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
