@@ -149,7 +149,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npm run test:e2e -- usability-steps && grep -Eq "Berhasil tanpa bantuan: [45]/5" docs/uji-kegunaan.md`
 - [x] **T54 Anggaran performa: Lighthouse CI dan uji beban 50 pengguna** — N17, N18, N20 · **B**
   Selesai jika: `npx lhci autorun && npm -w apps/api run load-test` (p95 ≤ 500 ms)
-- [ ] **T55 Ketahanan saat layanan luar mati: katalog, akun, dan unduhan tetap jalan** — N26 · **A**
+- [x] **T55 Ketahanan saat layanan luar mati: katalog, akun, dan unduhan tetap jalan** — N26 · **A**
   Selesai jika: `npx vitest run apps/api/src/test/third-party-outage.test.ts`
 - [ ] **T56 Pengamanan server: aaPanel, SSH, firewalld, SELinux, pengguna `hayatun`, PostgreSQL lokal** — N7, N34 · **A**
   Selesai jika: `sudo ops/check-server.sh` (di server)
