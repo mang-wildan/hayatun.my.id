@@ -67,7 +67,7 @@ export function VerifyPanel({ item, bankAccount, onDone }: { item: QueueItem; ba
           </div>
           <div className="field">
             <label htmlFor="alasan">Alasan penolakan</label>
-            <textarea id="alasan" value={reason} maxLength={500} aria-invalid={reasonError} aria-describedby={reasonError ? "alasan-error" : undefined} onChange={(e) => { setReason(e.target.value); setReasonError(false); }} />
+            <textarea id="alasan" data-autofocus value={reason} maxLength={500} aria-invalid={reasonError} aria-describedby={reasonError ? "alasan-error" : undefined} onChange={(e) => { setReason(e.target.value); setReasonError(false); }} />
             {reasonError && <p id="alasan-error" className="field-error">{REASON_REQUIRED}</p>}
           </div>
         </div>
