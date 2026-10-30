@@ -136,7 +136,7 @@ describe("daftar URL sasaran (tidak boleh memindai situs orang lain)", () => {
   const bad = [
     "https://contoh.com", "https://hayatun.my.id.contoh.com", "https://contoh.com/hayatun.my.id", "https://hayatun.my.id@contoh.com",
     "https://contoh.com#hayatun.my.id", "https://nothayatun.my.id", "http://hayatun.my.id", "http://staging.hayatun.my.id",
-    "ftp://hayatun.my.id", "hayatun.my.id", "http://127.0.0.1.contoh.com", "http://localhost@contoh.com", "", "https://hayatun.my.id:8443@contoh.com",
+    "ftp://hayatun.my.id", "hayatun.my.id", "http://127.0.0.1.contoh.com", "http://localhost@contoh.com", "https://hayatunxmy.id", "https://hayatun.my.id/?x=1", "https://hayatun.my.id/#a", "https://hayatun.my.id/a b", "http://127.0.0.1:3000/?x=1", "http://127.0.0.1:3000/@x", "http://127.0.0.1x3000", "http://127a0b0c1:3000", "http://127.0.0.1:", "http://127.0.0.1:123456", "https://hayatun.my.id:8443@contoh.com",
   ];
   for (const url of ok) it(`menerima ${url}`, () => {
     const r = run(url, { report: report() });

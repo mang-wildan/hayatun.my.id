@@ -13,3 +13,4 @@ playwright-report
 tsconfig.tsbuildinfo
 *.tsbuildinfo
 .lighthouseci/
+zap-report/
