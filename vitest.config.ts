@@ -9,6 +9,7 @@ export default defineConfig({
     },
     projects: [
       { test: { name: "shared", include: ["packages/shared/src/**/*.test.ts"] } },
+      { test: { name: "ops", include: ["ops/**/*.test.ts"] } },
       {
         test: {
           name: "api",
