@@ -93,7 +93,13 @@ jobs:
       - name: Lighthouse CI (N17, LCP ≤ 2,5 detik)
         env:
           CHROME_PATH: /usr/bin/google-chrome
-        run: npx --yes @lhci/cli@0.15.1 autorun # lewat npx agar tidak masuk lockfile dan audit (N34)
+        # lewat npx agar tidak masuk lockfile dan audit (N34). Dipecah supaya laporan tetap tersimpan walau asersi gagal (autorun berhenti sebelum upload).
+        run: |
+          npx --yes @lhci/cli@0.15.1 collect
+          rc=0
+          npx --yes @lhci/cli@0.15.1 assert || rc=$?
+          npx --yes @lhci/cli@0.15.1 upload
+          exit $rc
       - name: Uji beban 50 pengguna (N18, N20)
         run: npm -w apps/api run load-test
       - uses: actions/upload-artifact@v4
@@ -101,4 +107,5 @@ jobs:
         with:
           name: lighthouse
           path: .lighthouseci
+          include-hidden-files: true # folder diawali titik dilewati secara bawaan
           retention-days: 7

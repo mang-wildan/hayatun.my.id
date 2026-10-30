@@ -9,7 +9,7 @@ export function CoverFrame({ p, priority, sizes = "(min-width: 1024px) 25vw, (mi
   // next/image mengecilkan sampul mentah dari admin (bisa beberapa MB) ke ukuran tampil, dalam WebP, supaya LCP tetap ≤ 2,5 detik (N17)
   return (
     <div className="sampul" data-testid="sampul">
-      <Image src={p.coverUrl ?? "/sampul-kosong.svg"} alt={p.coverUrl ? p.name : ""} fill sizes={sizes} priority={priority} unoptimized={!p.coverUrl} />
+      <Image src={p.coverUrl ?? "/sampul-kosong.svg"} alt={p.coverUrl ? p.name : ""} fill sizes={sizes} quality={60} priority={priority} unoptimized={!p.coverUrl} />
     </div>
   );
 }
