@@ -95,12 +95,13 @@ describe("server yang sehat", () => {
   });
 });
 
-const BAD: [string, string, (s: Server) => void][] = [
+// kolom ke-4: pemeriksaan lain yang ikut GAGAL karena tidak bisa diverifikasi (firewalld mati berarti port juga tidak terlindungi)
+const BAD: [string, string, (s: Server) => void, string[]?][] = [
   ["login SSH dengan password", "ssh-password", (s) => { s.sshd = s.sshd.map((l) => l.replace("passwordauthentication no", "passwordauthentication yes")); }],
   ["login root lewat SSH", "ssh-root", (s) => { s.sshd = s.sshd.map((l) => l.replace("permitrootlogin no", "permitrootlogin yes")); }],
   ["root boleh masuk dengan kunci (prohibit-password)", "ssh-root", (s) => { s.sshd = s.sshd.map((l) => l.replace("permitrootlogin no", "permitrootlogin prohibit-password")); }],
   ["login dengan kunci dimatikan", "ssh-kunci", (s) => { s.sshd = s.sshd.map((l) => l.replace("pubkeyauthentication yes", "pubkeyauthentication no")); }],
-  ["firewalld tidak berjalan", "firewall-aktif", (s) => { s.fwState = "not running"; }],
+  ["firewalld tidak berjalan", "firewall-aktif", (s) => { s.fwState = "not running"; }, ["firewall-port"]],
   ["layanan tambahan terbuka (cockpit)", "firewall-port", (s) => { s.fwServices = "ssh http https cockpit"; }],
   ["port 3000 terbuka di firewall", "firewall-port", (s) => { s.fwPorts = "3000/tcp"; }],
   ["port 5432 terbuka di firewall", "firewall-port", (s) => { s.fwPorts = "5432/tcp"; }],
@@ -129,15 +130,15 @@ const BAD: [string, string, (s: Server) => void][] = [
   ["port aaPanel masih bawaan 8888", "aapanel-port", (s) => { s.panelPort = "8888"; }],
 ];
 
-describe.each(BAD)("kelemahan: %s", (_name, id, mutate) => {
+describe.each(BAD)("kelemahan: %s", (_name, id, mutate, also = []) => {
   it(`${id} GAGAL, pemeriksaan lain tidak terpengaruh, dan skrip keluar dengan kode 1`, () => {
     const s = healthy(); mutate(s);
     const r = run(s);
     expect(r.status(id)).toBe("GAGAL");
     const gagal = IDS.filter((x) => r.status(x) === "GAGAL");
-    expect(gagal).toEqual([id]);
+    expect(gagal).toEqual([id, ...also].sort((a, b) => IDS.indexOf(a) - IDS.indexOf(b)));
     expect(r.code).toBe(1);
-    expect(r.out).toMatch(/Hasil: 23 lulus, 1 gagal/);
+    expect(r.out).toContain(`Hasil: ${24 - gagal.length} lulus, ${gagal.length} gagal`);
   });
 });
 
