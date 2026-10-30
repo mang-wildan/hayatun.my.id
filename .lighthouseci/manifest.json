@@ -1,0 +1,74 @@
+[
+  {
+    "url": "http://127.0.0.1:3000/",
+    "isRepresentativeRun": false,
+    "htmlPath": "/home/user/hayatun.my.id/.lighthouseci/127_0_0_1--2026_10_30_02_01_11.report.html",
+    "jsonPath": "/home/user/hayatun.my.id/.lighthouseci/127_0_0_1--2026_10_30_02_01_11.report.json",
+    "summary": {
+      "performance": 0.95,
+      "accessibility": 1,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "http://127.0.0.1:3000/",
+    "isRepresentativeRun": false,
+    "htmlPath": "/home/user/hayatun.my.id/.lighthouseci/127_0_0_1--2026_10_30_02_01_23.report.html",
+    "jsonPath": "/home/user/hayatun.my.id/.lighthouseci/127_0_0_1--2026_10_30_02_01_23.report.json",
+    "summary": {
+      "performance": 0.99,
+      "accessibility": 1,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "http://127.0.0.1:3000/produk/e-book-kinerja",
+    "isRepresentativeRun": false,
+    "htmlPath": "/home/user/hayatun.my.id/.lighthouseci/127_0_0_1-produk_e_book_kinerja-2026_10_30_02_01_46.report.html",
+    "jsonPath": "/home/user/hayatun.my.id/.lighthouseci/127_0_0_1-produk_e_book_kinerja-2026_10_30_02_01_46.report.json",
+    "summary": {
+      "performance": 0.97,
+      "accessibility": 1,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "http://127.0.0.1:3000/produk/e-book-kinerja",
+    "isRepresentativeRun": false,
+    "htmlPath": "/home/user/hayatun.my.id/.lighthouseci/127_0_0_1-produk_e_book_kinerja-2026_10_30_02_02_09.report.html",
+    "jsonPath": "/home/user/hayatun.my.id/.lighthouseci/127_0_0_1-produk_e_book_kinerja-2026_10_30_02_02_09.report.json",
+    "summary": {
+      "performance": 0.99,
+      "accessibility": 1,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "http://127.0.0.1:3000/",
+    "isRepresentativeRun": true,
+    "htmlPath": "/home/user/hayatun.my.id/.lighthouseci/127_0_0_1--2026_10_30_02_01_35.report.html",
+    "jsonPath": "/home/user/hayatun.my.id/.lighthouseci/127_0_0_1--2026_10_30_02_01_35.report.json",
+    "summary": {
+      "performance": 0.99,
+      "accessibility": 1,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  },
+  {
+    "url": "http://127.0.0.1:3000/produk/e-book-kinerja",
+    "isRepresentativeRun": true,
+    "htmlPath": "/home/user/hayatun.my.id/.lighthouseci/127_0_0_1-produk_e_book_kinerja-2026_10_30_02_01_58.report.html",
+    "jsonPath": "/home/user/hayatun.my.id/.lighthouseci/127_0_0_1-produk_e_book_kinerja-2026_10_30_02_01_58.report.json",
+    "summary": {
+      "performance": 0.99,
+      "accessibility": 1,
+      "best-practices": 0.96,
+      "seo": 1
+    }
+  }
+]
