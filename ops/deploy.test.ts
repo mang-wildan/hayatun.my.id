@@ -32,8 +32,9 @@ function setup(o: Opts = {}) {
   const put = (name: string, body: string) => { writeFileSync(join(bin, name), `#!/bin/bash\necho "${name} $* [cwd=$(basename "$PWD")]" >> "${log}"\n${body}\n`); chmodSync(join(bin, name), 0o755); };
   put("id", `[ "$1" = "-un" ] && echo ${o.user ?? "hayatun"} || exit 1`);
   put("git", `case "$*" in
-  *"rev-parse"*) ${o.tagExists === false ? "exit 1" : "echo abc123"};;
-  *"worktree add"*) dest="$5"; mkdir -p "$dest/ops" "$dest/apps/api" "$dest/apps/web"; echo "$6" > "$dest/VERSI"; cp "${ECOSYSTEM}" "$dest/ops/ecosystem.config.cjs" 2>/dev/null || true;;
+  *"rev-parse"*|*"ls-remote"*) ${o.tagExists === false ? "exit 1" : "echo abc123"};;
+  *"worktree add"*) a=("$@"); pos=(); seen=0; for x in "\${a[@]}"; do [ "$seen" = 1 ] && [[ "$x" != -* ]] && pos+=("$x"); [ "$x" = add ] && seen=1; done
+     dest="\${pos[0]}"; mkdir -p "$dest/ops" "$dest/apps/api" "$dest/apps/web"; echo "\${pos[1]}" > "$dest/VERSI"; cp "${ECOSYSTEM}" "$dest/ops/ecosystem.config.cjs" 2>/dev/null || true;;
   *) ;;
 esac`);
   put("npm", `case "$*" in
@@ -70,7 +71,10 @@ describe("deploy sukses", () => {
     expect(current(s)).toBe("v1.1.0");
     expect(readFileSync(join(s.root, "shared/previous"), "utf8").trim()).toBe("v1.0.0");
     const c = s.calls();
-    const order = [/git .*fetch/, /git .*rev-parse/, /git .*worktree add/, /^npm ci/, /^npm run build/, /^npm .*db:migrate/, /^pm2 .*hayatun-api/, /^pm2 .*hayatun-web/, /^curl .*4000\/api\/health/, /^curl .*3000\/api\/health/].map((re) => idx(c, re));
+    const fetchAt = idx(c, /git .*fetch/);
+    // rev-parse pertama adalah pemeriksaan prasyarat sebelum fetch; yang dihitung di urutan adalah yang sesudah fetch
+    const revParseAfterFetch = c.findIndex((x, i) => i > fetchAt && /git .*rev-parse/.test(x));
+    const order = [fetchAt, revParseAfterFetch, ...[/git .*worktree add/, /^npm ci/, /^npm run build/, /^npm .*db:migrate/, /^pm2 .*hayatun-api/, /^pm2 .*hayatun-web/, /^curl .*4000\/api\/health/, /^curl .*3000\/api\/health/].map((re) => idx(c, re))];
     expect(order.every((i) => i >= 0), c.join("\n")).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order); // urutan persis
     expect(readFileSync(join(s.root, "shared/deploy.log"), "utf8")).toMatch(/v1\.1\.0.*ok/);
@@ -359,12 +363,13 @@ describe("ecosystem.config.cjs (PM2)", () => {
 
   it("membaca shared/.env: komentar, baris kosong, tanda kutip, dan nilai berisi '=' ditangani; NODE_ENV=production", () => {
     const { cfg } = load('# komentar\n\nAPI_PORT=4000\nSESSION_SECRET="abc=def ghi"\nEMAIL_FROM=\'toko@hayatun.my.id\'\n  SPASI = x  \nBAD LINE\n');
-    for (const a of cfg.apps) {
-      expect(a.env.API_PORT).toBe("4000");
-      expect(a.env.SESSION_SECRET).toBe("abc=def ghi");
-      expect(a.env.EMAIL_FROM).toBe("toko@hayatun.my.id");
-      expect(a.env.NODE_ENV).toBe("production");
-    }
+    const api = cfg.apps.find((a) => a.name === "hayatun-api")!;
+    expect(api.env.API_PORT).toBe("4000");
+    expect(api.env.SESSION_SECRET).toBe("abc=def ghi");
+    expect(api.env.EMAIL_FROM).toBe("toko@hayatun.my.id");
+    expect(api.env.SPASI).toBe("x");
+    expect(api.env["BAD LINE"]).toBeUndefined();
+    for (const a of cfg.apps) expect(a.env.NODE_ENV).toBe("production");
   });
 
   it(".env tidak ada: konfigurasi tetap dimuat tanpa galat (deploy yang memeriksanya)", () => {
