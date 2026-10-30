@@ -34,9 +34,10 @@ exit ${o.dockerExit ?? 0}
   }
   const ignore = join(dir, "zap-ignore.txt");
   if (o.ignore !== null && o.ignore !== undefined) writeFileSync(ignore, o.ignore);
-  const r = spawnSync("bash", [SCRIPT, ...(url === undefined ? [] : [url])], {
+  // Tanpa docker tiruan, PATH hanya berisi folder kosong: /usr/bin di CI berisi docker sungguhan yang akan menarik citra ZAP.
+  const r = spawnSync("/bin/bash", [SCRIPT, ...(url === undefined ? [] : [url])], {
     encoding: "utf8",
-    env: { PATH: `${bin}:/usr/bin:/bin`, ZAP_REPORT_DIR: out, ZAP_IGNORE_FILE: ignore, ...o.env },
+    env: { PATH: o.noDocker ? bin : `${bin}:/usr/bin:/bin`, ZAP_REPORT_DIR: out, ZAP_IGNORE_FILE: ignore, ...o.env },
   });
   const args = existsSync(log) ? readFileSync(log, "utf8").split("\n").filter(Boolean) : [];
   return { code: r.status, out: r.stdout ?? "", err: r.stderr ?? "", args, dockerCalled: existsSync(log), reportDir: out };
@@ -103,7 +104,7 @@ describe("galat pemindaian (keluar 2, tidak pernah lulus diam-diam)", () => {
   it("docker tidak terpasang", () => {
     const r = run(LOCAL, { noDocker: true });
     expect(r.code).toBe(2);
-    expect(r.err).toMatch(/docker/i);
+    expect(r.err).toMatch(/docker tidak terpasang/);
   });
   it("ZAP berhasil dijalankan tetapi laporan tidak ada", () => {
     const r = run(LOCAL, { report: null });
@@ -155,7 +156,7 @@ describe("daftar URL sasaran (tidak boleh memindai situs orang lain)", () => {
     expect(r.dockerCalled).toBe(false);
   });
   it("argumen berlebih ditolak", () => {
-    const r = spawnSync("bash", [SCRIPT, LOCAL, "https://contoh.com"], { encoding: "utf8", env: { PATH: "/usr/bin:/bin" } });
+    const r = spawnSync("/bin/bash", [SCRIPT, LOCAL, "https://contoh.com"], { encoding: "utf8", env: { PATH: "" } });
     expect(r.status).toBe(2);
   });
 });
