@@ -234,7 +234,7 @@ describe("--dry-run", () => {
 });
 
 describe("penjagaan", () => {
-  it.each([["../etc"], ["v1"], ["main"], ["v1.0.0;rm -rf /"], ["v1.0.0 "], ["V1.0.0"], ["v1.0.0/../../x"], ["-rf"]])("tag berbahaya %j ditolak sebelum menyentuh apa pun", (tag) => {
+  it.each([["../etc"], ["v1"], ["main"], ["v1.0.0;rm -rf /"], ["v1.0.0 "], ["V1.0.0"], ["v1.0.0/../../x"], ["-rf"], ["x/../v1.0.0"], ["xv1.0.0"], ["evil/v1.0.0"], ["v1.0.0\nv2.0.0"]])("tag berbahaya %j ditolak sebelum menyentuh apa pun", (tag) => {
     const s = setup({ current: "v1.0.0" });
     const r = run(s, [tag]);
     expect(r.code, r.all).toBe(2);
