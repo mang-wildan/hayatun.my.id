@@ -20,7 +20,7 @@ export default async function ProdukDetail({ params }: Props) {
     <>
       <Link className="back" href="/">Semua produk</Link>
       <article className="product-detail">
-        <CoverFrame p={p} priority />
+        <CoverFrame p={p} priority sizes="(min-width: 480px) 448px, 100vw" />
         <div className="stack">
           <div className="badges">
             <span className="badge" data-tone="neutral">{typeLabel(p.type)}</span>

@@ -147,7 +147,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npm run test:e2e -- a11y keyboard`
 - [ ] **T53 Uji kegunaan dengan 5 orang (checkout dan verifikasi admin)** — N8, N9 · **C**
   Selesai jika: `npm run test:e2e -- usability-steps && grep -Eq "Berhasil tanpa bantuan: [45]/5" docs/uji-kegunaan.md`
-- [ ] **T54 Anggaran performa: Lighthouse CI dan uji beban 50 pengguna** — N17, N18, N20 · **B**
+- [x] **T54 Anggaran performa: Lighthouse CI dan uji beban 50 pengguna** — N17, N18, N20 · **B**
   Selesai jika: `npx lhci autorun && npm -w apps/api run load-test` (p95 ≤ 500 ms)
 - [ ] **T55 Ketahanan saat layanan luar mati: katalog, akun, dan unduhan tetap jalan** — N26 · **A**
   Selesai jika: `npx vitest run apps/api/src/test/third-party-outage.test.ts`
