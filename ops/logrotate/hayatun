@@ -1,0 +1,33 @@
+# Rotasi log Hayatun (T60; N30: log teknis disimpan 90 hari). Pasang di /etc/logrotate.d/hayatun; diperiksa dengan
+#   sudo logrotate -d /etc/logrotate.d/hayatun
+# Log aplikasi (PM2: hayatun-api dan hayatun-web, lihat ops/ecosystem.config.cjs). PM2 menahan berkas terbuka, jadi copytruncate.
+/srv/hayatun/shared/logs/*.log {
+    su hayatun hayatun
+    daily
+    rotate 90
+    dateext
+    dateformat -%Y%m%d
+    compress
+    delaycompress
+    copytruncate
+    missingok
+    notifempty
+}
+
+# Log Nginx situs (format `hayatun`, tanpa query string dan token; lihat docs/nginx.md). error_log memuat baris permintaan lengkap,
+# jadi hasil rotasinya tetap tertutup untuk umum (mode 0640).
+/www/wwwlogs/hayatun.my.id*.log {
+    daily
+    rotate 90
+    dateext
+    dateformat -%Y%m%d
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640
+    sharedscripts
+    postrotate
+        [ ! -f /www/server/nginx/logs/nginx.pid ] || kill -USR1 "$(cat /www/server/nginx/logs/nginx.pid)"
+    endscript
+}
