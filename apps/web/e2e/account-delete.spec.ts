@@ -103,7 +103,7 @@ test.describe("tampilan dan aksesibilitas", () => {
       await page.setViewportSize({ width, height: width === 360 ? 640 : 900 });
       const b = await signedIn(page);
       const o = await waitingOrder(b.cookie);
-      const scan = async () => expect((await new AxeBuilder({ page }).withTags(TAGS).analyze()).violations).toEqual([]);
+      const scan = async () => { await expect(page).toHaveTitle(/.+/); expect((await new AxeBuilder({ page }).withTags(TAGS).analyze()).violations).toEqual([]); }; // judul sempat hilang saat router.refresh berlangsung
       await page.goto("/akun/hapus"); await scan();
       await submit(page, "salah-password"); await expect(confirm(page)).toBeVisible(); await scan();
       await confirm(page).getByRole("button", { name: "Ya, hapus akun" }).click();
