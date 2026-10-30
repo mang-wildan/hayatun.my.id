@@ -58,3 +58,54 @@ jobs:
           name: playwright-report
           path: apps/web/playwright-report
           retention-days: 7
+
+  # N17, N18, N20: anggaran performa. Terpisah dari `test` supaya umpan balik utama tidak melambat; tetap memblokir PR bila terlampaui.
+  performa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+      mailpit:
+        image: axllent/mailpit
+        ports: ["1025:1025", "8025:8025"]
+    env:
+      # nilai khusus tes; bukan rahasia. Skrip menolak berjalan di database yang namanya tidak berakhiran _test atau _perf.
+      DATABASE_URL: postgres://hayatun_app:hayatun@127.0.0.1:5432/hayatun_test
+      DATABASE_MIGRATION_URL: postgres://hayatun_migrate:hayatun@127.0.0.1:5432/hayatun_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Siapkan database
+        run: |
+          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 -f ops/postgres-init.sql
+          npm -w apps/api run db:migrate
+      - run: npm run build
+      - name: Lighthouse CI (N17, LCP ≤ 2,5 detik)
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        # lewat npx agar tidak masuk lockfile dan audit (N34). Dipecah supaya laporan tetap tersimpan walau asersi gagal (autorun berhenti sebelum upload).
+        run: |
+          npx --yes @lhci/cli@0.15.1 collect
+          rc=0
+          npx --yes @lhci/cli@0.15.1 assert || rc=$?
+          npx --yes @lhci/cli@0.15.1 upload
+          exit $rc
+      - name: Uji beban 50 pengguna (N18, N20)
+        run: npm -w apps/api run load-test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse
+          path: .lighthouseci
+          include-hidden-files: true # folder diawali titik dilewati secara bawaan
+          retention-days: 7

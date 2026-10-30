@@ -15,8 +15,9 @@ export function ConfirmDialog({ open, title, children, confirmLabel, variant = "
     if (open && !d.open) { d.showModal(); d.querySelector<HTMLElement>("[data-autofocus]")?.focus(); } // kolom isian utama langsung terfokus, tanpa klik tambahan
     if (!open && d.open) d.close();
   }, [open]);
+  // Esc ditangani lewat event cancel agar state ikut berubah seketika; menunggu event close membuka celah balapan bila Enter ditekan tepat setelah Esc
   return (
-    <dialog ref={ref} className="dialog" aria-labelledby={titleId} onClose={onCancel}>
+    <dialog ref={ref} className="dialog" aria-labelledby={titleId} onCancel={(e) => { e.preventDefault(); onCancel(); }}>
       <h2 id={titleId}>{title}</h2>
       <div>{children}</div>
       <div className="dialog-actions">

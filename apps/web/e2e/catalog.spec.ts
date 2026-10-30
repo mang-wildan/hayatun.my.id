@@ -78,7 +78,11 @@ test.describe("beranda dan katalog (F2, DESIGN §6)", () => {
     expect(await frame.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe("rgb(252, 231, 243)"); // #FCE7F3
     const img = frame.getByRole("img", { name: "E-book Resep Lebaran" });
     expect(await img.evaluate((e) => getComputedStyle(e).objectFit)).toBe("contain");
-    await expect(img).toHaveAttribute("src", new RegExp(`^/api/catalog/${ebook.slug}/cover\\?v=\\d+$`));
+    // sampul disajikan lewat pengoptimal gambar Next (dikecilkan ke WebP), asalnya tetap sampul produk ini
+    await expect(img).toHaveAttribute("src", new RegExp(`^/_next/image\\?url=%2Fapi%2Fcatalog%2F${ebook.slug}%2Fcover%3Fv%3D\\d+&w=\\d+&q=60$`));
+    const served = await page.request.get((await img.getAttribute("src"))!); // gambar uji 1x1 piksel tidak bisa di-decode browser, jadi yang dicek jawaban pengoptimalnya
+    expect(served.status()).toBe(200);
+    expect(served.headers()["content-type"]).toMatch(/^image\//);
   });
 
   test("produk tanpa sampul tetap punya bingkai yang sama; nama panjang dipotong dua baris", async ({ page }) => {
