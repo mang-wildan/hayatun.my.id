@@ -147,24 +147,32 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Selesai jika: `npm run test:e2e -- a11y keyboard`
 - [ ] **T53 Uji kegunaan dengan 5 orang (checkout dan verifikasi admin)** — N8, N9 · **C**
   Selesai jika: `npm run test:e2e -- usability-steps && grep -Eq "Berhasil tanpa bantuan: [45]/5" docs/uji-kegunaan.md`
+  Catatan: tidak dicentang. Spesifikasi otomatis dan naskah (`docs/uji-kegunaan.md`) selesai; sesi dengan 5 orang belum dilakukan, jadi hasilnya belum boleh diisi.
 - [x] **T54 Anggaran performa: Lighthouse CI dan uji beban 50 pengguna** — N17, N18, N20 · **B**
   Selesai jika: `npx lhci autorun && npm -w apps/api run load-test` (p95 ≤ 500 ms)
 - [x] **T55 Ketahanan saat layanan luar mati: katalog, akun, dan unduhan tetap jalan** — N26 · **A**
   Selesai jika: `npx vitest run apps/api/src/test/third-party-outage.test.ts`
-- [ ] **T56 Pengamanan server: aaPanel, SSH, firewalld, SELinux, pengguna `hayatun`, PostgreSQL lokal** — N7, N34 · **A**
+- [x] **T56 Pengamanan server: aaPanel, SSH, firewalld, SELinux, pengguna `hayatun`, PostgreSQL lokal** — N7, N34 · **A**
   Selesai jika: `sudo ops/check-server.sh` (di server)
-- [ ] **T57 Nginx: TLS 1.2+, HSTS, rute `/api`, lokasi internal file, batas unggah, log tanpa query string dan tanpa token di path `/api/downloads/<token>` (N30, dari T40)** — N1, N5, N30 · **A**
+  Catatan: dicentang atas permintaan pemilik. Skrip, tes, dan panduan selesai dan sudah digabung; `sudo ops/check-server.sh` belum dijalankan di server sungguhan.
+- [x] **T57 Nginx: TLS 1.2+, HSTS, rute `/api`, lokasi internal file, batas unggah, log tanpa query string dan tanpa token di path `/api/downloads/<token>` (N30, dari T40)** — N1, N5, N30 · **A**
   Selesai jika: `sudo nginx -t && ops/check-edge.sh https://hayatun.my.id`
-- [ ] **T58 PM2, skrip deploy dengan health check dan rollback** — N22, N36 · **B**
+  Catatan: dicentang atas permintaan pemilik. Konfigurasi diuji dengan nginx sungguhan di mesin pembangunan; `sudo nginx -t && ops/check-edge.sh https://hayatun.my.id` belum dijalankan di server sungguhan.
+- [x] **T58 PM2, skrip deploy dengan health check dan rollback** — N22, N36 · **B**
   Selesai jika: `ops/deploy.sh --dry-run && curl -fsS https://hayatun.my.id/api/health`
-- [ ] **T59 Cadangan harian terenkripsi ke luar server, simpan 30 hari, uji pulih** — N23, N29 · **A**
+  Catatan: dicentang atas permintaan pemilik. Diuji dengan `git`, `npm`, `pm2`, dan `curl` tiruan; deploy belum dijalankan di server sungguhan.
+- [x] **T59 Cadangan harian terenkripsi ke luar server, simpan 30 hari, uji pulih** — N23, N29 · **A**
   Selesai jika: `ops/restore-test.sh` (pulih ke server kosong, lalu `/api/health` OK, dalam ≤ 8 jam)
-- [ ] **T60 Logrotate 90 hari, pemantau uptime, peringatan tugas gagal, disk, dan TLS** — N22, N25, N30 · **B**
+  Catatan: dicentang atas permintaan pemilik. Diuji dengan `age`, `pg_dump`, dan PostgreSQL sungguhan, `rclone` tiruan; unggahan ke penyimpanan nyata dan uji pulih ke server kosong belum dilakukan (penyedia penyimpanan belum dipilih).
+- [x] **T60 Logrotate 90 hari, pemantau uptime, peringatan tugas gagal, disk, dan TLS** — N22, N25, N30 · **B**
   Selesai jika: `sudo logrotate -d /etc/logrotate.d/hayatun && ops/check-alerts.sh`
-- [ ] **T61 Pemindaian OWASP ZAP baseline dan audit dependensi bersih** — N7, N34 · **A**
+  Catatan: dicentang atas permintaan pemilik. `check-alerts.sh` diuji dengan SMTP tiruan dan logrotate sungguhan; belum dipasang di server, `ADMIN_ALERT_EMAIL` dan pemantau uptime luar belum diatur.
+- [x] **T61 Pemindaian OWASP ZAP baseline dan audit dependensi bersih** — N7, N34 · **A**
   Selesai jika: `ops/zap-baseline.sh https://staging.hayatun.my.id && npm audit --audit-level=high`
-- [ ] **T62 Panduan operasi: pasang ulang, pulihkan cadangan, ganti kunci enkripsi** — N35 · **A**
+  Catatan: dicentang atas permintaan pemilik. ZAP baseline berjalan di CI terhadap aplikasi di localhost (0 temuan tinggi); belum terhadap `staging.hayatun.my.id` lewat Nginx (staging belum ada).
+- [x] **T62 Panduan operasi: pasang ulang, pulihkan cadangan, ganti kunci enkripsi** — N35 · **A**
   Selesai jika: `npx vitest run apps/api/src/scripts/rotate-keys.test.ts && ops/restore-test.sh --from-docs`
+  Catatan: dicentang atas permintaan pemilik. `rotate-keys` diuji pada database tes; panduan belum diikuti orang lain di server kosong (syarat N35).
 - [ ] **T63 Migrasi server ke AlmaLinux 9 atau Rocky Linux 9 sebelum 31 Mei 2027** (ARCHITECTURE K10) — N34 · **A**
   Selesai jika: `grep -Eq 'AlmaLinux|Rocky' /etc/os-release && ops/check-server.sh && curl -fsS https://hayatun.my.id/api/health`
 
