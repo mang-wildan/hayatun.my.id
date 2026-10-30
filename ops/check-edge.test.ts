@@ -73,6 +73,11 @@ suite("check-edge.sh", () => {
     expect(code).toBe(1);
   }, 60_000);
 
+  it("TLS 1.0 dan 1.1 diizinkan di server: tidak boleh LULUS (GAGAL bila klien bisa mencobanya, selain itu PERIKSA)", async () => {
+    const { status, out } = await check((_f, t) => t.replace("ssl_protocols TLSv1.2 TLSv1.3;", "ssl_protocols TLSv1 TLSv1.1 TLSv1.2 TLSv1.3;").replace(/ssl_ciphers [^;]+;/, "ssl_ciphers ALL:@SECLEVEL=0;"));
+    expect(["GAGAL", "PERIKSA"], out).toContain(status("tls-lama"));
+  }, 60_000);
+
   it("situs tidak bisa dihubungi: semua GAGAL dengan alasan, bukan skrip rusak", async () => {
     const r = await sh(["--insecure", "https://127.0.0.1:1"]);
     expect(r.status).toBe(1);

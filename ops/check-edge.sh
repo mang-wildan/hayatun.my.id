@@ -41,9 +41,10 @@ old=""
 if command -v openssl >/dev/null 2>&1; then
   for v in tls1 tls1_1; do
     r="$(echo | openssl s_client -connect "$HOSTPORT" -servername "$HOST" -"$v" -cipher 'DEFAULT:@SECLEVEL=0' 2>&1)"
-    if echo "$r" | grep -qE 'Protocol +: TLSv1(\.1)?$|New, TLSv1(\.[01])?,'; then old="$old $v-diterima"
-    elif echo "$r" | grep -qiE 'alert protocol version|alert handshake failure|wrong version number|unsupported protocol'; then :
-    else old="$old $v-tidakterbukti"; fi
+    # diterima = ada sandi nyata (blok SSL-Session tetap mencetak "Protocol : TLSv1" walau jabat tangan ditolak, jadi jangan dipakai)
+    if echo "$r" | grep -qE '^New, TLSv1(\.[01])?, Cipher is [^(]'; then old="$old $v-diterima"
+    elif echo "$r" | grep -qiE 'alert protocol version|alert handshake failure'; then :   # ditolak oleh server
+    else old="$old $v-tidakterbukti"; fi                                                 # klien sendiri tidak bisa mencoba
   done
 else
   old=" openssl-tidak-ada"

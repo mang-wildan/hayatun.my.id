@@ -1,4 +1,5 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { spawn } from "node:child_process";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { findNginx, request, requestHttp, startEdge, type Edge } from "./nginx-harness";
 
 // Menjalankan nginx sungguhan dengan ops/nginx/*.conf (T57; N1, N5, N30). Di CI nginx wajib ada; di mesin lain tes dilewati dengan pesan.
@@ -12,7 +13,9 @@ const apiPath = (r: { seen: { url: string }[] }) => r.seen.map((s) => s.url);
 
 suite("nginx dengan konfigurasi produksi", () => {
   let edge: Edge;
-  beforeAll(async () => { edge = await startEdge(); });
+  let defaults: Pick<Edge["api"], "handler">;
+  beforeAll(async () => { edge = await startEdge(); defaults = { handler: edge.api.handler }; });
+  beforeEach(() => { edge.api.handler = defaults.handler; }); // tiap tes mulai dengan jawaban hulu bawaan
   afterAll(async () => { await edge?.stop(); });
 
   it("konfigurasi lolos nginx -t", () => {
@@ -29,6 +32,21 @@ suite("nginx dengan konfigurasi produksi", () => {
       }
     });
 
+    it("TLS 1.0 dan 1.1 ditolak server dengan alert protokol (bila klien OpenSSL mesin ini bisa mencobanya)", async (ctx) => {
+      const probe = (v: string) => new Promise<string>((resolve) => {
+        const c = spawn("openssl", ["s_client", "-connect", `127.0.0.1:${edge.https}`, `-${v}`, "-cipher", "DEFAULT:@SECLEVEL=0"], { stdio: ["pipe", "pipe", "pipe"] });
+        let out = "";
+        c.stdout.on("data", (d) => (out += d)); c.stderr.on("data", (d) => (out += d));
+        c.on("error", () => resolve("")); c.on("close", () => resolve(out)); c.stdin.end();
+      });
+      const results = await Promise.all(["tls1", "tls1_1"].map(probe));
+      if (results.some((r) => !/alert protocol version|Cipher is [A-Za-z0-9]/.test(r))) ctx.skip(); // klien tidak bisa mencoba, jadi tidak ada bukti
+      for (const r of results) {
+        expect(r).toMatch(/alert protocol version/i);
+        expect(r).not.toMatch(/^New, TLSv1(\.[01])?, Cipher is [^(]/m);
+      }
+    });
+
     it("HTTP dialihkan 301 ke HTTPS dengan path dan query yang sama", async () => {
       const r = await requestHttp(edge, "/produk/e-book?jenis=digital");
       expect(r.status).toBe(301);
@@ -41,6 +59,19 @@ suite("nginx dengan konfigurasi produksi", () => {
         expect(h, path).toMatch(/max-age=31536000/);
         expect(h, path).toMatch(/includeSubDomains/i);
       }
+    });
+
+    it("header keamanan dari hulu (helmet, Next.js) tidak digandakan: klien menerima satu set milik Nginx", async () => {
+      edge.api.handler = (_q, res) => {
+        res.writeHead(200, { "strict-transport-security": "max-age=15552000; includeSubDomains", "x-content-type-options": "nosniff", "x-frame-options": "SAMEORIGIN", "referrer-policy": "no-referrer", "x-request-id": "dari-hulu" });
+        res.end("{}");
+      };
+      const r = await request(edge, { path: "/api/catalog" });
+      expect(r.headers["strict-transport-security"]).toBe("max-age=31536000; includeSubDomains");
+      expect(r.headers["x-frame-options"]).toBe("DENY");
+      expect(r.headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+      expect(r.headers["x-content-type-options"]).toBe("nosniff");
+      expect(r.headers["x-request-id"]).not.toBe("dari-hulu");
     });
 
     it("versi nginx tidak bocor di header Server", async () => {
