@@ -43,8 +43,11 @@ jobs:
         run: |
           PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 -f ops/postgres-init.sql
           npm -w apps/api run db:migrate
-      - name: Pasang nginx (tes konfigurasi tepi di ops/)
-        run: command -v nginx >/dev/null || sudo apt-get install -y nginx
+      - name: Pasang nginx dan age (tes di ops/: konfigurasi tepi, cadangan terenkripsi)
+        run: |
+          command -v nginx >/dev/null || sudo apt-get install -y nginx
+          command -v age >/dev/null || sudo apt-get install -y age
+          command -v pg_dump >/dev/null || sudo apt-get install -y postgresql-client
       - name: Tes unit dan integrasi
         run: npm test -- --coverage # ambang 100% untuk mesin status pesanan (N33)
       - run: npm run build

@@ -340,6 +340,19 @@ suite("ops/restore.sh", () => {
     expect(await tableCount(DST)).toBe(0);
   });
 
+  it("arsip yang diubah lalu dienkripsi ulang dengan sidecar sha256 yang diperbarui tetap ditolak oleh MANIFEST", async () => {
+    await backup();
+    const blob = join(bucketDir(), blobs()[0]);
+    const dir = join(work, "ubah-" + Math.random().toString(36).slice(2, 6)); mkdirSync(dir);
+    const cmd = `age -d -i ${identity} ${blob} | tar -x -C ${dir} && echo curang >> ${dir}/files.tar && tar -C ${dir} -c db.dump files.tar MANIFEST | age -r ${publicKey} -o ${blob} && (cd ${bucketDir()} && sha256sum ${blobs()[0]} > ${blobs()[0]}.sha256)`;
+    expect((await sh("-c", [cmd])).code).toBe(0);
+    const r = await restore(["--identity", identity, "--database", DST, "--files-dir", restoreFiles]);
+    expect(r.code, r.all).toBe(1);
+    expect(r.all).toMatch(/MANIFEST/);
+    expect(await tableCount(DST)).toBe(0);
+    expect(existsSync(restoreFiles) ? readdirSync(restoreFiles) : []).toEqual([]);
+  });
+
   it("nama arsip yang tidak ada atau berbahaya: kode 2", async () => {
     await backup();
     for (const name of ["hayatun-19990101T000000Z.tar.age", "../../etc/passwd", "bukan-arsip.txt"]) {
