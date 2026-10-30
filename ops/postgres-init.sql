@@ -5,3 +5,6 @@ CREATE ROLE hayatun_migrate LOGIN PASSWORD 'hayatun';
 CREATE ROLE hayatun_app LOGIN PASSWORD 'hayatun';
 CREATE DATABASE hayatun OWNER hayatun_migrate;
 CREATE DATABASE hayatun_test OWNER hayatun_migrate;
+-- Dua database tambahan hanya untuk tes cadangan dan pulih (ops/backup.test.ts): sumber dan tujuan pemulihan.
+CREATE DATABASE hayatun_backup_test OWNER hayatun_migrate;
+CREATE DATABASE hayatun_restore_test OWNER hayatun_migrate;
