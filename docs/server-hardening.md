@@ -45,12 +45,14 @@ host    all   all   127.0.0.1/32       scram-sha-256
 host    all   all   ::1/128            scram-sha-256
 ```
 
-Buat peran dan database dengan `ops/postgres-init.sql`, **lalu ganti kata sandi `hayatun` bawaan**:
+Buat peran dan database produksi dengan kata sandi acak panjang (jangan pakai `ops/postgres-init.sql`: itu untuk pengembangan dan CI, berkata sandi `hayatun` dan membuat database uji):
 
 ```bash
-sudo -u postgres psql -v ON_ERROR_STOP=1 -f ops/postgres-init.sql
-sudo -u postgres psql -c "ALTER ROLE hayatun_migrate PASSWORD '<kata-sandi-baru>'"
-sudo -u postgres psql -c "ALTER ROLE hayatun_app PASSWORD '<kata-sandi-baru-lain>'"
+sudo -u postgres psql -v ON_ERROR_STOP=1 <<'SQL'
+CREATE ROLE hayatun_migrate LOGIN PASSWORD '<kata-sandi-migrasi>';
+CREATE ROLE hayatun_app LOGIN PASSWORD '<kata-sandi-aplikasi>';
+CREATE DATABASE hayatun OWNER hayatun_migrate;
+SQL
 systemctl reload postgresql-16
 ```
 

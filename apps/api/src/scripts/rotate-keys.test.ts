@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
-import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { eq, is } from "drizzle-orm";
 import { getTableConfig, PgTable } from "drizzle-orm/pg-core";
@@ -115,6 +115,7 @@ describe("memutar ke kunci aktif", () => {
     expect(o2.shipAddressEnc).toBeNull();
   });
   it("file bukti bayar: jalur sama, isi dienkripsi k2, mode file dan folder tetap, tidak ada sisa sementara", async () => {
+    chmodSync(proofPath(), 0o640); // bukan 0600 bawaan file sementara, supaya terbukti mode asli dipertahankan
     const mode = statSync(proofPath()).mode;
     await rotate();
     const file = readFileSync(proofPath());
@@ -212,11 +213,23 @@ describe("ketahanan", () => {
   });
 });
 
+describe("kunci file dari database tidak dipercaya mentah", () => {
+  it("storage_key yang keluar dari folder bukti ditolak: file di luar tidak dibaca maupun ditulis", async () => {
+    const outside = join(ctx.config.storage.dir, "rahasia.bin");
+    const content = oldCrypto.encryptBuffer(Buffer.from("di luar folder bukti"));
+    writeFileSync(outside, content);
+    await ctx.db.update(paymentProofs).set({ storageKey: "proofs/../rahasia.bin" }).where(eq(paymentProofs.id, ids.proofId));
+    const r = await rotate();
+    expect(r.failed).toEqual([expect.objectContaining({ where: "payment_proofs.storage_key", id: ids.proofId })]);
+    expect(readFileSync(outside).equals(content)).toBe(true);
+  });
+});
+
 describe("daftar kolom tidak boleh tertinggal (penjaga kelengkapan)", () => {
   const cfgs = Object.values(schema).filter((v) => is(v, PgTable)).map((t) => getTableConfig(t as PgTable));
   it("setiap kolom *_enc di skema ada di ROTATED_COLUMNS, dan sebaliknya", () => {
     const inSchema = cfgs.flatMap((c) => c.columns.filter((col) => col.name.endsWith("_enc")).map((col) => `${c.name}.${col.name}`)).sort();
-    expect(inSchema.length).toBeGreaterThanOrEqual(12);
+    expect(inSchema.length).toBeGreaterThanOrEqual(11); // 4 users + 1 kode lisensi + 3 alamat + 3 alamat kirim pesanan
     expect([...ROTATED_COLUMNS].sort()).toEqual(inSchema);
   });
   it("tabel yang menyimpan kunci file di disk dikenal: tabel baru memaksa keputusan 'file ini terenkripsi atau tidak'", () => {
