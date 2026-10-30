@@ -51,7 +51,7 @@ describe("violations (N18: p95 ≤ 500 ms pada 50 pengguna)", () => {
     ]);
   });
   it("satu aksi lambat melanggar walau keseluruhan masih baik", () => {
-    const v = violations(summarize([...many("cepat", 900, 50), ...many("lambat", 100, 800)]));
+    const v = violations(summarize([...many("cepat", 960, 50), ...many("lambat", 40, 800)]));
     expect(v).toEqual(["aksi \"lambat\": p95 800 ms melebihi 500 ms"]);
   });
   it("permintaan gagal (5xx, galat jaringan, atau status tak terduga) melanggar", () => {
@@ -61,6 +61,10 @@ describe("violations (N18: p95 ≤ 500 ms pada 50 pengguna)", () => {
   it("sampel terlalu sedikit membuat hasil tidak sah, bukan lolos", () => {
     expect(violations(summarize(many("a", 50, 10)))).toEqual(["hanya 50 permintaan terukur, minimal 300"]);
     expect(violations(summarize([]))).toEqual(["hanya 0 permintaan terukur, minimal 300"]);
+  });
+  it("tepat 300 sampel sah, 299 tidak", () => {
+    expect(violations(summarize(many("a", 300, 10)))).toEqual([]);
+    expect(violations(summarize(many("a", 299, 10)))).toEqual(["hanya 299 permintaan terukur, minimal 300"]);
   });
   it("anggaran dan batas sampel bisa diubah", () => {
     expect(violations(summarize(many("a", 10, 150)), { budgetMs: 100, minSamples: 5 })).toEqual([

@@ -1,14 +1,15 @@
+import Image from "next/image";
 import Link from "next/link";
 import { formatRupiah, typeLabel } from "@/lib/products";
 import type { CatalogCard } from "@/lib/catalog";
 
 // Bingkai sampul: rasio 4:5 tetap dipesan sejak awal supaya halaman tidak melompat saat gambar tiba (N17).
 // Produk tanpa sampul memakai gambar kosong di bingkai yang sama.
-export function CoverFrame({ p, priority }: { p: CatalogCard; priority?: boolean }) {
+export function CoverFrame({ p, priority, sizes = "(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw" }: { p: CatalogCard; priority?: boolean; sizes?: string }) {
+  // next/image mengecilkan sampul mentah dari admin (bisa beberapa MB) ke ukuran tampil, dalam WebP, supaya LCP tetap ≤ 2,5 detik (N17)
   return (
     <div className="sampul" data-testid="sampul">
-      {/* eslint-disable-next-line @next/next/no-img-element -- gambar dari API kita sendiri; ruangnya sudah dipesan oleh bingkai */}
-      <img src={p.coverUrl ?? "/sampul-kosong.svg"} alt={p.coverUrl ? p.name : ""} loading={priority ? "eager" : "lazy"} fetchPriority={priority ? "high" : undefined} decoding="async" />
+      <Image src={p.coverUrl ?? "/sampul-kosong.svg"} alt={p.coverUrl ? p.name : ""} fill sizes={sizes} priority={priority} unoptimized={!p.coverUrl} />
     </div>
   );
 }
