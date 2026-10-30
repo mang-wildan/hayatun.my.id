@@ -1,5 +1,5 @@
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import http from "node:http";
 import https from "node:https";
 import net from "node:net";
@@ -48,6 +48,8 @@ export async function startEdge(opts: { transform?: (file: ConfName, text: strin
   if (!nginx) throw new Error("nginx tidak ditemukan (pasang nginx atau isi NGINX_BIN)");
   const dir = mkdtempSync(join(tmpdir(), "edge-"));
   for (const d of ["tmp", "files/products"]) mkdirSync(join(dir, d), { recursive: true });
+  // Sebagai root, pekerja nginx berjalan sebagai pengguna lain (NGINX_USER, bawaan root) dan perlu menulis di folder sementara
+  for (const d of [dir, join(dir, "tmp"), join(dir, "files"), join(dir, "files/products")]) chmodSync(d, 0o777);
   const filesDir = join(dir, "files");
   writeFileSync(join(filesDir, "products", "abc.pdf"), "ISI-PDF-RAHASIA");
   const [web, api, httpPort, httpsPort] = [await upstream("web"), await upstream("api"), await freePort(), await freePort()];
@@ -61,7 +63,7 @@ export async function startEdge(opts: { transform?: (file: ConfName, text: strin
     text = text.replaceAll("127.0.0.1:3000", `127.0.0.1:${web.up.port}`).replaceAll("127.0.0.1:4000", `127.0.0.1:${api.up.port}`).replaceAll("/srv/hayatun/files", filesDir);
     writeFileSync(join(dir, FILES[name]), opts.transform ? opts.transform(name, text) : text);
   }
-  const main = `${process.getuid?.() === 0 ? "user root;\n" : ""}worker_processes 1;
+  const main = `${process.getuid?.() === 0 ? `user ${process.env.NGINX_USER ?? "root"};\n` : ""}worker_processes 1;
 daemon off;
 pid ${dir}/nginx.pid;
 error_log ${dir}/error.log info;

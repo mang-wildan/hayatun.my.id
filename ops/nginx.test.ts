@@ -118,11 +118,21 @@ suite("nginx dengan konfigurasi produksi", () => {
       expect(r.headers["x-accel-redirect"]).toBeUndefined();
     });
 
-    it("alamat internal tidak bisa dibuka langsung dari luar, termasuk dengan trik path", async () => {
-      for (const path of ["/_internal/files/products/abc.pdf", "/_internal/files/../nginx.conf", "/_internal/files/%2e%2e/nginx.conf", "//_internal/files/products/abc.pdf"]) {
+    it("alamat internal tidak bisa dibuka langsung dari luar", async () => {
+      for (const path of ["/_internal/files/products/abc.pdf", "//_internal/files/products/abc.pdf", "/_internal/files/"]) {
         const r = await request(edge, { path });
-        expect(r.status, path).not.toBe(200);
+        expect(r.status, path).toBe(404);
         expect(r.text, path).not.toContain("ISI-PDF-RAHASIA");
+      }
+    });
+
+    it("trik path (../, %2e%2e, %2f) tidak membuka isi file maupun konfigurasi", async () => {
+      // nginx menormalkan path; hasilnya diteruskan ke Next.js (tiruan), bukan dibaca dari disk
+      for (const path of ["/_internal/files/../nginx.conf", "/_internal/files/%2e%2e/nginx.conf", "/_internal/files/products/..%2f..%2fnginx.conf", "/x/../_internal/files/products/abc.pdf"]) {
+        const r = await request(edge, { path });
+        expect(r.text, path).not.toContain("ISI-PDF-RAHASIA");
+        expect(r.text, path).not.toContain("worker_processes");
+        expect(r.headers["content-disposition"], path).toBeUndefined();
       }
     });
 
