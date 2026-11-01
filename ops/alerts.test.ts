@@ -25,8 +25,9 @@ function sh(args: string[], env: Record<string, string>): Promise<Run> {
   });
 }
 
-interface World { rootPct: number; dataPct: number; failApi: boolean; failWeb: boolean; tlsDays: number | null; smtpFails: boolean }
-const healthy = (): World => ({ rootPct: 40, dataPct: 40, failApi: false, failWeb: false, tlsDays: 60, smtpFails: false });
+interface World { rootPct: number; dataPct: number; failApi: boolean; failWeb: boolean; tlsDays: number | null; smtpFails: boolean; os: string | null; today: string }
+const osRelease = (id: string, name: string, version: string) => `NAME="${name}"\nVERSION_ID="${version}"\nID="${id}"\n`;
+const healthy = (): World => ({ rootPct: 40, dataPct: 40, failApi: false, failWeb: false, tlsDays: 60, smtpFails: false, os: osRelease("almalinux", "AlmaLinux", "9.4"), today: "2026-11-01" });
 
 let base: string, root: string, bin: string, mails: string, argvLog: string, world: World;
 let seq = 0;
@@ -73,7 +74,12 @@ function writeEnv(over: Record<string, string> = {}) {
   writeFileSync(join(root, "shared/.env"), Object.entries(env).filter(([, v]) => v !== "").map(([k, v]) => `${k}=${v}`).join("\n") + "\n", { mode: 0o600 });
 }
 const backupOk = (msAgo = 2 * HOUR) => writeFileSync(join(root, "shared/backup-status"), `ok ${iso(msAgo)} hayatun-20261030T021000Z.tar.age 12345\n`);
-const run = (args: string[] = [], env: Record<string, string> = {}) => { writeStubs(world); return sh(args, { HAYATUN_ROOT: root, PATH: `${bin}:${process.env.PATH}`, ...env }); };
+const run = (args: string[] = [], env: Record<string, string> = {}) => {
+  writeStubs(world);
+  const osFile = join(root, "os-release");
+  if (world.os !== null) writeFileSync(osFile, world.os);
+  return sh(args, { HAYATUN_ROOT: root, PATH: `${bin}:${process.env.PATH}`, HAYATUN_OS_RELEASE: osFile, HAYATUN_TODAY: world.today, ...env });
+};
 const mailList = () => readdirSync(mails).sort((a, b) => Number(a.split(".")[0]) - Number(b.split(".")[0])).map((f) => readFileSync(join(mails, f), "utf8"));
 const subject = (m: string) => /^Subject: (.*)$/m.exec(m)?.[1] ?? "";
 const statusOf = (r: Run, id: string) => new RegExp(`^(LULUS|MASALAH|PERIKSA)\\s+${id}\\b`, "m").exec(r.out)?.[1];
@@ -92,10 +98,10 @@ describe("tanpa masalah", () => {
   it("semua pemeriksaan baik: tidak ada email, kode 0, dan tidak ada status peringatan tersimpan", async () => {
     const r = await run();
     expect(r.code, r.all).toBe(0);
-    for (const id of ["disk", "cadangan", "tls", "tugas-gagal", "email-gagal", "api", "web"]) expect(statusOf(r, id), `${id}\n${r.out}`).toBe("LULUS");
+    for (const id of ["disk", "cadangan", "tls", "tugas-gagal", "email-gagal", "api", "web", "os"]) expect(statusOf(r, id), `${id}\n${r.out}`).toBe("LULUS");
     expect(mailList()).toEqual([]);
     expect(state().trim()).toBe("");
-    expect(r.out).toMatch(/Hasil: 7 baik, 0 masalah/);
+    expect(r.out).toMatch(/Hasil: 8 baik, 0 masalah/);
   });
 });
 
@@ -112,6 +118,8 @@ describe("tiap kondisi memicu tepat satu email berisi alasan yang benar", () => 
     ["lebih dari 5 email gagal dalam 1 jam", "email-gagal", () => addJobs("email.send", "failed", 6, 30), /6/],
     ["API tidak sehat", "api", () => { world.failApi = true; }, /4000|API/],
     ["web tidak sehat", "web", () => { world.failWeb = true; }, /3000|web/i],
+    ["CentOS Stream 9 tinggal 60 hari lagi (batas 31 Mei 2027)", "os", () => { world.os = osRelease("centos", "CentOS Stream", "9"); world.today = "2027-04-01"; }, /60 hari[\s\S]*docs\/migrasi-os\.md/],
+    ["CentOS Stream 9 sudah lewat batas dukungan", "os", () => { world.os = osRelease("centos", "CentOS Stream", "9"); world.today = "2027-06-01"; }, /berakhir[\s\S]*docs\/migrasi-os\.md/],
   ];
   it.each(cases)("%s", async (_n, id, setup, reason) => {
     await setup();
@@ -126,6 +134,39 @@ describe("tiap kondisi memicu tepat satu email berisi alasan yang benar", () => 
     expect(m[0]).toMatch(/^To: pemilik@contoh\.test$/m);
     expect(m[0]).toMatch(/^From: toko@contoh\.test$/m);
     expect(state()).toContain(id);
+  });
+});
+
+describe("peringatan akhir dukungan sistem operasi (T63, N34)", () => {
+  const centos = () => { world.os = osRelease("centos", "CentOS Stream", "9"); };
+  it("batas tepat: 91 hari sebelum 31 Mei 2027 diam, 90 hari memicu", async () => {
+    centos(); world.today = "2027-03-01"; expect(statusOf(await run(), "os")).toBe("LULUS");
+    world.today = "2027-03-02"; const r = await run();
+    expect(statusOf(r, "os")).toBe("MASALAH");
+    expect(mailList()).toHaveLength(1);
+  });
+  it("jauh sebelum batas (sekarang): diam, tidak ada email", async () => {
+    centos(); expect(statusOf(await run(), "os")).toBe("LULUS");
+    expect(mailList()).toEqual([]);
+  });
+  it("AlmaLinux dan Rocky tidak pernah memicu, bahkan sesudah 2027", async () => {
+    for (const [id, name] of [["almalinux", "AlmaLinux"], ["rocky", "Rocky Linux"]]) {
+      world.os = osRelease(id, name, "9.4"); world.today = "2028-06-01";
+      expect(statusOf(await run(), "os")).toBe("LULUS");
+    }
+  });
+  it("distribusi lain atau berkas tidak terbaca: diam (ini bukan tugas pemeriksa pengingat)", async () => {
+    world.os = osRelease("ubuntu", "Ubuntu", "24.04"); world.today = "2028-06-01"; expect(statusOf(await run(), "os")).toBe("LULUS");
+    world.os = null; expect(statusOf(await run(), "os")).toBe("LULUS");
+  });
+  it("sudah dikirim, pulih setelah migrasi: satu email PULIH dan status dibersihkan", async () => {
+    centos(); world.today = "2027-04-01"; await run();
+    world.os = osRelease("almalinux", "AlmaLinux", "9.4");
+    await run();
+    const m = mailList();
+    expect(m).toHaveLength(2);
+    expect(subject(m[1])).toMatch(/^\[Hayatun\] PULIH: os/);
+    expect(state().trim()).toBe("");
   });
 });
 
