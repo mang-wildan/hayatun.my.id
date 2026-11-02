@@ -13,14 +13,14 @@ interface Opts {
   user?: string; hasPm2?: boolean; envMode?: number | null; tagExists?: boolean;
   failCi?: boolean; failBuild?: boolean; failMigrate?: boolean; failPm2?: boolean;
   badHealthTag?: string; allBad?: boolean; // health palsu gagal bila current menunjuk rilis ini / selalu
-  current?: string; previous?: string; releases?: string[];
+  current?: string; previous?: string; releases?: string[]; envExtra?: string;
 }
 function setup(o: Opts = {}) {
   const root = mkdtempSync(join(tmpdir(), "deploy-"));
   const bin = join(root, "stub-bin");
   const log = join(root, "dipanggil.log");
   for (const d of ["stub-bin", "repo", "releases", "shared"]) mkdirSync(join(root, d));
-  if (o.envMode !== null) { writeFileSync(join(root, "shared/.env"), "DATABASE_MIGRATION_URL=postgres://x\nSESSION_SECRET=RAHASIA-JANGAN-DICETAK\n"); chmodSync(join(root, "shared/.env"), o.envMode ?? 0o600); }
+  if (o.envMode !== null) { writeFileSync(join(root, "shared/.env"), `DATABASE_MIGRATION_URL=postgres://x\nSESSION_SECRET=RAHASIA-JANGAN-DICETAK\n${o.envExtra ?? ""}`); chmodSync(join(root, "shared/.env"), o.envMode ?? 0o600); }
   const releases = new Set([...(o.releases ?? []), ...(o.current ? [o.current] : []), ...(o.previous ? [o.previous] : [])]);
   let t = 1_700_000_000;
   for (const r of releases) {
@@ -74,7 +74,7 @@ describe("deploy sukses", () => {
     const fetchAt = idx(c, /git .*fetch/);
     // rev-parse pertama adalah pemeriksaan prasyarat sebelum fetch; yang dihitung di urutan adalah yang sesudah fetch
     const revParseAfterFetch = c.findIndex((x, i) => i > fetchAt && /git .*rev-parse/.test(x));
-    const order = [fetchAt, revParseAfterFetch, ...[/git .*worktree add/, /^npm ci/, /^npm run build/, /^npm .*db:migrate/, /^pm2 .*hayatun-api/, /^pm2 .*hayatun-web/, /^curl .*4000\/api\/health/, /^curl .*3000\/api\/health/].map((re) => idx(c, re))];
+    const order = [fetchAt, revParseAfterFetch, ...[/git .*worktree add/, /^npm ci/, /^npm run build/, /^npm .*db:migrate/, /^pm2 .*hayatun-api/, /^pm2 .*hayatun-web/, /^curl .*9001\/api\/health/, /^curl .*9000\/api\/health/].map((re) => idx(c, re))];
     expect(order.every((i) => i >= 0), c.join("\n")).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order); // urutan persis
     expect(readFileSync(join(s.root, "shared/deploy.log"), "utf8")).toMatch(/v1\.1\.0.*ok/);
@@ -174,8 +174,28 @@ describe("rollback otomatis", () => {
   it("health check mencoba ulang sebelum menyerah", () => {
     const s = setup({ current: "v1.0.0", badHealthTag: "v1.1.0" });
     run(s, ["v1.1.0"], { HEALTH_RETRIES: "4" });
-    const apiChecks = s.calls().filter((c) => /^curl .*4000/.test(c)).length;
+    const apiChecks = s.calls().filter((c) => /^curl .*9001/.test(c)).length;
     expect(apiChecks).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe("port kesehatan (T66)", () => {
+  const healthUrls = (s: Setup) => s.calls().filter((c) => c.startsWith("curl ")).map((c) => /http:\/\/\S+/.exec(c)?.[0]);
+  it("tanpa API_PORT/WEB_PORT di .env: API diperiksa di 127.0.0.1:9001 dan web di 127.0.0.1:9000", () => {
+    const s = setup({ current: "v1.0.0" });
+    expect(run(s, ["v1.1.0"]).code).toBe(0);
+    const urls = healthUrls(s);
+    expect(urls).toContain("http://127.0.0.1:9001/api/health");
+    expect(urls).toContain("http://127.0.0.1:9000/api/health");
+    expect(urls.join(" ")).not.toMatch(/:(3000|4000)\b/);
+  });
+  it("API_PORT dan WEB_PORT di shared/.env dipakai untuk pemeriksaan, bukan port bawaan", () => {
+    const s = setup({ current: "v1.0.0", envExtra: "API_PORT=9101\nWEB_PORT=9100\n" });
+    expect(run(s, ["v1.1.0"]).code).toBe(0);
+    const urls = healthUrls(s);
+    expect(urls).toContain("http://127.0.0.1:9101/api/health");
+    expect(urls).toContain("http://127.0.0.1:9100/api/health");
+    expect(urls.join(" ")).not.toMatch(/:(9000|9001)\b/);
   });
 });
 
@@ -362,9 +382,9 @@ describe("ecosystem.config.cjs (PM2)", () => {
   });
 
   it("membaca shared/.env: komentar, baris kosong, tanda kutip, dan nilai berisi '=' ditangani; NODE_ENV=production", () => {
-    const { cfg } = load('# komentar\n\nAPI_PORT=4000\nSESSION_SECRET="abc=def ghi"\nEMAIL_FROM=\'toko@hayatun.my.id\'\n  SPASI = x  \nBAD LINE\n');
+    const { cfg } = load('# komentar\n\nAPI_PORT=9001\nSESSION_SECRET="abc=def ghi"\nEMAIL_FROM=\'toko@hayatun.my.id\'\n  SPASI = x  \nBAD LINE\n');
     const api = cfg.apps.find((a) => a.name === "hayatun-api")!;
-    expect(api.env.API_PORT).toBe("4000");
+    expect(api.env.API_PORT).toBe("9001");
     expect(api.env.SESSION_SECRET).toBe("abc=def ghi");
     expect(api.env.EMAIL_FROM).toBe("toko@hayatun.my.id");
     expect(api.env.SPASI).toBe("x");
@@ -379,9 +399,10 @@ describe("ecosystem.config.cjs (PM2)", () => {
   });
 
   it("web dan API tidak berbagi rahasia yang tidak perlu: web hanya mendapat API_INTERNAL_URL dan port, bukan kunci enkripsi", () => {
-    const { cfg } = load("API_INTERNAL_URL=http://127.0.0.1:4000\nWEB_PORT=3000\nDATA_ENCRYPTION_KEYS=k1:RAHASIA\nBLIND_INDEX_KEY=RAHASIA\nSESSION_SECRET=RAHASIA\nDATABASE_URL=postgres://x\n");
+    const { cfg } = load("API_INTERNAL_URL=http://127.0.0.1:9001\nWEB_PORT=9000\nDATA_ENCRYPTION_KEYS=k1:RAHASIA\nBLIND_INDEX_KEY=RAHASIA\nSESSION_SECRET=RAHASIA\nDATABASE_URL=postgres://x\n");
     const web = cfg.apps.find((a) => a.name === "hayatun-web")!;
-    expect(web.env.API_INTERNAL_URL).toBe("http://127.0.0.1:4000");
+    expect(web.env.API_INTERNAL_URL).toBe("http://127.0.0.1:9001");
+    expect(web.env.WEB_PORT).toBe("9000"); // web membaca port dari lingkungannya sendiri (apps/web start)
     for (const k of ["DATA_ENCRYPTION_KEYS", "BLIND_INDEX_KEY", "SESSION_SECRET", "DATABASE_URL"]) expect(web.env[k], k).toBeUndefined();
     const api = cfg.apps.find((a) => a.name === "hayatun-api")!;
     expect(api.env.DATA_ENCRYPTION_KEYS).toBe("k1:RAHASIA");

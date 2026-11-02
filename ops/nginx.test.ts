@@ -134,6 +134,32 @@ suite("nginx dengan konfigurasi produksi", () => {
     });
   });
 
+  describe("domain dan folder aplikasi di akar vhost (T66)", () => {
+    it("www.hayatun.my.id dialihkan 301 ke hayatun.my.id dengan path dan query yang sama, bahkan lewat HTTPS, tanpa sampai ke upstream", async () => {
+      edge.web.seen.length = 0; edge.api.seen.length = 0;
+      const r = await request(edge, { path: "/produk/e-book?a=1&b=dua", headers: { host: "www.hayatun.my.id" } });
+      expect(r.status).toBe(301);
+      expect(r.headers.location).toBe("https://hayatun.my.id/produk/e-book?a=1&b=dua");
+      expect(String(r.headers["strict-transport-security"])).toMatch(/max-age=31536000/);
+      const api = await request(edge, { path: "/api/health", headers: { host: "www.hayatun.my.id" } });
+      expect(api.status).toBe(301);
+      expect([...edge.web.seen, ...edge.api.seen]).toEqual([]);
+    });
+    it("hanya host persis www.hayatun.my.id yang dialihkan; hayatun.my.id dan host mirip tidak", async () => {
+      for (const host of ["hayatun.my.id", "www.hayatun.my.id.contoh.com", "wwwxhayatun.my.id", "contoh-www.hayatun.my.id"]) {
+        expect((await request(edge, { path: "/", headers: { host } })).status, host).toBe(200);
+      }
+    });
+    it.each(["/shared/backup-status", "/shared/logs/api.out.log", "/shared", "/releases/v1.0.0/apps/api/package.json", "/current/.env", "/repo/ops/deploy.sh", "/files/proofs/a.bin", "/files"])("%s (folder aplikasi di akar situs) dijawab 404 oleh Nginx dan tidak sampai ke upstream", async (path) => {
+      edge.web.seen.length = 0; edge.api.seen.length = 0;
+      expect((await request(edge, { path })).status).toBe(404);
+      expect([...edge.web.seen, ...edge.api.seen]).toEqual([]);
+    });
+    it.each(["/sharedfoo", "/files-lain", "/produk/files", "/api/shared"])("%s bukan folder aplikasi dan tetap diteruskan", async (path) => {
+      expect((await request(edge, { path })).status).toBe(200);
+    });
+  });
+
   describe("file privat lewat X-Accel-Redirect (N5)", () => {
     it("jawaban API ber-X-Accel-Redirect dikirim Nginx dari folder file, header unduhan tetap, header internal tidak bocor", async () => {
       edge.api.handler = (_req, res) => {

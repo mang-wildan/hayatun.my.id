@@ -175,6 +175,8 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
   Catatan: dicentang atas permintaan pemilik. `rotate-keys` diuji pada database tes; panduan belum diikuti orang lain di server kosong (syarat N35).
 - [ ] **T63 Migrasi server ke AlmaLinux 9 atau Rocky Linux 9 sebelum 31 Mei 2027** (ARCHITECTURE K10) — N34 · **A**
   Selesai jika: `grep -Eq 'AlmaLinux|Rocky' /etc/os-release && ops/check-server.sh && curl -fsS https://hayatun.my.id/api/health`
+- [ ] **T66 Penyesuaian produksi: port 9000/9001, folder /www/wwwroot/hayatun.my.id, www dialihkan ke hayatun.my.id, folder aplikasi tidak bisa dibuka dari luar** — N5, N22 · **B**
+  Selesai jika: `npx vitest run ops` dan di server `sudo ops/check-server.sh && ops/check-edge.sh https://hayatun.my.id`
 
 ## Fase 8 — Payment gateway (tahap 2)
 
@@ -209,7 +211,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
 | N1 | T57 |
 | N2, N3 | T04, T05 |
 | N4 | T07, T10 |
-| N5 | T17, T40, T57 |
+| N5 | T17, T40, T57, T66 |
 | N6 | T07, T51 |
 | N7 | T56, T61 |
 | N8 | T30, T36, T53 |
@@ -220,7 +222,7 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
 | N19 | T26 |
 | N20 | T08, T54 |
 | N21 | T33, T36 |
-| N22 | T03, T58, T60 |
+| N22 | T03, T58, T60, T66 |
 | N23 | T59 |
 | N24 | T28, T35, T65 |
 | N25 | T34, T60 |

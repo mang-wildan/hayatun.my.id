@@ -25,9 +25,9 @@ function sh(args: string[], env: Record<string, string>): Promise<Run> {
   });
 }
 
-interface World { rootPct: number; dataPct: number; failApi: boolean; failWeb: boolean; tlsDays: number | null; smtpFails: boolean; os: string | null; today: string }
+interface World { rootPct: number; dataPct: number; failApi: boolean; failWeb: boolean; tlsDays: number | null; smtpFails: boolean; os: string | null; today: string; apiPort: number; webPort: number }
 const osRelease = (id: string, name: string, version: string) => `NAME="${name}"\nVERSION_ID="${version}"\nID="${id}"\n`;
-const healthy = (): World => ({ rootPct: 40, dataPct: 40, failApi: false, failWeb: false, tlsDays: 60, smtpFails: false, os: osRelease("almalinux", "AlmaLinux", "9.4"), today: "2026-11-01" });
+const healthy = (): World => ({ rootPct: 40, dataPct: 40, failApi: false, failWeb: false, tlsDays: 60, smtpFails: false, os: osRelease("almalinux", "AlmaLinux", "9.4"), today: "2026-11-01", apiPort: 9001, webPort: 9000 });
 
 let base: string, root: string, bin: string, mails: string, argvLog: string, world: World;
 let seq = 0;
@@ -48,7 +48,11 @@ if [[ " $* " == *" --mail-from "* ]]; then
   n=$(ls "${mails}" | wc -l); file=""; prev=""; for a in "$@"; do [ "$prev" = "--upload-file" ] && file="$a"; prev="$a"; done
   cp "$file" "${mails}/$((n+1)).eml"; cat "$file" > /dev/null; exit 0
 fi
-for a in "$@"; do case "$a" in http://127.0.0.1:4000/*) ${w.failApi ? "exit 22" : "echo '{\"status\":\"ok\"}'; exit 0"};; http://127.0.0.1:3000/*) ${w.failWeb ? "exit 22" : "echo '{\"status\":\"ok\"}'; exit 0"};; esac; done
+for a in "$@"; do case "$a" in
+  http://127.0.0.1:${w.apiPort}/api/health) ${w.failApi ? "exit 22" : "echo '{\"status\":\"ok\"}'; exit 0"};;
+  http://127.0.0.1:${w.webPort}/api/health) ${w.failWeb ? "exit 22" : "echo '{\"status\":\"ok\"}'; exit 0"};;
+  http://127.0.0.1:*/api/health) exit 7;; # port lain: tidak ada yang mendengarkan
+esac; done
 exit 0`);
 }
 
@@ -116,8 +120,8 @@ describe("tiap kondisi memicu tepat satu email berisi alasan yang benar", () => 
     ["sertifikat TLS tidak bisa diperiksa", "tls", () => { world.tlsDays = null; }, /tidak bisa|gagal/i],
     ["tugas terjadwal gagal setelah semua percobaan", "tugas-gagal", () => addJobs("orders.sweep", "failed", 1, 20), /orders\.sweep/],
     ["lebih dari 5 email gagal dalam 1 jam", "email-gagal", () => addJobs("email.send", "failed", 6, 30), /6/],
-    ["API tidak sehat", "api", () => { world.failApi = true; }, /4000|API/],
-    ["web tidak sehat", "web", () => { world.failWeb = true; }, /3000|web/i],
+    ["API tidak sehat", "api", () => { world.failApi = true; }, /9001|API/],
+    ["web tidak sehat", "web", () => { world.failWeb = true; }, /9000|web/i],
     ["CentOS Stream 9 tinggal 60 hari lagi (batas 31 Mei 2027)", "os", () => { world.os = osRelease("centos", "CentOS Stream", "9"); world.today = "2027-04-01"; }, /60 hari[\s\S]*docs\/migrasi-os\.md/],
     ["CentOS Stream 9 sudah lewat batas dukungan", "os", () => { world.os = osRelease("centos", "CentOS Stream", "9"); world.today = "2027-06-01"; }, /berakhir[\s\S]*docs\/migrasi-os\.md/],
   ];
@@ -175,6 +179,29 @@ describe("peringatan akhir dukungan sistem operasi (T63, N34)", () => {
     expect(m).toHaveLength(2);
     expect(subject(m[1])).toMatch(/^\[Hayatun\] PULIH: os/);
     expect(state().trim()).toBe("");
+  });
+});
+
+describe("port kesehatan (T66)", () => {
+  it("tanpa API_PORT/WEB_PORT di .env: API di 9001 dan web di 9000; web mati terdeteksi", async () => {
+    world.failWeb = true;
+    const r = await run();
+    expect(statusOf(r, "api")).toBe("LULUS");
+    expect(statusOf(r, "web")).toBe("MASALAH");
+    expect(r.out).toMatch(/127\.0\.0\.1:9000/);
+  });
+  it("API_PORT dan WEB_PORT di shared/.env dipakai: layanan di 9101/9100 sehat, di port bawaan tidak ada", async () => {
+    writeEnv({ API_PORT: "9101", WEB_PORT: "9100" });
+    world.apiPort = 9101; world.webPort = 9100;
+    const r = await run();
+    expect(statusOf(r, "api")).toBe("LULUS");
+    expect(statusOf(r, "web")).toBe("LULUS");
+  });
+  it("port di .env tidak cocok dengan yang hidup: MASALAH, bukan lulus karena menebak port lain", async () => {
+    writeEnv({ API_PORT: "9101", WEB_PORT: "9100" });
+    const r = await run(); // yang hidup 9001/9000
+    expect(statusOf(r, "api")).toBe("MASALAH");
+    expect(statusOf(r, "web")).toBe("MASALAH");
   });
 });
 

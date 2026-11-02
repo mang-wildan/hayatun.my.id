@@ -9,7 +9,7 @@ const nginx = findNginx();
 if (!nginx && process.env.CI) throw new Error("nginx wajib ada di CI (pasang paket nginx)");
 const suite = nginx ? describe : describe.skip;
 const SCRIPT = join(__dirname, "check-edge.sh");
-const IDS = ["tls-baru", "tls-lama", "http-alihkan", "hsts", "api-proxy", "file-internal", "batas-unggah", "batas-umum", "request-id", "header-keamanan", "server-tokens", "berkas-tersembunyi"];
+const IDS = ["tls-baru", "tls-lama", "http-alihkan", "hsts", "api-proxy", "file-internal", "batas-unggah", "batas-umum", "request-id", "header-keamanan", "server-tokens", "berkas-tersembunyi", "berkas-aplikasi"];
 
 
 // Asinkron: upstream tiruan berjalan di proses ini, jadi spawnSync akan memblokir mereka dan skrip menunggu selamanya.
@@ -57,6 +57,7 @@ suite("check-edge.sh", () => {
   }, 60_000);
 
   const BAD: [string, string, (f: "http" | "server" | "redirect", t: string) => string][] = [
+    ["penolakan folder aplikasi (/shared, /files, ...) dihapus", "berkas-aplikasi", (f, t) => (f === "server" ? t.replace(/.*\(shared\|releases\|repo\|current\|files\).*\n/g, "") : t)],
     ["HSTS dihapus", "hsts", (f, t) => (f === "server" || f === "http" ? t.replace(/.*Strict-Transport-Security.*\n/g, "") : t)],
     ["HSTS terlalu pendek", "hsts", (f, t) => t.replaceAll("max-age=31536000", "max-age=60")],
     ["pengalihan HTTP ke HTTPS dimatikan", "http-alihkan", (f, t) => (f === "redirect" ? "return 200 'terbuka';\n" : t)],

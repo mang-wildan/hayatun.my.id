@@ -57,10 +57,10 @@ export async function startEdge(opts: { transform?: (file: ConfName, text: strin
   const tls = spawnSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", join(dir, "k.pem"), "-out", join(dir, "c.pem"), "-days", "2", "-subj", "/CN=localhost", "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1"], { encoding: "utf8" });
   if (tls.status !== 0) throw new Error(`openssl gagal: ${tls.stderr}`);
 
-  // konfigurasi produksi memakai 127.0.0.1:3000, :4000, dan /srv/hayatun/files; di sini diarahkan ke tiruan
+  // konfigurasi produksi memakai 127.0.0.1:9000, :9001, dan /www/wwwroot/hayatun.my.id/files; di sini diarahkan ke tiruan
   for (const name of Object.keys(FILES) as ConfName[]) {
     let text = readFileSync(join(CONF_DIR, FILES[name]), "utf8");
-    text = text.replaceAll("127.0.0.1:3000", `127.0.0.1:${web.up.port}`).replaceAll("127.0.0.1:4000", `127.0.0.1:${api.up.port}`).replaceAll("/srv/hayatun/files", filesDir);
+    text = text.replaceAll("127.0.0.1:9000", `127.0.0.1:${web.up.port}`).replaceAll("127.0.0.1:9001", `127.0.0.1:${api.up.port}`).replaceAll("/www/wwwroot/hayatun.my.id/files", filesDir);
     writeFileSync(join(dir, FILES[name]), opts.transform ? opts.transform(name, text) : text);
   }
   const main = `${process.getuid?.() === 0 ? `user ${process.env.NGINX_USER ?? "root"};\n` : ""}worker_processes 1;

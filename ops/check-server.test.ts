@@ -10,7 +10,7 @@ const SCRIPT = join(__dirname, "check-server.sh");
 
 type Stubs = Record<string, string>; // nama perintah -> isi badan `case "$*"` atau skrip bash utuh
 const SSHD = ["port 22", "permitrootlogin no", "passwordauthentication no", "pubkeyauthentication yes", "kbdinteractiveauthentication no"];
-const SS = ["LISTEN 0 511 127.0.0.1:3000 0.0.0.0:*", "LISTEN 0 511 127.0.0.1:4000 0.0.0.0:*", "LISTEN 0 244 127.0.0.1:5432 0.0.0.0:*", "LISTEN 0 128 0.0.0.0:22 0.0.0.0:*", "LISTEN 0 511 0.0.0.0:80 0.0.0.0:*", "LISTEN 0 511 0.0.0.0:443 0.0.0.0:*"];
+const SS = ["LISTEN 0 511 127.0.0.1:9000 0.0.0.0:*", "LISTEN 0 511 127.0.0.1:9001 0.0.0.0:*", "LISTEN 0 244 127.0.0.1:5432 0.0.0.0:*", "LISTEN 0 128 0.0.0.0:22 0.0.0.0:*", "LISTEN 0 511 0.0.0.0:80 0.0.0.0:*", "LISTEN 0 511 0.0.0.0:443 0.0.0.0:*"];
 
 interface Server {
   uid: string; sshd: string[]; fwState: string; fwServices: string; fwPorts: string; selinux: string; httpdNet: string; ss: string[];
@@ -57,14 +57,14 @@ function run(s: Server, opts: { drop?: string[]; env?: Record<string, string> } 
   const b = build(s, opts);
   const r = spawnSync("bash", [SCRIPT], {
     encoding: "utf8",
-    env: { PATH: `${b.bin}:/usr/bin:/bin`, HAYATUN_PSQL: join(b.bin, "psql"), HAYATUN_AAPANEL_PORT_FILE: b.panel, HAYATUN_FILES_DIR: "/srv/hayatun/files", HAYATUN_OS_RELEASE: b.os, HAYATUN_TODAY: s.today, ...opts.env },
+    env: { PATH: `${b.bin}:/usr/bin:/bin`, HAYATUN_PSQL: join(b.bin, "psql"), HAYATUN_AAPANEL_PORT_FILE: b.panel, HAYATUN_FILES_DIR: "/www/wwwroot/hayatun.my.id/files", HAYATUN_OS_RELEASE: b.os, HAYATUN_TODAY: s.today, ...opts.env },
   });
   const lines = (r.stdout ?? "").split("\n");
   const status = (id: string) => lines.find((l) => new RegExp(`^(LULUS|GAGAL|PERIKSA)\\s+${id}\\b`).test(l))?.split(/\s+/)[0];
   return { code: r.status, out: r.stdout ?? "", err: r.stderr ?? "", status, log: () => (readFileSync(b.log, { encoding: "utf8", flag: "a+" })) };
 }
 
-const IDS = ["ssh-password", "ssh-root", "ssh-kunci", "firewall-aktif", "firewall-port", "selinux", "selinux-nginx", "dengar-3000", "dengar-4000", "dengar-5432", "pengguna-hayatun", "pengguna-shell", "pengguna-sudo", "file-pemilik", "file-mode", "pg-superuser", "pg-audit-ubah", "pg-audit-hapus", "pg-audit-kosongkan", "pg-trust", "pg-luar", "pg-dengar", "pembaruan-otomatis", "aapanel-port", "os-didukung"];
+const IDS = ["ssh-password", "ssh-root", "ssh-kunci", "firewall-aktif", "firewall-port", "selinux", "selinux-nginx", "dengar-web", "dengar-api", "dengar-5432", "pengguna-hayatun", "pengguna-shell", "pengguna-sudo", "file-pemilik", "file-mode", "pg-superuser", "pg-audit-ubah", "pg-audit-hapus", "pg-audit-kosongkan", "pg-trust", "pg-luar", "pg-dengar", "pembaruan-otomatis", "aapanel-port", "os-didukung"];
 
 describe("server yang sehat", () => {
   it("semua pemeriksaan LULUS dan skrip keluar dengan kode 0", () => {
@@ -87,11 +87,11 @@ describe("server yang sehat", () => {
     expect(run(s).status("firewall-port")).toBe("LULUS");
   });
 
-  it("layanan lokal yang belum berjalan (3000, 4000) tidak terbuka ke luar, jadi LULUS", () => {
-    const s = healthy(); s.ss = s.ss.filter((l) => !/:(3000|4000)\b/.test(l));
+  it("layanan lokal yang belum berjalan (9000, 9001) tidak terbuka ke luar, jadi LULUS", () => {
+    const s = healthy(); s.ss = s.ss.filter((l) => !/:(9000|9001)\b/.test(l));
     const r = run(s);
-    expect(r.status("dengar-3000")).toBe("LULUS");
-    expect(r.status("dengar-4000")).toBe("LULUS");
+    expect(r.status("dengar-web")).toBe("LULUS");
+    expect(r.status("dengar-api")).toBe("LULUS");
   });
 
   it("mode folder file 700 juga LULUS", () => {
@@ -108,15 +108,15 @@ const BAD: [string, string, (s: Server) => void, string[]?][] = [
   ["login dengan kunci dimatikan", "ssh-kunci", (s) => { s.sshd = s.sshd.map((l) => l.replace("pubkeyauthentication yes", "pubkeyauthentication no")); }],
   ["firewalld tidak berjalan", "firewall-aktif", (s) => { s.fwState = "not running"; }, ["firewall-port"]],
   ["layanan tambahan terbuka (cockpit)", "firewall-port", (s) => { s.fwServices = "ssh http https cockpit"; }],
-  ["port 3000 terbuka di firewall", "firewall-port", (s) => { s.fwPorts = "3000/tcp"; }],
+  ["port 9000 terbuka di firewall", "firewall-port", (s) => { s.fwPorts = "9000/tcp"; }],
   ["port 5432 terbuka di firewall", "firewall-port", (s) => { s.fwPorts = "5432/tcp"; }],
   ["HTTP tidak terbuka, bukan hanya SSH", "firewall-port", (s) => { s.fwServices = "ssh https"; }],
   ["SELinux permissive", "selinux", (s) => { s.selinux = "Permissive"; }],
   ["SELinux dimatikan", "selinux", (s) => { s.selinux = "Disabled"; }],
   ["boolean Nginx ke port lokal mati", "selinux-nginx", (s) => { s.httpdNet = "httpd_can_network_connect --> off"; }],
-  ["Next.js (3000) mendengarkan di semua antarmuka", "dengar-3000", (s) => { s.ss = s.ss.map((l) => l.replace("127.0.0.1:3000", "0.0.0.0:3000")); }],
-  ["Express (4000) mendengarkan di IPv6 semua antarmuka", "dengar-4000", (s) => { s.ss = s.ss.map((l) => l.replace("127.0.0.1:4000", "[::]:4000")); }],
-  ["Express (4000) mendengarkan di *", "dengar-4000", (s) => { s.ss = s.ss.map((l) => l.replace("127.0.0.1:4000", "*:4000")); }],
+  ["Next.js (9000) mendengarkan di semua antarmuka", "dengar-web", (s) => { s.ss = s.ss.map((l) => l.replace("127.0.0.1:9000", "0.0.0.0:9000")); }],
+  ["Express (9001) mendengarkan di IPv6 semua antarmuka", "dengar-api", (s) => { s.ss = s.ss.map((l) => l.replace("127.0.0.1:9001", "[::]:9001")); }],
+  ["Express (9001) mendengarkan di *", "dengar-api", (s) => { s.ss = s.ss.map((l) => l.replace("127.0.0.1:9001", "*:9001")); }],
   ["PostgreSQL mendengarkan di semua antarmuka", "dengar-5432", (s) => { s.ss = s.ss.map((l) => l.replace("127.0.0.1:5432", "0.0.0.0:5432")); }],
   ["pengguna hayatun tidak ada", "pengguna-hayatun", (s) => { s.passwd = ""; }],
   ["pengguna hayatun punya shell login", "pengguna-shell", (s) => { s.passwd = "hayatun:x:1001:1001:Hayatun:/home/hayatun:/bin/bash"; }],
@@ -197,6 +197,16 @@ describe("sistem operasi yang didukung (os-didukung)", () => {
     const r = withOs('ID="almalinux"\nVERSION_ID="9.4"\nNAME="$(touch /tmp/hayatun-os-injeksi)"\n');
     expect(existsSync("/tmp/hayatun-os-injeksi")).toBe(false);
     expect(r.status("os-didukung")).toBe("LULUS");
+  });
+});
+
+describe("port lokal aplikasi (T66)", () => {
+  it("bawaan 9000 (web) dan 9001 (API); HAYATUN_WEB_PORT/HAYATUN_API_PORT menggantinya", () => {
+    const s = healthy(); s.ss = s.ss.map((l) => l.replace("127.0.0.1:9000", "0.0.0.0:9000"));
+    expect(run(s).status("dengar-web")).toBe("GAGAL");
+    const moved = healthy(); moved.ss = moved.ss.map((l) => l.replace("127.0.0.1:9000", "0.0.0.0:9100"));
+    expect(run(moved).status("dengar-web")).toBe("LULUS"); // 9100 bukan port aplikasi bila tidak diatur
+    expect(run(moved, { env: { HAYATUN_WEB_PORT: "9100" } }).status("dengar-web")).toBe("GAGAL");
   });
 });
 
