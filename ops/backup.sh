@@ -9,7 +9,7 @@
 set -u -o pipefail
 umask 077
 
-ROOT="${HAYATUN_ROOT:-/srv/hayatun}"
+ROOT="${HAYATUN_ROOT:-/www/wwwroot/hayatun.my.id}"
 SHARED="$ROOT/shared"
 RETENTION_DAYS="${RETENTION_DAYS:-30}"
 STATUS="$SHARED/backup-status"

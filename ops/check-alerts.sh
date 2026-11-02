@@ -1,6 +1,6 @@
 #!/bin/bash
 # Pemeriksa dan pengirim peringatan di server (T60; ARCHITECTURE bagian 8; N22, N23, N25, F11.4). Jalankan tiap jam lewat cron:
-#   0 * * * * /srv/hayatun/repo/ops/check-alerts.sh >> /srv/hayatun/shared/logs/alerts.cron.log 2>&1
+#   0 * * * * /www/wwwroot/hayatun.my.id/repo/ops/check-alerts.sh >> /www/wwwroot/hayatun.my.id/shared/logs/alerts.cron.log 2>&1
 # Memeriksa: disk, cadangan terakhir (T59), sertifikat TLS, tugas pg-boss gagal, email gagal, dan /api/health API dan web dari dalam server.
 # Mengirim SATU email per masalah ke ADMIN_ALERT_EMAIL lewat SMTP aplikasi (curl); diulang tiap 24 jam selama masih bermasalah, dan satu email PULIH.
 # Pemantau uptime dari LUAR server tetap diperlukan: skrip ini tidak bisa memberi tahu bahwa servernya sendiri mati (docs/pemantauan.md).
@@ -9,7 +9,7 @@
 set -u
 umask 077
 
-ROOT="${HAYATUN_ROOT:-/srv/hayatun}"
+ROOT="${HAYATUN_ROOT:-/www/wwwroot/hayatun.my.id}"
 SHARED="$ROOT/shared"
 STATE="$SHARED/alerts.state"
 DISK_MAX_PCT="${DISK_MAX_PCT:-80}"; BACKUP_MAX_HOURS="${BACKUP_MAX_HOURS:-26}"; TLS_MIN_DAYS="${TLS_MIN_DAYS:-14}"
@@ -73,7 +73,7 @@ for p in "$ROOT" /; do
   [[ "$pct" =~ ^[0-9]+$ ]] || { detail="$detail $p: tidak terbaca;"; continue; }
   [ "$pct" -gt "$DISK_MAX_PCT" ] && detail="$detail $p terpakai ${pct}% (batas ${DISK_MAX_PCT}%);"
 done
-if [ -n "$detail" ]; then bad_id disk "disk:$detail" "Hapus berkas besar atau perbesar disk. Periksa: du -sh /srv/hayatun/* /var/log/*; log lama dirotasi 90 hari (ops/logrotate/hayatun)."; else ok_id disk; fi
+if [ -n "$detail" ]; then bad_id disk "disk:$detail" "Hapus berkas besar atau perbesar disk. Periksa: du -sh /www/wwwroot/hayatun.my.id/* /var/log/*; log lama dirotasi 90 hari (ops/logrotate/hayatun)."; else ok_id disk; fi
 
 # ---- cadangan ----
 read -r b_status b_time b_rest < "$SHARED/backup-status" 2>/dev/null || b_status=""
@@ -109,8 +109,10 @@ elif [ "$nfail" -gt "$EMAIL_FAIL_MAX" ]; then bad_id email-gagal "$nfail email g
 else ok_id email-gagal; fi
 
 # ---- kesehatan layanan dari dalam server ----
-if curl -fsS --max-time 5 http://127.0.0.1:4000/api/health >/dev/null 2>&1; then ok_id api; else bad_id api "API (127.0.0.1:4000/api/health) tidak sehat" "pm2 status; pm2 logs hayatun-api; pertimbangkan ops/deploy.sh --rollback."; fi
-if curl -fsS --max-time 5 http://127.0.0.1:3000/api/health >/dev/null 2>&1; then ok_id web; else bad_id web "web (127.0.0.1:3000/api/health) tidak sehat" "pm2 status; pm2 logs hayatun-web; pertimbangkan ops/deploy.sh --rollback."; fi
+# port dari shared/.env (sudah dimuat di atas); bawaan produksi: API 9001, web 9000
+api_port="${API_PORT:-9001}"; web_port="${WEB_PORT:-9000}"
+if curl -fsS --max-time 5 "http://127.0.0.1:$api_port/api/health" >/dev/null 2>&1; then ok_id api; else bad_id api "API (127.0.0.1:$api_port/api/health) tidak sehat" "pm2 status; pm2 logs hayatun-api; pertimbangkan ops/deploy.sh --rollback."; fi
+if curl -fsS --max-time 5 "http://127.0.0.1:$web_port/api/health" >/dev/null 2>&1; then ok_id web; else bad_id web "web (127.0.0.1:$web_port/api/health) tidak sehat" "pm2 status; pm2 logs hayatun-web; pertimbangkan ops/deploy.sh --rollback."; fi
 
 # ---- akhir dukungan CentOS Stream 9 (T63, N34): peringatan 90 hari sebelum 31 Mei 2027, dan seterusnya sesudahnya ----
 # Hanya CentOS Stream 9 yang punya batas; AlmaLinux/Rocky dan lainnya diam. os-release dibaca sebagai teks, tidak di-source.

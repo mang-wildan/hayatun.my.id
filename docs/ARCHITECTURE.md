@@ -21,12 +21,12 @@ Pemilik memilih **Opsi B**: satu repo, Next.js dan Express sebagai dua proses di
         │ Express 5  │◀────│ Next.js 16   │  halaman toko dan panel admin
         │ apps/api   │ HTTP│ apps/web     │  (mengambil data dari API lewat
         │ 127.0.0.1  │lokal│ 127.0.0.1    │   jaringan lokal)
-        │ :4000      │     │ :3000        │
+        │ :9001      │     │ :9000        │
         └──┬──────┬──┘     └──────────────┘
            │      │
    ┌───────▼──┐ ┌─▼──────────────────┐     Layanan luar:
    │PostgreSQL│ │ Disk privat         │     · email transaksional (SMTP)
-   │ (lokal)  │ │ /srv/hayatun/files  │     · tarif ongkir (penyedia belum dipilih)
+   │ (lokal)  │ │ /www/wwwroot/hayatun.my.id/files  │     · tarif ongkir (penyedia belum dipilih)
    │ data +   │ │ produk digital +    │     · payment gateway (tahap 2)
    │ antrean  │ │ bukti bayar (enkrip)│     · penyimpanan cadangan di luar server
    │ tugas    │ └────────────────────┘     · pemantau uptime dari luar
@@ -226,7 +226,7 @@ Tugas berkala setiap menit mencari pesanan `MENUNGGU_PEMBAYARAN` dengan `expires
 | **N2** Enkripsi saat disimpan | AES-256-GCM per field (`*_enc`) dan per file bukti bayar, di modul `crypto`. Setiap nilai menyimpan ID kunci, sehingga kunci bisa dirotasi tanpa membuka ulang semua data sekaligus (N35). Kunci ada di environment variable, tidak di repo, tidak di database. Cadangan dienkripsi lagi sebelum dikirim keluar server. |
 | **N3** Password | Argon2id. Minimal 8 karakter. Ditolak bila ada di daftar password bocor yang disimpan lokal (tanpa mengirim password ke layanan luar). |
 | **N4** Login | Batas percobaan per akun (F1.8) disimpan di `login_attempts`, ditambah batas laju per IP di Nginx. Sesi admin 30 menit tidak aktif, pembeli 30 hari. Admin wajib TOTP. Cookie sesi: `HttpOnly`, `Secure`, `SameSite=Lax`, berlaku hanya untuk domain toko. |
-| **N5** Akses file | File di `/srv/hayatun/files`, di luar root web Nginx, dimiliki pengguna sistem `hayatun`. Hanya bisa diakses lewat `X-Accel-Redirect` ke lokasi `internal` setelah API memeriksa hak akses. File tidak pernah dijalankan: tidak ada handler PHP atau CGI di lokasi itu. |
+| **N5** Akses file | File di `/www/wwwroot/hayatun.my.id/files`, di luar root web Nginx, dimiliki pengguna sistem `hayatun`. Hanya bisa diakses lewat `X-Accel-Redirect` ke lokasi `internal` setelah API memeriksa hak akses. File tidak pernah dijalankan: tidak ada handler PHP atau CGI di lokasi itu. |
 | **N6** Otorisasi | Semua pemeriksaan hak akses ada di Express. Next.js tidak pernah membaca database. Setiap rute memakai salah satu pemeriksa: `requireBuyer`, `requireAdmin`, atau `requireOwner(order)`. Uji matriks otorisasi mencakup 100% rute (bagian 7). |
 | **N7** Kerentanan | Header keamanan (Helmet di Express dan pengaturan di Next.js), termasuk Content-Security-Policy. Perlindungan CSRF: `SameSite=Lax` ditambah pemeriksaan header `Origin` untuk semua permintaan yang mengubah data. Pemindaian OWASP ZAP baseline sebelum rilis tahap 1. |
 | **N27–N31** Privasi | Penyedia ongkir hanya menerima `area_id`, kode pos, dan berat. Pembukaan data pribadi dicatat di `audit_logs` (disimpan 2 tahun). Log teknis disamarkan (bagian 8). |
@@ -235,7 +235,7 @@ Tugas berkala setiap menit mencari pesanan `MENUNGGU_PEMBAYARAN` dengan `expires
 **Pengamanan server** (wajib sebelum go-live):
 - **aaPanel**: pakai port non-bawaan, aktifkan verifikasi dua langkah, batasi akses hanya dari IP pemilik atau lewat SSH tunnel, update aaPanel rutin. Panel server adalah sasaran serangan yang umum.
 - **SSH**: login hanya dengan kunci, login root dimatikan.
-- **firewalld**: hanya port 80, 443, dan SSH yang terbuka. PostgreSQL, Next.js (3000), dan Express (4000) hanya mendengarkan di `127.0.0.1`.
+- **firewalld**: hanya port 80, 443, dan SSH yang terbuka. PostgreSQL, Next.js (9000), dan Express (9001) hanya mendengarkan di `127.0.0.1` (di mesin pengembangan: 3000 dan 4000).
 - **SELinux** tetap `enforcing`. Kebijakan yang diperlukan Nginx untuk meneruskan ke port lokal diaktifkan secara eksplisit.
 - **Proses**: Node dan PM2 berjalan sebagai pengguna `hayatun`, bukan root. File `.env` hanya bisa dibaca pengguna itu (`chmod 600`).
 - **Database**: pengguna database aplikasi bukan superuser, tanpa hak `UPDATE` atau `DELETE` pada `audit_logs`. Pengguna migrasi terpisah.
@@ -310,7 +310,7 @@ Migrasi harus selalu kompatibel dengan versi kode sebelumnya, sehingga rollback 
 | Email gagal terkirim | Antrean email | Lebih dari 5 kegagalan dalam 1 jam | F11.4 |
 
 **Cadangan** (`ops/backup.sh`, dijalankan setiap malam oleh cron)
-1. `pg_dump` database dan arsip `/srv/hayatun/files`.
+1. `pg_dump` database dan arsip `/www/wwwroot/hayatun.my.id/files`.
 2. Enkripsi dengan kunci publik cadangan. Kunci privatnya disimpan pemilik di luar server.
 3. Kirim ke penyimpanan cadangan **di luar server**.
 4. Simpan 30 hari, lalu hapus otomatis (N29).
@@ -401,7 +401,7 @@ Disimpan di `.env` di server (tidak masuk repo). `.env.example` di repo berisi n
 
 ### K4. File di disk lokal privat, dikirim lewat Nginx `X-Accel-Redirect`
 - **Konteks**: di opsi awal disebut object storage. Pemilik punya server sendiri, dan jumlah file kecil (sekitar 100 produk).
-- **Keputusan**: file produk dan bukti bayar disimpan di `/srv/hayatun/files`, di luar root web. API memeriksa hak akses, lalu Nginx yang mengirim file. Object storage hanya dipakai sebagai tujuan cadangan di luar server.
+- **Keputusan**: file produk dan bukti bayar disimpan di `/www/wwwroot/hayatun.my.id/files`, di luar root web. API memeriksa hak akses, lalu Nginx yang mengirim file. Object storage hanya dipakai sebagai tujuan cadangan di luar server.
 - **Konsekuensi**: tanpa biaya storage tambahan, dan unduhan efisien. Disk server harus cukup untuk semua file produk. Cadangan harus menyertakan folder file. Bila nanti pindah server, folder ini ikut dipindah.
 
 ### K5. Enkripsi per field di aplikasi, dengan blind index untuk email

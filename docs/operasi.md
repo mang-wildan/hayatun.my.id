@@ -40,40 +40,41 @@ Untuk server kosong (server baru, atau yang lama hilang). Urutannya penting: ber
    ```
 4. **Pasang kode dan tata letak** (lihat `docs/deploy.md`):
    ```bash
-   sudo -u hayatun git clone <url-repo> /srv/hayatun/repo
-   sudo -u hayatun mkdir -p /srv/hayatun/{releases,shared/logs,shared/tmp}
-   sudo -u hayatun install -m 600 /dev/null /srv/hayatun/shared/.env
+   # situs sudah dibuat di aaPanel (docs/nginx.md) dan folder dimiliki hayatun (docs/server-hardening.md bagian 1)
+   sudo -u hayatun git clone <url-repo> /www/wwwroot/hayatun.my.id/repo
+   sudo -u hayatun mkdir -p /www/wwwroot/hayatun.my.id/{releases,shared/logs,shared/tmp}
+   sudo -u hayatun install -m 600 /dev/null /www/wwwroot/hayatun.my.id/shared/.env
    ```
-5. **Isi `shared/.env`** (mode 600; daftar variabel di `.env.example` dan ARCHITECTURE bagian 9).
+5. **Isi `shared/.env`** (mode 600; daftar variabel di `.env.example` dan ARCHITECTURE bagian 9). Nilai khusus server ini: `APP_URL=https://hayatun.my.id`, `WEB_PORT=9000`, `API_PORT=9001`, `API_INTERNAL_URL=http://127.0.0.1:9001`, `STORAGE_DIR=/www/wwwroot/hayatun.my.id/files`, `STORAGE_INTERNAL_PREFIX=/_internal/files`. Isi `.env` **sebelum** deploy pertama: alamat API ikut tertanam saat build.
    - **Toko yang sudah ada (pulih):** pakai salinan `.env` dari penyimpanan terpisah apa adanya, termasuk semua kunci di `DATA_ENCRYPTION_KEYS`. Ubah hanya yang memang berbeda di server baru (kata sandi database, `DATABASE_*`).
    - **Toko baru:** buat rahasia dengan `openssl rand -base64 32` (satu per nilai): `SESSION_SECRET`, `BLIND_INDEX_KEY`, dan `DATA_ENCRYPTION_KEYS=k1:<base64>` dengan `DATA_ENCRYPTION_ACTIVE_KEY_ID=k1`. **Simpan salinan `.env` di penyimpanan terpisah saat itu juga**, sebelum ada data.
 6. **Nginx dan TLS**: ikuti `docs/nginx.md`, lalu arahkan DNS lebih dulu supaya sertifikat Let's Encrypt bisa terbit. Pemeriksaan dari luar (`ops/check-edge.sh`) dijalankan di langkah 9, setelah aplikasi hidup.
 7. **Data, lalu deploy pertama.** Urutannya tergantung keadaan:
    - **Pulih dari cadangan:** pulihkan **sebelum** deploy pertama. `ops/restore.sh` menolak database yang sudah berisi tabel, dan deploy menjalankan migrasi yang membuat tabel. Taruh kunci privat age sementara di tempat yang bisa dibaca pengguna `hayatun`, lalu hapus setelahnya:
      ```bash
-     sudo -u hayatun /srv/hayatun/repo/ops/restore.sh --identity /tmp/kunci-cadangan.txt \
+     sudo -u hayatun /www/wwwroot/hayatun.my.id/repo/ops/restore.sh --identity /tmp/kunci-cadangan.txt \
        --database postgres://hayatun_migrate:<kata-sandi-migrasi>@127.0.0.1:5432/hayatun \
-       --files-dir /srv/hayatun/files
+       --files-dir /www/wwwroot/hayatun.my.id/files
      ```
      Lalu deploy (langkah di bawah). Migrasi pada database hasil pulih hanya menerapkan yang belum ada, jadi aman.
    - **Toko baru:** langsung deploy, lalu buat admin pertama (undangan dikirim ke `ADMIN_BOOTSTRAP_EMAIL`):
      ```bash
      sudo -u hayatun -i
-     set -a; . /srv/hayatun/shared/.env; set +a
-     cd /srv/hayatun/current
+     set -a; . /www/wwwroot/hayatun.my.id/shared/.env; set +a
+     cd /www/wwwroot/hayatun.my.id/current
      npm -w apps/api run admin:bootstrap
      ```
    Deploy pertama (menjalankan migrasi dan memeriksa kesehatan):
    ```bash
-   sudo -u hayatun /srv/hayatun/repo/ops/deploy.sh --dry-run v1.0.0
-   sudo -u hayatun /srv/hayatun/repo/ops/deploy.sh v1.0.0
+   sudo -u hayatun /www/wwwroot/hayatun.my.id/repo/ops/deploy.sh --dry-run v1.0.0
+   sudo -u hayatun /www/wwwroot/hayatun.my.id/repo/ops/deploy.sh v1.0.0
    ```
-   Ganti `v1.0.0` dengan tag rilis terakhir (`git tag --sort=-v:refname | head`). Setelah itu `curl -fsS http://127.0.0.1:4000/api/health` harus OK. Untuk toko baru, buat admin pertama sesudah deploy (blok di atas).
+   Ganti `v1.0.0` dengan tag rilis terakhir (`git tag --sort=-v:refname | head`). Setelah itu `curl -fsS http://127.0.0.1:9001/api/health` harus OK. Untuk toko baru, buat admin pertama sesudah deploy (blok di atas).
 8. **Jadwal dan pemantauan**: pasang cron cadangan ([Pemasangan](#pemasangan) langkah 6), cron peringatan dan monitor luar (`docs/pemantauan.md`), dan rotasi log:
    ```bash
-   sudo install -m 644 /srv/hayatun/repo/ops/logrotate/hayatun /etc/logrotate.d/hayatun
+   sudo install -m 644 /www/wwwroot/hayatun.my.id/repo/ops/logrotate/hayatun /etc/logrotate.d/hayatun
    sudo logrotate -d /etc/logrotate.d/hayatun
-   sudo -u hayatun /srv/hayatun/repo/ops/check-alerts.sh --test-email
+   sudo -u hayatun /www/wwwroot/hayatun.my.id/repo/ops/check-alerts.sh --test-email
    ```
 9. **Periksa menyeluruh**: `sudo ops/check-server.sh`, `ops/check-edge.sh https://hayatun.my.id`, jalankan satu cadangan dengan tangan (`ops/backup.sh`), dan buka toko dari ponsel: beranda, produk, daftar, masuk.
 
@@ -86,7 +87,7 @@ Waktu untuk seluruh urutan ini termasuk dalam RTO 8 jam (N23); catat lamanya set
 | Isi arsip | Keterangan |
 |---|---|
 | `db.dump` | `pg_dump` format kustom: seluruh database termasuk hak akses tabel (`audit_logs` tetap tak bisa diubah oleh role aplikasi) dan antrean pg-boss |
-| `files.tar` | seluruh `/srv/hayatun/files` (bukti bayar terenkripsi dan file produk) |
+| `files.tar` | seluruh `/www/wwwroot/hayatun.my.id/files` (bukti bayar terenkripsi dan file produk) |
 | `MANIFEST` | waktu, jumlah file, dan sha256 `db.dump` dan `files.tar` |
 
 **Tidak ikut: `shared/.env`, khususnya `DATA_ENCRYPTION_KEYS` dan `BLIND_INDEX_KEY`.** Memasukkannya berarti siapa pun yang memegang cadangan yang sudah didekripsi juga memegang kuncinya, dan itu melanggar pemisahan kunci dan data (N2). Akibatnya **kamu harus menyimpan kunci aplikasi di tempat terpisah dari cadangan** (pengelola kata sandi, brankas fisik). Tanpa kunci itu, kolom terenkripsi di cadangan (nama, email, telepon, alamat, bukti bayar) tidak bisa dibaca, dan akun tidak bisa dicari (indeks buta). Simpan juga salinan `shared/.env` lengkap di tempat yang sama dengan kunci itu, diperbarui tiap berubah.
@@ -100,7 +101,7 @@ Waktu untuk seluruh urutan ini termasuk dalam RTO 8 jam (N23); catat lamanya set
    ```
    Simpan `kunci-cadangan.txt` (kunci **privat**) di luar server dan terpisah dari kunci aplikasi, misalnya di pengelola kata sandi dan satu salinan cetak. **Kunci privat hilang berarti semua cadangan tidak bisa dibuka.** Hanya kunci **publik** (`age1...`) yang dipasang di server.
 3. Siapkan bucket penyimpanan S3 di luar server (penyedia bebas; semua yang kompatibel S3). Buat kunci akses yang hanya boleh menulis dan menghapus di bucket itu. Pertimbangkan versi objek atau penguncian objek di sisi penyedia agar penyerang yang membobol server tidak bisa menghapus cadangan.
-4. Tambahkan ke `/srv/hayatun/shared/.env` (chmod 600):
+4. Tambahkan ke `/www/wwwroot/hayatun.my.id/shared/.env` (chmod 600):
    ```
    DATABASE_MIGRATION_URL=postgres://hayatun_migrate:...@127.0.0.1:5432/hayatun
    BACKUP_TARGET_ENDPOINT=https://s3.contoh-penyedia.com
@@ -109,10 +110,10 @@ Waktu untuk seluruh urutan ini termasuk dalam RTO 8 jam (N23); catat lamanya set
    BACKUP_TARGET_SECRET_ACCESS_KEY=...
    BACKUP_ENCRYPTION_PUBLIC_KEY=age1...
    ```
-5. Jalankan sekali dengan tangan lalu periksa: `sudo -u hayatun /srv/hayatun/repo/ops/backup.sh` dan `cat /srv/hayatun/shared/backup-status`.
+5. Jalankan sekali dengan tangan lalu periksa: `sudo -u hayatun /www/wwwroot/hayatun.my.id/repo/ops/backup.sh` dan `cat /www/wwwroot/hayatun.my.id/shared/backup-status`.
 6. Jadwalkan tiap malam (aaPanel, Cron, atau crontab pengguna `hayatun`), misalnya pukul 02:10:
    ```
-   10 2 * * * /srv/hayatun/repo/ops/backup.sh >> /srv/hayatun/shared/logs/backup.cron.log 2>&1
+   10 2 * * * /www/wwwroot/hayatun.my.id/repo/ops/backup.sh >> /www/wwwroot/hayatun.my.id/shared/logs/backup.cron.log 2>&1
    ```
 
 `ops/backup.sh` menulis hasil terakhir ke `shared/backup-status` (`ok <waktu> <nama> <byte>` atau `gagal <waktu> <langkah>`). Pemantauan dan peringatan atas berkas ini dikerjakan di T60 (gagal, atau tidak ada cadangan baru dalam 26 jam).
@@ -135,7 +136,7 @@ Pemulihan selalu ke tujuan **kosong**; skrip menolak menimpa.
 # siapkan repo dan shared/.env berisi BACKUP_TARGET_* (lihat Memasang ulang dari nol, langkah 3-5), lalu
 ops/restore.sh --identity kunci-cadangan.txt \
   --database postgres://hayatun_migrate:...@127.0.0.1:5432/hayatun \
-  --files-dir /srv/hayatun/files            # [--name hayatun-20261030T021000Z.tar.age]
+  --files-dir /www/wwwroot/hayatun.my.id/files            # [--name hayatun-20261030T021000Z.tar.age]
 ```
 
 Skrip memeriksa tujuan kosong, mengunduh, mencocokkan sha256, mendekripsi, mencocokkan MANIFEST, `pg_restore` dalam satu transaksi, lalu mengekstrak file. Setelah itu pasang kunci aplikasi dari penyimpanan terpisah ke `shared/.env`, jalankan `ops/deploy.sh` (atau `pm2 start`), dan periksa `/api/health`.
@@ -145,7 +146,7 @@ Skrip memeriksa tujuan kosong, mengunduh, mencocokkan sha256, mendekripsi, menco
 Di server kosong atau mesin uji, dengan berkas env aplikasi lengkap (termasuk kunci aplikasi) dan kunci privat age:
 
 ```bash
-ops/restore-test.sh --identity kunci-cadangan.txt --env-file aplikasi.env --files-dir /srv/hayatun/files-uji --api-port 4100
+ops/restore-test.sh --identity kunci-cadangan.txt --env-file aplikasi.env --files-dir /www/wwwroot/hayatun.my.id/files-uji --api-port 9101
 ```
 
 Memulihkan ke database kosong, menjalankan API terhadapnya, memeriksa `/api/health`, dan mencetak lama total dibanding batas RTO 8 jam (`RTO_SECONDS`). Keluar 0 hanya bila API sehat **dan** dalam batas. Tempel hasilnya ke catatan uji triwulan dan catat tanggalnya.
@@ -165,7 +166,7 @@ Kapan: kunci diduga bocor, orang yang pernah memegangnya tidak lagi bekerja, ata
 
 **Tidak dicakup:** `BLIND_INDEX_KEY` (HMAC untuk login dan cek duplikat) dan `SESSION_SECRET`. Tidak ada alat untuk mengganti `BLIND_INDEX_KEY`: mengubahnya membuat login dengan email dan cek duplikat kode lisensi gagal sampai semua indeks dihitung ulang. Kalau kunci itu bocor, hubungi pembangun; jangan mengubahnya sendiri.
 
-1. **Cadangan dulu**, titik kembali dengan kunci lama: `sudo -u hayatun /srv/hayatun/repo/ops/backup.sh`, lalu `cat /srv/hayatun/shared/backup-status` harus `ok`.
+1. **Cadangan dulu**, titik kembali dengan kunci lama: `sudo -u hayatun /www/wwwroot/hayatun.my.id/repo/ops/backup.sh`, lalu `cat /www/wwwroot/hayatun.my.id/shared/backup-status` harus `ok`.
 2. **Buat kunci baru**: `openssl rand -base64 32`. Di `shared/.env` **tambahkan** sebagai kunci kedua, jangan ganti yang lama, dan jadikan aktif:
    ```
    DATA_ENCRYPTION_KEYS=k1:<kunci-lama>,k2:<kunci-baru>
@@ -174,14 +175,14 @@ Kapan: kunci diduga bocor, orang yang pernah memegangnya tidak lagi bekerja, ata
 3. **Simpan salinan `.env` baru di penyimpanan terpisah SEKARANG**, sebelum menjalankan apa pun. Nilai yang sudah diputar hanya terbaca dengan `k2`; kehilangannya sama dengan kehilangan data itu.
 4. **Muat ulang aplikasi** supaya menulis dengan `k2` dan tetap bisa membaca `k1`:
    ```bash
-   sudo -u hayatun pm2 startOrReload /srv/hayatun/current/ops/ecosystem.config.cjs --update-env
-   curl -fsS http://127.0.0.1:4000/api/health
+   sudo -u hayatun pm2 startOrReload /www/wwwroot/hayatun.my.id/current/ops/ecosystem.config.cjs --update-env
+   curl -fsS http://127.0.0.1:9001/api/health
    ```
 5. **Putar**. Muat `.env` lalu jalankan; mulai dari `--status` dan `--dry-run`:
    ```bash
    sudo -u hayatun -i
-   set -a; . /srv/hayatun/shared/.env; set +a
-   cd /srv/hayatun/current
+   set -a; . /www/wwwroot/hayatun.my.id/shared/.env; set +a
+   cd /www/wwwroot/hayatun.my.id/current
    npm -w apps/api run rotate-keys -- --status
    npm -w apps/api run rotate-keys -- --dry-run
    npm -w apps/api run rotate-keys

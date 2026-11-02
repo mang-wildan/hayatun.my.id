@@ -25,7 +25,7 @@ function setup(extra: { pidFile?: string } = {}) {
   const logs = join(dir, "logs"), nginx = join(dir, "nginx");
   mkdirSync(logs); mkdirSync(nginx);
   let text = readFileSync(CONF, "utf8")
-    .replaceAll("/srv/hayatun/shared/logs", logs)
+    .replaceAll("/www/wwwroot/hayatun.my.id/shared/logs", logs)
     .replaceAll("/www/wwwlogs", nginx)
     .replace(/^\s*su\s+hayatun\s+hayatun\s*$/gm, "");
   if (extra.pidFile) text = text.replaceAll(/\/www\/server\/nginx\/logs\/nginx\.pid|\/run\/nginx\.pid/g, extra.pidFile);
@@ -43,7 +43,7 @@ suite("ops/logrotate/hayatun", () => {
   it("isi konfigurasi: harian, 90 rotasi, kompresi, copytruncate, dan tidak gagal bila log belum ada", () => {
     const t = readFileSync(CONF, "utf8");
     for (const re of [/^\s*daily\s*$/m, /^\s*rotate 90\s*$/m, /^\s*compress\s*$/m, /^\s*delaycompress\s*$/m, /^\s*copytruncate\s*$/m, /^\s*missingok\s*$/m, /^\s*notifempty\s*$/m, /^\s*dateext\s*$/m, /^\s*su hayatun hayatun\s*$/m]) expect(t, String(re)).toMatch(re);
-    expect(t).toContain("/srv/hayatun/shared/logs/*.log");
+    expect(t).toContain("/www/wwwroot/hayatun.my.id/shared/logs/*.log");
     expect(t).not.toMatch(/rotate (?!90\b)\d+/); // tidak ada blok dengan jumlah rotasi lain
   });
 

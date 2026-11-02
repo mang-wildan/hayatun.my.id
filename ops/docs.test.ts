@@ -14,7 +14,7 @@ const SECTIONS = ["Memasang ulang dari nol", "Memulihkan", "Uji pulih", "Menggan
 const block = (...lines: string[]) => "```bash\n" + lines.join("\n") + "\n```\n";
 const good = (over: Record<string, string> = {}) =>
   "# Panduan operasi\n\n" +
-  SECTIONS.map((t) => `## ${t}\n\nTeks.\n\n${over[t] ?? block("sudo -u hayatun /srv/hayatun/repo/ops/alat.sh --satu --dua nilai")}`).join("\n");
+  SECTIONS.map((t) => `## ${t}\n\nTeks.\n\n${over[t] ?? block("sudo -u hayatun /www/wwwroot/hayatun.my.id/repo/ops/alat.sh --satu --dua nilai")}`).join("\n");
 
 function run(doc: string | null, opts: { scripts?: Record<string, string>; noexec?: string[]; env?: Record<string, string>; args?: string[] } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "docs-"));
@@ -88,12 +88,12 @@ describe("perintah di panduan harus nyata", () => {
     expect(r.code).toBe(1);
     expect(r.out).toMatch(/--empat/);
   });
-  it("awalan sudo -u hayatun dan jalur /srv/hayatun/{repo,current}/ dikenali", () => {
-    expect(run(withCmd("sudo -u hayatun /srv/hayatun/current/ops/alat.sh --satu", "/srv/hayatun/repo/ops/alat.sh --dua")).code).toBe(0);
-    expect(run(withCmd("sudo -u hayatun /srv/hayatun/current/ops/hantu.sh")).code).toBe(1);
+  it("awalan sudo -u hayatun dan jalur /www/wwwroot/hayatun.my.id/{repo,current}/ dikenali", () => {
+    expect(run(withCmd("sudo -u hayatun /www/wwwroot/hayatun.my.id/current/ops/alat.sh --satu", "/www/wwwroot/hayatun.my.id/repo/ops/alat.sh --dua")).code).toBe(0);
+    expect(run(withCmd("sudo -u hayatun /www/wwwroot/hayatun.my.id/current/ops/hantu.sh")).code).toBe(1);
   });
   it("baris yang bukan perintah ops (komentar, ls, psql) tidak diperiksa", () => {
-    expect(run(withCmd("# komentar tentang ops/hantu.sh", "ls -la /srv/hayatun", "psql -c 'select 1'")).code).toBe(0);
+    expect(run(withCmd("# komentar tentang ops/hantu.sh", "ls -la /www/wwwroot/hayatun.my.id", "psql -c 'select 1'")).code).toBe(0);
   });
   it("blok non-bash (mis. isi .env) tidak diperiksa", () => {
     const doc = good() + "\n```\nops/hantu.sh --apa-saja\n```\n";

@@ -90,6 +90,11 @@ hidden=""
 for p in /.env /.git/config; do [ "$(code "$URL$p")" = 404 ] || hidden="$hidden $p"; done
 if [ -z "$hidden" ]; then ok berkas-tersembunyi ".env dan .git tidak dilayani"; else bad berkas-tersembunyi ".env dan .git tidak dilayani (404)" "tidak 404:$hidden"; fi
 
+# Folder aplikasi di akar situs aaPanel (T66): tidak boleh bisa diambil dari luar
+app=""
+for p in /shared/backup-status /shared/logs/api.out.log /files/proofs/a.bin /releases/ /current/apps/api/package.json; do [ "$(code "$URL$p")" = 404 ] || app="$app $p"; done
+if [ -z "$app" ]; then ok berkas-aplikasi "folder aplikasi (shared, files, releases) tidak bisa dibuka dari luar"; else bad berkas-aplikasi "folder aplikasi tidak bisa dibuka dari luar (404)" "tidak 404:$app"; fi
+
 # ---- batas unggah: ditolak Nginx (413) sebelum sampai ke aplikasi ----
 proof="$(big_post 7340032 "$URL/api/orders/$UUID/proof")"
 if [ "$proof" = 413 ]; then ok batas-unggah "unggahan 7 MB ke bukti bayar ditolak (413)"; else bad batas-unggah "unggahan 7 MB ke bukti bayar ditolak" "status: $proof (seharusnya 413)"; fi

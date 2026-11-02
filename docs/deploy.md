@@ -4,7 +4,7 @@
 
 > **Status: diuji dengan perintah palsu (`git`, `npm`, `pm2`, `curl`) di atas folder sungguhan** (`npx vitest run ops/deploy.test.ts`). Belum dijalankan di servermu. Mulai dengan `--dry-run`.
 
-## Tata letak (`/srv/hayatun`)
+## Tata letak (`/www/wwwroot/hayatun.my.id`)
 
 ```
 repo/                salinan git (clone sekali)
@@ -15,6 +15,8 @@ shared/logs/         log PM2
 shared/previous      nama rilis sebelumnya (untuk rollback)
 shared/deploy.log    riwayat deploy (tanpa rahasia)
 shared/deploy.lock   kunci: satu deploy pada satu waktu
+files/               file privat (bukti bayar, file produk); bukan bagian dari rilis
+public/              akar vhost aaPanel, dibiarkan kosong (docs/nginx.md)
 ```
 
 Semua dimiliki pengguna `hayatun` (lihat `docs/server-hardening.md`). Node dan PM2 berjalan sebagai `hayatun`, bukan root; skrip menolak dijalankan sebagai root atau pengguna lain.
@@ -22,9 +24,9 @@ Semua dimiliki pengguna `hayatun` (lihat `docs/server-hardening.md`). Node dan P
 ## Pemasangan pertama
 
 ```bash
-sudo -u hayatun git clone <url-repo> /srv/hayatun/repo
-sudo -u hayatun mkdir -p /srv/hayatun/{releases,shared/logs}
-sudo -u hayatun install -m 600 /dev/null /srv/hayatun/shared/.env   # lalu isi dari .env.example
+sudo -u hayatun git clone <url-repo> /www/wwwroot/hayatun.my.id/repo
+sudo -u hayatun mkdir -p /www/wwwroot/hayatun.my.id/{releases,shared/logs}
+sudo -u hayatun install -m 600 /dev/null /www/wwwroot/hayatun.my.id/shared/.env   # lalu isi dari .env.example
 sudo -u hayatun pm2 startup                                         # ikuti perintah yang dicetaknya
 ```
 
@@ -33,13 +35,13 @@ Nilai di `shared/.env` dibaca dua cara: skrip deploy memuatnya sebagai shell (`s
 ## Memakai
 
 ```bash
-sudo -u hayatun /srv/hayatun/current/ops/deploy.sh --dry-run          # prasyarat saja
-sudo -u hayatun /srv/hayatun/repo/ops/deploy.sh --dry-run v1.2.0       # + rencana langkah
-sudo -u hayatun /srv/hayatun/repo/ops/deploy.sh v1.2.0                 # deploy
-sudo -u hayatun /srv/hayatun/repo/ops/deploy.sh --rollback             # kembali ke rilis sebelumnya
+sudo -u hayatun /www/wwwroot/hayatun.my.id/current/ops/deploy.sh --dry-run          # prasyarat saja
+sudo -u hayatun /www/wwwroot/hayatun.my.id/repo/ops/deploy.sh --dry-run v1.2.0       # + rencana langkah
+sudo -u hayatun /www/wwwroot/hayatun.my.id/repo/ops/deploy.sh v1.2.0                 # deploy
+sudo -u hayatun /www/wwwroot/hayatun.my.id/repo/ops/deploy.sh --rollback             # kembali ke rilis sebelumnya
 ```
 
-Langkah deploy: ambil tag, `npm ci`, build, migrasi, alihkan `current`, `pm2 startOrReload` API lalu web, cek `/api/health` di 4000 dan 3000 (30 kali, jeda 2 detik). Bila salah satu langkah sebelum pengalihan gagal, rilis setengah jadi dibuang dan tidak ada yang berubah. Bila setelah pengalihan tidak sehat, `current` dikembalikan, PM2 di-reload lagi, rilis yang gagal disimpan sebagai `releases/<tag>.failed`, dan skrip keluar dengan kode 1.
+Langkah deploy: ambil tag, `npm ci`, build, migrasi, alihkan `current`, `pm2 startOrReload` API lalu web, cek `/api/health` di port API dan web dari `shared/.env` (`API_PORT`, bawaan 9001; `WEB_PORT`, bawaan 9000), 30 kali dengan jeda 2 detik. Bila salah satu langkah sebelum pengalihan gagal, rilis setengah jadi dibuang dan tidak ada yang berubah. Bila setelah pengalihan tidak sehat, `current` dikembalikan, PM2 di-reload lagi, rilis yang gagal disimpan sebagai `releases/<tag>.failed`, dan skrip keluar dengan kode 1.
 
 Kode keluar: 0 berhasil, 1 gagal (sudah dikembalikan), 2 pemakaian atau prasyarat, 3 deploy lain berjalan, 4 KRITIS (rollback pun tidak sehat: periksa `pm2 logs` segera).
 

@@ -2,12 +2,12 @@
 # Pemeriksa keamanan server (T56, ARCHITECTURE bagian 6). Hanya membaca; tidak mengubah apa pun.
 # Jalankan di server: sudo ops/check-server.sh
 # Keluar 0 bila tidak ada yang GAGAL, 1 bila ada, 2 bila bukan root.
-# Variabel untuk pengujian (ops/check-server.test.ts): HAYATUN_PSQL, HAYATUN_AAPANEL_PORT_FILE, HAYATUN_FILES_DIR, HAYATUN_OS_RELEASE, HAYATUN_TODAY.
+# Variabel untuk pengujian (ops/check-server.test.ts): HAYATUN_PSQL, HAYATUN_AAPANEL_PORT_FILE, HAYATUN_FILES_DIR, HAYATUN_OS_RELEASE, HAYATUN_TODAY, HAYATUN_WEB_PORT, HAYATUN_API_PORT.
 set -u
 
 APP_USER=hayatun
 APP_DB_ROLE=hayatun_app
-FILES_DIR="${HAYATUN_FILES_DIR:-/srv/hayatun/files}"
+FILES_DIR="${HAYATUN_FILES_DIR:-/www/wwwroot/hayatun.my.id/files}"
 PANEL_PORT_FILE="${HAYATUN_AAPANEL_PORT_FILE:-/www/server/panel/data/port.pl}"
 read -ra PSQL <<< "${HAYATUN_PSQL:-sudo -u postgres psql}"
 
@@ -78,8 +78,9 @@ listen_check() { # id port deskripsi
   elif [ -z "$addrs" ]; then ok "$1" "$3 (tidak berjalan, jadi tidak terbuka)"
   else ok "$1" "$3 hanya di 127.0.0.1"; fi
 }
-listen_check dengar-3000 3000 "Next.js (3000)"
-listen_check dengar-4000 4000 "Express (4000)"
+WEB_PORT="${HAYATUN_WEB_PORT:-9000}"; API_PORT="${HAYATUN_API_PORT:-9001}" # port produksi; ganti bila .env memakai port lain
+listen_check dengar-web "$WEB_PORT" "Next.js ($WEB_PORT)"
+listen_check dengar-api "$API_PORT" "Express ($API_PORT)"
 listen_check dengar-5432 5432 "PostgreSQL (5432)"
 
 # ---- pengguna sistem hayatun ----

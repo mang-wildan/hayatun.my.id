@@ -18,13 +18,19 @@ Mulai dari yang tidak bisa mengunci kamu keluar, dan simpan satu sesi SSH lama t
 
 ## 1. Pengguna `hayatun` dan folder file (N5)
 
+Folder aplikasi adalah `/www/wwwroot/hayatun.my.id`, akar situs yang dibuat aaPanel (lihat `docs/nginx.md`: buat situsnya dulu). aaPanel memberinya pemilik `www`; deploy berjalan sebagai `hayatun` dan harus bisa membuat `releases/`, `current`, dan `shared/` di dalamnya. Yang diubah hanya folder itu sendiri (tanpa `-R`), supaya berkas bawaan aaPanel tidak tersentuh.
+
 ```bash
 useradd --system --create-home --shell /sbin/nologin hayatun
-install -d -o hayatun -g hayatun -m 750 /srv/hayatun/files
+chown hayatun:hayatun /www/wwwroot/hayatun.my.id && chmod 755 /www/wwwroot/hayatun.my.id
+install -d -o hayatun -g hayatun -m 755 /www/wwwroot/hayatun.my.id/public   # akar vhost: dibiarkan KOSONG
+install -d -o hayatun -g hayatun -m 750 /www/wwwroot/hayatun.my.id/files
 usermod -aG hayatun www            # Nginx (pengguna www di aaPanel) membaca file lewat X-Accel-Redirect
-semanage fcontext -a -t httpd_sys_content_t '/srv/hayatun/files(/.*)?'
-restorecon -Rv /srv/hayatun/files
+semanage fcontext -a -t httpd_sys_content_t '/www/wwwroot/hayatun.my.id/files(/.*)?'
+restorecon -Rv /www/wwwroot/hayatun.my.id/files
 ```
+
+`public` harus tetap kosong dan menjadi **direktori jalan situs** di aaPanel; `files`, `shared`, `releases`, `repo`, dan `current` ada di folder yang sama tetapi di luar akar vhost, dan Nginx juga menolaknya dengan 404 (`ops/nginx/hayatun-server.conf`).
 
 Pengguna `hayatun` tidak boleh punya shell login dan tidak boleh anggota `wheel`. Proses API dan web berjalan sebagai pengguna ini.
 
@@ -63,7 +69,7 @@ Setelah migrasi dijalankan, `hayatun_app` tidak punya hak UPDATE, DELETE, atau T
 ```bash
 setenforce 1
 sed -i 's/^SELINUX=.*/SELINUX=enforcing/' /etc/selinux/config
-setsebool -P httpd_can_network_connect on     # Nginx boleh meneruskan ke 127.0.0.1:3000 dan :4000
+setsebool -P httpd_can_network_connect on     # Nginx boleh meneruskan ke 127.0.0.1:9000 dan :9001
 ```
 
 Jangan mematikan SELinux untuk memecahkan masalah izin. Cari penolakan dengan `ausearch -m avc -ts recent` dan buat aturan khusus.
@@ -109,7 +115,7 @@ firewall-cmd --permanent --remove-service=cockpit
 firewall-cmd --reload
 ```
 
-Port 3000, 4000, dan 5432 tidak boleh dibuka; ketiganya hanya mendengarkan di 127.0.0.1. aaPanel punya modul firewall sendiri; hindari membuka port lewat sana tanpa mengulang pemeriksaan.
+Port 9000, 9001, dan 5432 tidak boleh dibuka; ketiganya hanya mendengarkan di 127.0.0.1. aaPanel punya modul firewall sendiri; hindari membuka port lewat sana tanpa mengulang pemeriksaan.
 
 Port panel aaPanel dibatasi ke IP pemilik dengan aturan kaya, bukan dibuka untuk umum:
 

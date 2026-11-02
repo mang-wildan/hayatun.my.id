@@ -1,7 +1,7 @@
 #!/bin/bash
 # Uji pulih (T59; N23: pemulihan <= 8 jam, diuji tiap 3 bulan): pulihkan ke database dan folder kosong, jalankan API terhadapnya,
 # periksa /api/health, lalu bandingkan lama total dengan batas RTO. Jalankan di server kosong (atau cadangan terbaru di mesin uji).
-#   ops/restore-test.sh --identity KUNCI_PRIVAT --env-file BERKAS_ENV --files-dir FOLDER [--name latest] [--api-port 4000]
+#   ops/restore-test.sh --identity KUNCI_PRIVAT --env-file BERKAS_ENV --files-dir FOLDER [--name latest] [--api-port 9101]
 # BERKAS_ENV memuat konfigurasi aplikasi lengkap termasuk kunci enkripsi (yang TIDAK ada di cadangan; dari penyimpanan terpisah milik pemilik).
 #   ops/restore-test.sh --from-docs   periksa docs/operasi.md terhadap skrip (bagian wajib, perintah, opsi); TIDAK memulihkan apa pun
 # Kode keluar: 0 lulus, 1 gagal (pulih gagal, tidak sehat, atau melebihi RTO; atau panduan menyimpang dari skrip), 2 pemakaian atau prasyarat.
@@ -9,7 +9,7 @@ set -u -o pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"; REPO="$(cd "$HERE/.." && pwd)"
 RTO_SECONDS="${RTO_SECONDS:-28800}"; HEALTH_TIMEOUT_SECONDS="${HEALTH_TIMEOUT_SECONDS:-120}"
-IDENTITY=""; ENVFILE=""; FILES=""; NAME="latest"; PORT="4000"
+IDENTITY=""; ENVFILE=""; FILES=""; NAME="latest"; PORT="9101"
 
 # Panduan yang menyimpang dari skrip adalah panduan yang gagal saat dibutuhkan (N35). Periksa tiap perintah ops/*.sh dan npm di blok bash.
 check_docs() {
@@ -23,7 +23,7 @@ check_docs() {
     local words w script flag name
     read -ra words <<< "$1"
     while [ "${words[0]:-}" = sudo ] || [ "${words[0]:-}" = "-u" ] || [ "${words[0]:-}" = hayatun ]; do words=("${words[@]:1}"); done
-    if [[ "${words[0]:-}" =~ ^(/srv/hayatun/(repo|current)/|\./)?ops/([A-Za-z0-9_-]+\.sh)$ ]]; then
+    if [[ "${words[0]:-}" =~ ^(/www/wwwroot/hayatun\.my\.id/(repo|current)/|\./)?ops/([A-Za-z0-9_-]+\.sh)$ ]]; then
       name="${BASH_REMATCH[3]}"; script="$ops/$name"
       if [ ! -e "$script" ]; then no "perintah ops/$name: skrip tidak ada di $ops"; return; fi
       if [ ! -x "$script" ]; then no "perintah ops/$name: tidak bisa dijalankan (chmod +x)"; return; fi
@@ -58,7 +58,7 @@ check_docs() {
 }
 [ "${1:-}" = "--from-docs" ] && [ $# -eq 1 ] && check_docs
 
-usage() { echo "Pemakaian: ops/restore-test.sh --identity BERKAS_KUNCI --env-file BERKAS_ENV --files-dir FOLDER [--name latest] [--api-port 4000]" >&2; exit 2; }
+usage() { echo "Pemakaian: ops/restore-test.sh --identity BERKAS_KUNCI --env-file BERKAS_ENV --files-dir FOLDER [--name latest] [--api-port 9101]" >&2; exit 2; }
 while [ $# -gt 0 ]; do
   case "$1" in
     --identity) IDENTITY="${2:-}"; shift 2 ;;
