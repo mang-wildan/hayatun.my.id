@@ -47,6 +47,7 @@ export function testConfig(over: Record<string, string> = {}) {
     EMAIL_FROM: "toko@hayatun.my.id",
     STORAGE_DIR: mkdtempSync(join(tmpdir(), "hayatun-files-")),
     PAYMENT_GATEWAY_PROVIDER: "fake",
+    PAYMENT_GATEWAY_WEBHOOK_SECRET: "rahasia-webhook-tes-yang-cukup-panjang-1234",
     ...over,
   });
 }
