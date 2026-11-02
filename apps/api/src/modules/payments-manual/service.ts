@@ -26,8 +26,10 @@ export async function getPaymentInstructions(deps: Deps, viewer: SessionUser, or
     expiresAt: o.expiresAt,
     expired,
     lastRejection: last?.status === "rejected" ? { reason: last.rejectReason, at: last.reviewedAt } : null,
-    canUploadProof: o.status === "MENUNGGU_PEMBAYARAN" && !expired,
-    bankAccount: await readBankAccount(deps),
+    method: o.paymentMethod,
+    paymentUrl: o.gatewayUrl,
+    canUploadProof: o.paymentMethod === "manual" && o.status === "MENUNGGU_PEMBAYARAN" && !expired,
+    bankAccount: o.paymentMethod === "manual" ? await readBankAccount(deps) : null,
     store: await readStore(deps),
   };
 }

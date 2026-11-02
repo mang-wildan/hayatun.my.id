@@ -10,9 +10,10 @@ import { emailBuyer } from "../notifications/buyer.js";
 import { initialState } from "../orders/state-machine.js";
 import { checkLowStock } from "../products/low-stock.js";
 import { readBankAccount } from "../settings/index.js";
+import { gatewayLink } from "../gateway/index.js";
 import { getRates } from "../shipping/index.js";
 
-type Deps = Pick<AppDeps, "db" | "crypto" | "now" | "config" | "logger" | "shipping" | "queue">;
+type Deps = Pick<AppDeps, "db" | "crypto" | "now" | "config" | "logger" | "shipping" | "gateway" | "queue">;
 
 const PAY_WINDOW_MS = 24 * 3600_000; // F4.2
 
@@ -23,6 +24,7 @@ const quoteSchema = z.object({
 });
 const checkoutSchema = quoteSchema.extend({
   expectedTotal: z.number({ error: "Total yang kamu lihat wajib dikirim." }).int().min(0),
+  paymentMethod: z.enum(["manual", "gateway"]).default("manual"),
 });
 
 const fieldError = (field: string, message: string) => new HttpError(422, message, "VALIDATION", { [field]: message });
@@ -63,6 +65,8 @@ async function prepare(deps: Deps, userId: string, body: z.infer<typeof quoteSch
   return { items, subtotal: cart.subtotal, requiresAddress: true, address, options, shipping };
 }
 
+const paymentMethods = (deps: Deps) => (deps.config.gateway.provider === "none" ? ["manual"] : ["manual", "gateway"]);
+
 export async function quote(deps: Deps, userId: string, input: unknown) {
   const p = await prepare(deps, userId, quoteSchema.parse(input), false);
   const shippingCost = p.requiresAddress ? (p.shipping?.price ?? null) : 0;
@@ -73,11 +77,13 @@ export async function quote(deps: Deps, userId: string, input: unknown) {
     shippingOptions: p.options,
     shippingCost,
     total: shippingCost === null ? null : p.subtotal + shippingCost,
+    paymentMethods: paymentMethods(deps),
   };
 }
 
 export async function checkout(deps: Deps, userId: string, input: unknown) {
   const body = checkoutSchema.parse(input);
+  if (!paymentMethods(deps).includes(body.paymentMethod)) throw fieldError("paymentMethod", "Bayar online belum tersedia. Pakai transfer bank dulu ya.");
   const p = await prepare(deps, userId, body, true);
   const shippingCost = p.shipping?.price ?? 0;
   const now = deps.now();
@@ -125,6 +131,7 @@ export async function checkout(deps: Deps, userId: string, input: unknown) {
       subtotal,
       shippingCost,
       total,
+      paymentMethod: body.paymentMethod,
       expiresAt: new Date(now.getTime() + PAY_WINDOW_MS),
       ...(ship && {
         shipRecipientEnc: deps.crypto.encrypt(deps.crypto.decrypt(p.address!.recipientEnc)), // enkripsi ulang: salinan berdiri sendiri
@@ -156,10 +163,13 @@ export async function checkout(deps: Deps, userId: string, input: unknown) {
     return { order, total, productIds: locked.filter((pr) => pr.type === "physical" || pr.isLicensed).map((pr) => pr.id) };
   });
 
-  await emailBuyer(deps, userId, "order_created", {
-    invoiceNumber: result.order.invoiceNumber, total: formatRupiah(result.total), deadline: formatWIB(result.order.expiresAt),
-    bank: await readBankAccount(deps), link: `${deps.config.appUrl}/pesanan/${result.order.id}`,
-  });
+  // gagal membuat tautan bayar tidak membatalkan pesanan: pembeli bisa mencoba lagi dari halaman pesanan
+  let paymentUrl: string | null = null;
+  if (body.paymentMethod === "gateway") {
+    try { paymentUrl = await gatewayLink(deps, result.order.id); } catch (err) { if (!(err instanceof HttpError && err.code === "GATEWAY_UNAVAILABLE")) throw err; }
+  }
+  const mail = { invoiceNumber: result.order.invoiceNumber, total: formatRupiah(result.total), deadline: formatWIB(result.order.expiresAt), link: `${deps.config.appUrl}/pesanan/${result.order.id}` };
+  await emailBuyer(deps, userId, body.paymentMethod === "gateway" ? "order_created_gateway" : "order_created", body.paymentMethod === "gateway" ? mail : { ...mail, bank: await readBankAccount(deps) });
   for (const id of result.productIds) await checkLowStock(deps, id); // F9.5
-  return { orderId: result.order.id, invoiceNumber: result.order.invoiceNumber, total: result.total, expiresAt: result.order.expiresAt };
+  return { orderId: result.order.id, invoiceNumber: result.order.invoiceNumber, total: result.total, expiresAt: result.order.expiresAt, paymentMethod: body.paymentMethod, paymentUrl };
 }

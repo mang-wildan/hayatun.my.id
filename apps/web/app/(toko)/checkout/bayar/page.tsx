@@ -72,7 +72,7 @@ export default async function Bayar({ searchParams }: { searchParams: Promise<{ 
             {q.requiresAddress && <div><dt>Ongkir</dt><dd data-testid="ongkir">{formatRupiah(q.shippingCost ?? 0)}</dd></div>}
             <div className="grand"><dt>Total</dt><dd data-testid="total">{formatRupiah(q.total ?? 0)}</dd></div>
           </dl>
-          <ConfirmOrder expectedTotal={q.total ?? 0} addressId={alamat} courier={kurir} service={layanan} />
+          <ConfirmOrder expectedTotal={q.total ?? 0} addressId={alamat} courier={kurir} service={layanan} methods={q.paymentMethods} />
         </section>
       </div>
     </>

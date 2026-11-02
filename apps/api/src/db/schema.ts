@@ -153,6 +153,8 @@ export const orders = pgTable("orders", {
   digitalStatus: text("digital_status", { enum: DIGITAL_STATUSES }).notNull(),
   physicalStatus: text("physical_status", { enum: PHYSICAL_STATUSES }).notNull(),
   paymentMethod: text("payment_method", { enum: ["manual", "gateway"] }).notNull().default("manual"),
+  gatewayReference: text("gateway_reference").unique(), // referensi transaksi dari gateway (T64); kosong sampai tautan bayar berhasil dibuat
+  gatewayUrl: text("gateway_url"), // tautan bayar https dari gateway
   subtotal: integer("subtotal").notNull(),
   shippingCost: integer("shipping_cost").notNull(),
   total: integer("total").notNull(),

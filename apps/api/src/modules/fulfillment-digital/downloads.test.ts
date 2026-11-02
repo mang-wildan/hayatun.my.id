@@ -127,7 +127,7 @@ describe("membuka tautan (F7.3, F7.6, N5)", () => {
   it("di produksi dikirim Nginx: X-Accel-Redirect ke lokasi internal dengan badan kosong", async () => {
     const o = await purchased();
     const url = await tokenUrl(siti, o);
-    const behindNginx = createApp({ config: ctx.config, db: ctx.db, logger: ctx.logger, queue: ctx.queue, crypto: ctx.crypto, shipping: ctx.shipping, now: () => ctx.clock.now,
+    const behindNginx = createApp({ config: ctx.config, db: ctx.db, logger: ctx.logger, queue: ctx.queue, crypto: ctx.crypto, shipping: ctx.shipping, gateway: ctx.gateway, now: () => ctx.clock.now,
       storage: createStorage({ dir: ctx.config.storage.dir, internalPrefix: "/protected-files" }) });
     const res = await request(behindNginx).get(url).set("Cookie", siti.cookie).expect(200);
     expect(res.headers["x-accel-redirect"]).toMatch(/^\/protected-files\/products\/[0-9a-f-]{36}\.pdf$/);
@@ -203,7 +203,7 @@ describe("token tidak tercatat di log (N30)", () => {
     const url = await tokenUrl(siti, o);
     const token = tokenOf(url);
     let out = "";
-    const logged = createApp({ config: ctx.config, db: ctx.db, queue: ctx.queue, crypto: ctx.crypto, storage: ctx.storage, shipping: ctx.shipping, now: () => ctx.clock.now,
+    const logged = createApp({ config: ctx.config, db: ctx.db, queue: ctx.queue, crypto: ctx.crypto, storage: ctx.storage, shipping: ctx.shipping, gateway: ctx.gateway, now: () => ctx.clock.now,
       logger: createLogger({ logLevel: "info" }, new Writable({ write(c, _e, cb) { out += c; cb(); } })) });
     await request(logged).get(url).set("Cookie", siti.cookie).expect(200);
     await request(logged).get(url).set("Cookie", rina.cookie).expect(403);

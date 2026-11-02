@@ -42,6 +42,8 @@ describe("instruksi bayar (F4.1, F4.2)", () => {
       total: 75000,
       expiresAt: new Date(ctx.clock.now.getTime() + DAY).toISOString(),
       expired: false,
+      method: "manual",
+      paymentUrl: null,
       canUploadProof: true,
       lastRejection: null,
       bankAccount: BANK,
