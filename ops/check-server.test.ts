@@ -1,4 +1,4 @@
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -16,11 +16,14 @@ interface Server {
   uid: string; sshd: string[]; fwState: string; fwServices: string; fwPorts: string; selinux: string; httpdNet: string; ss: string[];
   passwd: string; groups: string; files: string; dnf: string; panelPort: string | null;
   pg: { rolsuper: string; update: string; delete: string; truncate: string; trust: string; remote: string; listen: string };
+  osRelease: string | null; today: string; // isi /etc/os-release tiruan (null = berkas tidak ada) dan tanggal "hari ini"
 }
+const osRelease = (id: string, name: string, version: string) => `NAME="${name}"\nVERSION_ID="${version}"\nID="${id}"\nPRETTY_NAME="${name} ${version}"\n`;
 const healthy = (): Server => ({
   uid: "0", sshd: [...SSHD], fwState: "running", fwServices: "ssh http https", fwPorts: "", selinux: "Enforcing", httpdNet: "httpd_can_network_connect --> on", ss: [...SS],
   passwd: "hayatun:x:1001:1001:Hayatun:/home/hayatun:/sbin/nologin", groups: "hayatun", files: "hayatun hayatun 750", dnf: "enabled", panelPort: "28888",
   pg: { rolsuper: "f", update: "f", delete: "f", truncate: "f", trust: "0", remote: "0", listen: "localhost" },
+  osRelease: osRelease("almalinux", "AlmaLinux", "9.4"), today: "2026-11-01",
 });
 
 function build(s: Server, opts: { drop?: string[] } = {}) {
@@ -45,28 +48,30 @@ function build(s: Server, opts: { drop?: string[] } = {}) {
   for (const [name, body] of Object.entries(stubs)) if (!opts.drop?.includes(name)) put(name, body);
   const panel = join(dir, "port.pl");
   if (s.panelPort !== null) writeFileSync(panel, s.panelPort);
-  return { dir, bin, log, panel };
+  const os = join(dir, "os-release");
+  if (s.osRelease !== null) writeFileSync(os, s.osRelease);
+  return { dir, bin, log, panel, os };
 }
 
 function run(s: Server, opts: { drop?: string[]; env?: Record<string, string> } = {}) {
   const b = build(s, opts);
   const r = spawnSync("bash", [SCRIPT], {
     encoding: "utf8",
-    env: { PATH: `${b.bin}:/usr/bin:/bin`, HAYATUN_PSQL: join(b.bin, "psql"), HAYATUN_AAPANEL_PORT_FILE: b.panel, HAYATUN_FILES_DIR: "/srv/hayatun/files", ...opts.env },
+    env: { PATH: `${b.bin}:/usr/bin:/bin`, HAYATUN_PSQL: join(b.bin, "psql"), HAYATUN_AAPANEL_PORT_FILE: b.panel, HAYATUN_FILES_DIR: "/srv/hayatun/files", HAYATUN_OS_RELEASE: b.os, HAYATUN_TODAY: s.today, ...opts.env },
   });
   const lines = (r.stdout ?? "").split("\n");
   const status = (id: string) => lines.find((l) => new RegExp(`^(LULUS|GAGAL|PERIKSA)\\s+${id}\\b`).test(l))?.split(/\s+/)[0];
   return { code: r.status, out: r.stdout ?? "", err: r.stderr ?? "", status, log: () => (readFileSync(b.log, { encoding: "utf8", flag: "a+" })) };
 }
 
-const IDS = ["ssh-password", "ssh-root", "ssh-kunci", "firewall-aktif", "firewall-port", "selinux", "selinux-nginx", "dengar-3000", "dengar-4000", "dengar-5432", "pengguna-hayatun", "pengguna-shell", "pengguna-sudo", "file-pemilik", "file-mode", "pg-superuser", "pg-audit-ubah", "pg-audit-hapus", "pg-audit-kosongkan", "pg-trust", "pg-luar", "pg-dengar", "pembaruan-otomatis", "aapanel-port"];
+const IDS = ["ssh-password", "ssh-root", "ssh-kunci", "firewall-aktif", "firewall-port", "selinux", "selinux-nginx", "dengar-3000", "dengar-4000", "dengar-5432", "pengguna-hayatun", "pengguna-shell", "pengguna-sudo", "file-pemilik", "file-mode", "pg-superuser", "pg-audit-ubah", "pg-audit-hapus", "pg-audit-kosongkan", "pg-trust", "pg-luar", "pg-dengar", "pembaruan-otomatis", "aapanel-port", "os-didukung"];
 
 describe("server yang sehat", () => {
   it("semua pemeriksaan LULUS dan skrip keluar dengan kode 0", () => {
     const r = run(healthy());
     expect(r.err).toBe("");
     for (const id of IDS) expect(r.status(id), id).toBe("LULUS");
-    expect(r.out).toMatch(/Hasil: 24 lulus, 0 gagal/);
+    expect(r.out).toMatch(/Hasil: 25 lulus, 0 gagal/);
     expect(r.code).toBe(0);
   });
 
@@ -138,7 +143,60 @@ describe.each(BAD)("kelemahan: %s", (_name, id, mutate, also = []) => {
     const gagal = IDS.filter((x) => r.status(x) === "GAGAL");
     expect(gagal).toEqual([id, ...also].sort((a, b) => IDS.indexOf(a) - IDS.indexOf(b)));
     expect(r.code).toBe(1);
-    expect(r.out).toContain(`Hasil: ${24 - gagal.length} lulus, ${gagal.length} gagal`);
+    expect(r.out).toContain(`Hasil: ${25 - gagal.length} lulus, ${gagal.length} gagal`);
+  });
+});
+
+// T63 (N34, ARCHITECTURE K10): CentOS Stream 9 berhenti didukung 31 Mei 2027. Pemeriksa harus menyatakan sistem operasi yang didukung.
+describe("sistem operasi yang didukung (os-didukung)", () => {
+  const withOs = (os: string | null, today = "2026-11-01") => { const s = healthy(); s.osRelease = os; s.today = today; return run(s); };
+  const CENTOS = osRelease("centos", "CentOS Stream", "9");
+
+  it.each([["AlmaLinux 9.4", osRelease("almalinux", "AlmaLinux", "9.4")], ["Rocky Linux 9.3", osRelease("rocky", "Rocky Linux", "9.3")], ["RHEL 9.4", osRelease("rhel", "Red Hat Enterprise Linux", "9.4")], ["AlmaLinux 10", osRelease("almalinux", "AlmaLinux", "10.0")]])("%s: LULUS, juga sesudah 31 Mei 2027", (_n, os) => {
+    expect(withOs(os).status("os-didukung")).toBe("LULUS");
+    expect(withOs(os, "2028-01-01").status("os-didukung")).toBe("LULUS");
+  });
+
+  it("CentOS Stream 9 sebelum batas: PERIKSA, menyebut tanggal dan sisa hari, dan rujukan runbook; keluar 0", () => {
+    const r = withOs(CENTOS);
+    expect(r.status("os-didukung")).toBe("PERIKSA");
+    expect(r.out).toMatch(/^PERIKSA\s+os-didukung.*31 Mei 2027.*211 hari/m);
+    expect(r.out).toContain("docs/migrasi-os.md");
+    expect(r.code).toBe(0);
+  });
+  it("batas tepat: 31 Mei 2027 masih PERIKSA (0 hari), 1 Juni 2027 GAGAL dan keluar 1", () => {
+    const last = withOs(CENTOS, "2027-05-31");
+    expect(last.status("os-didukung")).toBe("PERIKSA");
+    expect(last.out).toMatch(/^PERIKSA\s+os-didukung.*\b0 hari/m);
+    expect(last.code).toBe(0);
+    const after = withOs(CENTOS, "2027-06-01");
+    expect(after.status("os-didukung")).toBe("GAGAL");
+    expect(after.out).toMatch(/^GAGAL\s+os-didukung.*berakhir/m);
+    expect(after.code).toBe(1);
+  });
+  it("CentOS Stream 10 tidak ikut batas 2027: tetap PERIKSA (bukan GAGAL) walau sesudah 31 Mei 2027", () => {
+    const r = withOs(osRelease("centos", "CentOS Stream", "10"), "2028-01-01");
+    expect(r.status("os-didukung")).toBe("PERIKSA");
+    expect(r.code).toBe(0);
+  });
+  it("hanya os-didukung yang berubah: pemeriksaan lain tetap LULUS saat CentOS Stream lewat batas", () => {
+    const r = withOs(CENTOS, "2027-06-01");
+    expect(IDS.filter((x) => r.status(x) === "GAGAL")).toEqual(["os-didukung"]);
+  });
+  it.each([["AlmaLinux 8 (belum diuji)", osRelease("almalinux", "AlmaLinux", "8.10")], ["Ubuntu", osRelease("ubuntu", "Ubuntu", "24.04")], ["CentOS Stream 10", osRelease("centos", "CentOS Stream", "10")], ["berkas tanpa ID", 'NAME="Entah"\n'], ["berkas kosong", ""]])("%s: PERIKSA manual, bukan lulus dan bukan gagal", (_n, os) => {
+    const r = withOs(os);
+    expect(r.status("os-didukung")).toBe("PERIKSA");
+    expect(r.code).toBe(0);
+  });
+  it("berkas os-release tidak ada: PERIKSA, skrip tidak rusak", () => {
+    const r = withOs(null);
+    expect(r.status("os-didukung")).toBe("PERIKSA");
+    expect(r.status("ssh-password")).toBe("LULUS");
+  });
+  it("isi os-release tidak dijalankan sebagai perintah (berkas tidak tepercaya)", () => {
+    const r = withOs('ID="almalinux"\nVERSION_ID="9.4"\nNAME="$(touch /tmp/hayatun-os-injeksi)"\n');
+    expect(existsSync("/tmp/hayatun-os-injeksi")).toBe(false);
+    expect(r.status("os-didukung")).toBe("LULUS");
   });
 });
 
@@ -186,7 +244,7 @@ describe("perilaku skrip", () => {
     expect(r.status("aapanel-port")).toBe("PERIKSA");
     expect(r.out).toMatch(/verifikasi dua langkah/i); // pengingat pemeriksaan manual aaPanel
     expect(r.code).toBe(0);
-    expect(r.out).toMatch(/Hasil: 23 lulus, 0 gagal, 1 perlu dicek manual/);
+    expect(r.out).toMatch(/Hasil: 24 lulus, 0 gagal, 1 perlu dicek manual/);
   });
 
   it("pesan memakai bahasa Indonesia dan tidak mencetak data sensitif", () => {

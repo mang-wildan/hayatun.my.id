@@ -1,6 +1,6 @@
 # Pengamanan server (T56)
 
-Langkah memasang pengamanan di server CentOS Stream 9 dengan aaPanel, sesuai ARCHITECTURE bagian 6. Pemeriksa: `sudo ops/check-server.sh`.
+Langkah memasang pengamanan di server CentOS Stream 9 dengan aaPanel, sesuai ARCHITECTURE bagian 6. Untuk AlmaLinux 9 atau Rocky Linux 9 (tujuan migrasi sebelum 31 Mei 2027, `docs/migrasi-os.md`) langkahnya sama karena ketiganya berbasis RHEL 9 dan memakai `dnf`, `firewalld`, dan SELinux yang sama; nama paket PostgreSQL dan repositori bisa berbeda, jadi periksa dengan `sudo ops/check-server.sh` setelah tiap bagian. Pemeriksa: `sudo ops/check-server.sh`.
 
 > **Status: belum diuji di server sungguhan.** Perintah di bawah ditulis dari dokumentasi CentOS Stream 9, firewalld, SELinux, dan PostgreSQL, tetapi belum dijalankan di server pemilik. Jalankan satu bagian demi satu, dan setelah tiap bagian jalankan `sudo ops/check-server.sh` untuk melihat apakah pemeriksa setuju. Kirim keluarannya bila ada yang berbeda dari dugaan di sini.
 

@@ -61,7 +61,7 @@ pg_query() { # sql -> hasil, kode keluar 0 bila kueri berhasil
   )
 }
 
-IDS=(disk cadangan tls tugas-gagal email-gagal api web)
+IDS=(disk cadangan tls tugas-gagal email-gagal api web os)
 declare -A PROBLEM HINT
 ok_id() { PROBLEM[$1]=""; }
 bad_id() { PROBLEM[$1]="$2"; HINT[$1]="$3"; }
@@ -111,6 +111,19 @@ else ok_id email-gagal; fi
 # ---- kesehatan layanan dari dalam server ----
 if curl -fsS --max-time 5 http://127.0.0.1:4000/api/health >/dev/null 2>&1; then ok_id api; else bad_id api "API (127.0.0.1:4000/api/health) tidak sehat" "pm2 status; pm2 logs hayatun-api; pertimbangkan ops/deploy.sh --rollback."; fi
 if curl -fsS --max-time 5 http://127.0.0.1:3000/api/health >/dev/null 2>&1; then ok_id web; else bad_id web "web (127.0.0.1:3000/api/health) tidak sehat" "pm2 status; pm2 logs hayatun-web; pertimbangkan ops/deploy.sh --rollback."; fi
+
+# ---- akhir dukungan CentOS Stream 9 (T63, N34): peringatan 90 hari sebelum 31 Mei 2027, dan seterusnya sesudahnya ----
+# Hanya CentOS Stream 9 yang punya batas; AlmaLinux/Rocky dan lainnya diam. os-release dibaca sebagai teks, tidak di-source.
+OS_RELEASE="${HAYATUN_OS_RELEASE:-/etc/os-release}"
+os_field() { sed -n "s/^$1=//p" "$OS_RELEASE" 2>/dev/null | head -n1 | tr -d "\"'"; }
+os_ver="$(os_field VERSION_ID)"
+if [ "$(os_field ID)" = centos ] && [ "${os_ver%%.*}" = 9 ]; then
+  os_days=$(( ($(date -d 2027-05-31 +%s) - $(date -d "${HAYATUN_TODAY:-$(date +%F)}" +%s)) / 86400 ))
+  os_hint="Pindah ke AlmaLinux atau Rocky Linux 9 dengan mengikuti docs/migrasi-os.md. Mulailah jauh sebelum batas."
+  if [ "$os_days" -lt 0 ]; then bad_id os "dukungan CentOS Stream 9 sudah berakhir pada 31 Mei 2027 ($((-os_days)) hari lalu); tidak ada patch keamanan lagi" "$os_hint"
+  elif [ "$os_days" -le 90 ]; then bad_id os "dukungan CentOS Stream 9 berakhir 31 Mei 2027 ($os_days hari lagi)" "$os_hint"
+  else ok_id os; fi
+else ok_id os; fi
 
 # ---- laporan, dedup, dan pengiriman ----
 declare -A FIRST LAST

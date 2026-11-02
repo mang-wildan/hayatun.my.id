@@ -2,7 +2,7 @@
 # Pemeriksa keamanan server (T56, ARCHITECTURE bagian 6). Hanya membaca; tidak mengubah apa pun.
 # Jalankan di server: sudo ops/check-server.sh
 # Keluar 0 bila tidak ada yang GAGAL, 1 bila ada, 2 bila bukan root.
-# Variabel untuk pengujian (ops/check-server.test.ts): HAYATUN_PSQL, HAYATUN_AAPANEL_PORT_FILE, HAYATUN_FILES_DIR.
+# Variabel untuk pengujian (ops/check-server.test.ts): HAYATUN_PSQL, HAYATUN_AAPANEL_PORT_FILE, HAYATUN_FILES_DIR, HAYATUN_OS_RELEASE, HAYATUN_TODAY.
 set -u
 
 APP_USER=hayatun
@@ -126,6 +126,25 @@ if [ -r "$PANEL_PORT_FILE" ]; then
 else
   manualc aapanel-port "berkas port panel tidak ditemukan ($PANEL_PORT_FILE); periksa port panel bukan 8888"
 fi
+
+# ---- sistem operasi yang didukung (T63, N34, ARCHITECTURE K10) ----
+# os-release dibaca sebagai teks (grep), tidak di-source: isinya tidak dijalankan.
+OS_RELEASE="${HAYATUN_OS_RELEASE:-/etc/os-release}"
+os_field() { sed -n "s/^$1=//p" "$OS_RELEASE" 2>/dev/null | head -n1 | tr -d "\"'"; }
+os_id="$(os_field ID)"; os_ver="$(os_field VERSION_ID)"; os_major="${os_ver%%.*}"
+case "$os_id" in
+  almalinux|rocky|rhel)
+    if [[ "$os_major" =~ ^[0-9]+$ ]] && [ "$os_major" -ge 9 ]; then ok os-didukung "sistem operasi didukung ($os_id $os_ver)"
+    else manualc os-didukung "$os_id $os_ver belum diuji; Hayatun dipasang di AlmaLinux/Rocky Linux 9 (docs/migrasi-os.md)"; fi ;;
+  centos)
+    if [ "$os_major" = 9 ]; then
+      today="${HAYATUN_TODAY:-$(date +%F)}"
+      days=$(( ($(date -d 2027-05-31 +%s) - $(date -d "$today" +%s)) / 86400 ))
+      if [ "$days" -ge 0 ]; then manualc os-didukung "CentOS Stream 9: dukungan berakhir 31 Mei 2027 ($days hari lagi); pindah ke AlmaLinux/Rocky Linux 9, lihat docs/migrasi-os.md"
+      else bad os-didukung "sistem operasi didukung" "dukungan CentOS Stream 9 berakhir 31 Mei 2027 (sudah lewat $((-days)) hari); tidak ada patch keamanan lagi, lihat docs/migrasi-os.md"; fi
+    else manualc os-didukung "CentOS Stream $os_ver belum diuji; Hayatun dipasang di AlmaLinux/Rocky Linux 9 (docs/migrasi-os.md)"; fi ;;
+  *) manualc os-didukung "sistem operasi tidak dikenali (${os_id:-os-release tidak terbaca}); Hayatun dipasang di AlmaLinux/Rocky Linux 9 (docs/migrasi-os.md)" ;;
+esac
 
 echo
 echo "Periksa manual di aaPanel (tidak bisa dibaca skrip dengan andal):"
