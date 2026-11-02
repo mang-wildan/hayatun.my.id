@@ -44,6 +44,7 @@ Yang diperiksa dan batasnya:
 | `tls` | sertifikat habis < 14 hari atau tidak terbaca | perpanjang di aaPanel |
 | `tugas-gagal` | ada tugas pg-boss (selain email) gagal dalam satu jam terakhir, atau database tidak terhubung | `pm2 logs hayatun-api`, tabel `pgboss.job` |
 | `email-gagal` | lebih dari 5 email gagal dalam satu jam | periksa SMTP |
+| `os` | CentOS Stream 9 tinggal 90 hari atau kurang sebelum 31 Mei 2027 (atau sudah lewat); distribusi lain diam | pindah ke AlmaLinux/Rocky 9: `docs/migrasi-os.md` |
 | `api`, `web` | `/api/health` di 127.0.0.1:4000 atau :3000 tidak 200 | `pm2 status`, pertimbangkan `ops/deploy.sh --rollback` |
 
 Perilaku pengiriman:

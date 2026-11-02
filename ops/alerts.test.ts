@@ -145,6 +145,14 @@ describe("peringatan akhir dukungan sistem operasi (T63, N34)", () => {
     expect(statusOf(r, "os")).toBe("MASALAH");
     expect(mailList()).toHaveLength(1);
   });
+  it("tepat di hari terakhir (31 Mei 2027): '0 hari lagi', belum 'sudah berakhir'; sehari sesudahnya 'hari lalu'", async () => {
+    centos(); world.today = "2027-05-31"; await run();
+    expect(mailList().at(-1)).toMatch(/0 hari lagi/);
+    expect(mailList().at(-1)).not.toMatch(/hari lalu/);
+    world.today = "2027-06-01"; await run(); // status sudah ada di berkas, jadi tidak dikirim ulang; periksa pesan di keluaran
+    const r = await run();
+    expect(r.out).toMatch(/MASALAH\s+os.*1 hari lalu/);
+  });
   it("jauh sebelum batas (sekarang): diam, tidak ada email", async () => {
     centos(); expect(statusOf(await run(), "os")).toBe("LULUS");
     expect(mailList()).toEqual([]);

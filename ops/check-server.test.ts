@@ -174,6 +174,11 @@ describe("sistem operasi yang didukung (os-didukung)", () => {
     expect(after.out).toMatch(/^GAGAL\s+os-didukung.*berakhir/m);
     expect(after.code).toBe(1);
   });
+  it("CentOS Stream 10 tidak ikut batas 2027: tetap PERIKSA (bukan GAGAL) walau sesudah 31 Mei 2027", () => {
+    const r = withOs(osRelease("centos", "CentOS Stream", "10"), "2028-01-01");
+    expect(r.status("os-didukung")).toBe("PERIKSA");
+    expect(r.code).toBe(0);
+  });
   it("hanya os-didukung yang berubah: pemeriksaan lain tetap LULUS saat CentOS Stream lewat batas", () => {
     const r = withOs(CENTOS, "2027-06-01");
     expect(IDS.filter((x) => r.status(x) === "GAGAL")).toEqual(["os-didukung"]);
