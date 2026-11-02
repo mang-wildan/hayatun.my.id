@@ -1,7 +1,7 @@
 # Rotasi log Hayatun (T60; N30: log teknis disimpan 90 hari). Pasang di /etc/logrotate.d/hayatun; diperiksa dengan
 #   sudo logrotate -d /etc/logrotate.d/hayatun
 # Log aplikasi (PM2: hayatun-api dan hayatun-web, lihat ops/ecosystem.config.cjs). PM2 menahan berkas terbuka, jadi copytruncate.
-/srv/hayatun/shared/logs/*.log {
+/www/wwwroot/hayatun.my.id/shared/logs/*.log {
     su hayatun hayatun
     daily
     rotate 90

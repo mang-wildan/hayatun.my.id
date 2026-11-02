@@ -57,6 +57,10 @@ suite("check-edge.sh", () => {
   }, 60_000);
 
   const BAD: [string, string, (f: "http" | "server" | "redirect", t: string) => string][] = [
+    ["penolakan /files saja dihapus (bukti bayar bisa dibuka)", "berkas-aplikasi", (f, t) => (f === "server" ? t.replace("(shared|releases|repo|current|files)", "(shared|releases|repo|current)") : t)],
+    ["penolakan /shared saja dihapus (log dan status bisa dibuka)", "berkas-aplikasi", (f, t) => (f === "server" ? t.replace("(shared|releases|repo|current|files)", "(releases|repo|current|files)") : t)],
+    ["penolakan /releases saja dihapus", "berkas-aplikasi", (f, t) => (f === "server" ? t.replace("(shared|releases|repo|current|files)", "(shared|repo|current|files)") : t)],
+    ["penolakan /current saja dihapus", "berkas-aplikasi", (f, t) => (f === "server" ? t.replace("(shared|releases|repo|current|files)", "(shared|releases|repo|files)") : t)],
     ["penolakan folder aplikasi (/shared, /files, ...) dihapus", "berkas-aplikasi", (f, t) => (f === "server" ? t.replace(/.*\(shared\|releases\|repo\|current\|files\).*\n/g, "") : t)],
     ["HSTS dihapus", "hsts", (f, t) => (f === "server" || f === "http" ? t.replace(/.*Strict-Transport-Security.*\n/g, "") : t)],
     ["HSTS terlalu pendek", "hsts", (f, t) => t.replaceAll("max-age=31536000", "max-age=60")],

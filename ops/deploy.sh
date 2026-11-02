@@ -3,17 +3,19 @@
 #   ops/deploy.sh vX.Y.Z              deploy tag itu
 #   ops/deploy.sh --dry-run [vX.Y.Z]  periksa prasyarat dan cetak rencana; tidak mengubah apa pun
 #   ops/deploy.sh --rollback          kembali ke rilis sebelumnya
-# Tata letak (HAYATUN_ROOT, bawaan /srv/hayatun): repo/ (salinan git), releases/<tag>/, current -> rilis aktif, shared/{.env,logs,previous,deploy.log,deploy.lock}
+# Tata letak (HAYATUN_ROOT, bawaan /www/wwwroot/hayatun.my.id): repo/ (salinan git), releases/<tag>/, current -> rilis aktif, shared/{.env,logs,previous,deploy.log,deploy.lock}
 # Kode keluar: 0 berhasil, 1 gagal (sudah dikembalikan), 2 pemakaian atau prasyarat, 3 deploy lain berjalan, 4 KRITIS (rollback pun tidak sehat).
 # Migrasi database harus kompatibel dengan kode rilis sebelumnya, karena rollback hanya mengembalikan kode, bukan data.
 set -u
 
-ROOT="${HAYATUN_ROOT:-/srv/hayatun}"
+ROOT="${HAYATUN_ROOT:-/www/wwwroot/hayatun.my.id}"
 REPO="$ROOT/repo"; RELEASES="$ROOT/releases"; SHARED="$ROOT/shared"; CURRENT="$ROOT/current"
 KEEP=5
 RETRIES="${HEALTH_RETRIES:-30}"; INTERVAL="${HEALTH_INTERVAL:-2}"
 MIN_FREE_KB="${HAYATUN_MIN_FREE_KB:-1048576}"
-API_HEALTH="http://127.0.0.1:4000/api/health"; WEB_HEALTH="http://127.0.0.1:3000/api/health"
+# Port dari shared/.env (dibaca sebagai teks, tidak dijalankan); bawaan produksi: API 9001, web 9000
+env_port() { local v; v="$(sed -n "s/^[[:space:]]*\(export[[:space:]]\+\)\{0,1\}$1[[:space:]]*=[[:space:]]*//p" "$SHARED/.env" 2>/dev/null | tail -n1 | tr -d "\"' \r")"; [[ "$v" =~ ^[0-9]{2,5}$ ]] && echo "$v" || echo "$2"; }
+API_HEALTH="http://127.0.0.1:$(env_port API_PORT 9001)/api/health"; WEB_HEALTH="http://127.0.0.1:$(env_port WEB_PORT 9000)/api/health"
 TAG_RE='^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'
 
 usage() { echo "Pemakaian: ops/deploy.sh vX.Y.Z | --dry-run [vX.Y.Z] | --rollback" >&2; exit 2; }
@@ -111,7 +113,7 @@ if [ "$ROLLBACK" = 1 ]; then
   say "Rollback dari ${cur:-?} ke $prev"
   switch_to "$prev"; reload
   if healthy; then echo "$cur" > "$SHARED/previous"; log "rollback manual ke $prev (dari $cur) ok"; say "Selesai: rilis aktif $prev"; exit 0; fi
-  log "rollback manual ke $prev gagal"; say "KRITIS: rollback manual ke $prev tidak sehat. Periksa pm2 logs dan /srv/hayatun/shared/logs."; exit 4
+  log "rollback manual ke $prev gagal"; say "KRITIS: rollback manual ke $prev tidak sehat. Periksa pm2 logs dan /www/wwwroot/hayatun.my.id/shared/logs."; exit 4
 fi
 
 # ---- deploy ----

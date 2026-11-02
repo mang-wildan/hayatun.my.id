@@ -32,20 +32,20 @@ Skrip memakai SMTP aplikasi yang sama (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `S
 Cron untuk pengguna `hayatun` (`crontab -e`):
 
 ```
-0 * * * * /srv/hayatun/repo/ops/check-alerts.sh >> /srv/hayatun/shared/logs/alerts.cron.log 2>&1
+0 * * * * /www/wwwroot/hayatun.my.id/repo/ops/check-alerts.sh >> /www/wwwroot/hayatun.my.id/shared/logs/alerts.cron.log 2>&1
 ```
 
 Yang diperiksa dan batasnya:
 
 | Id | Peringatan bila | Cara memperbaiki |
 | --- | --- | --- |
-| `disk` | pemakaian > 80% di `/srv/hayatun` atau `/` | hapus berkas besar; log dirotasi 90 hari |
+| `disk` | pemakaian > 80% di `/www/wwwroot/hayatun.my.id` atau `/` | hapus berkas besar; log dirotasi 90 hari |
 | `cadangan` | status `gagal`, tidak ada status, atau sukses terakhir > 26 jam | `shared/backup.log`, jalankan `ops/backup.sh` |
 | `tls` | sertifikat habis < 14 hari atau tidak terbaca | perpanjang di aaPanel |
 | `tugas-gagal` | ada tugas pg-boss (selain email) gagal dalam satu jam terakhir, atau database tidak terhubung | `pm2 logs hayatun-api`, tabel `pgboss.job` |
 | `email-gagal` | lebih dari 5 email gagal dalam satu jam | periksa SMTP |
 | `os` | CentOS Stream 9 tinggal 90 hari atau kurang sebelum 31 Mei 2027 (atau sudah lewat); distribusi lain diam | pindah ke AlmaLinux/Rocky 9: `docs/migrasi-os.md` |
-| `api`, `web` | `/api/health` di 127.0.0.1:4000 atau :3000 tidak 200 | `pm2 status`, pertimbangkan `ops/deploy.sh --rollback` |
+| `api`, `web` | `/api/health` di 127.0.0.1 pada `API_PORT` (bawaan 9001) atau `WEB_PORT` (9000) tidak 200 | `pm2 status`, pertimbangkan `ops/deploy.sh --rollback` |
 
 Perilaku pengiriman:
 
@@ -57,8 +57,8 @@ Perilaku pengiriman:
 ### Menguji
 
 ```
-/srv/hayatun/repo/ops/check-alerts.sh --test-email   # satu surel berjudul "UJI"; tidak mengubah status
-/srv/hayatun/repo/ops/check-alerts.sh                # semua pemeriksaan, cetak LULUS/MASALAH
+/www/wwwroot/hayatun.my.id/repo/ops/check-alerts.sh --test-email   # satu surel berjudul "UJI"; tidak mengubah status
+/www/wwwroot/hayatun.my.id/repo/ops/check-alerts.sh                # semua pemeriksaan, cetak LULUS/MASALAH
 ```
 
 Uji peringatan nyata sekali setelah dipasang: hentikan sementara web (`pm2 stop hayatun-web`), jalankan skrip, pastikan email PERINGATAN tiba, lalu `pm2 start hayatun-web` dan jalankan lagi untuk menerima email PULIH.
@@ -66,7 +66,7 @@ Uji peringatan nyata sekali setelah dipasang: hentikan sementara web (`pm2 stop 
 ## 3. Rotasi log 90 hari
 
 ```
-sudo install -m 644 /srv/hayatun/repo/ops/logrotate/hayatun /etc/logrotate.d/hayatun
+sudo install -m 644 /www/wwwroot/hayatun.my.id/repo/ops/logrotate/hayatun /etc/logrotate.d/hayatun
 sudo logrotate -d /etc/logrotate.d/hayatun    # uji kering, tidak mengubah apa pun
 ```
 

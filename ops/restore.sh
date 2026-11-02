@@ -7,7 +7,7 @@
 set -u -o pipefail
 umask 077
 
-ROOT="${HAYATUN_ROOT:-/srv/hayatun}"
+ROOT="${HAYATUN_ROOT:-/www/wwwroot/hayatun.my.id}"
 SHARED="$ROOT/shared"
 IDENTITY=""; DATABASE=""; FILES=""; NAME="latest"
 usage() { echo "Pemakaian: ops/restore.sh --identity BERKAS_KUNCI --database postgres://... --files-dir FOLDER [--name latest|hayatun-<stempel>.tar.age]" >&2; exit 2; }
