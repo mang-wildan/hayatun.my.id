@@ -29,6 +29,7 @@ import { productRoutes } from "./modules/products/routes.js";
 import type { Crypto } from "./modules/crypto/index.js";
 import { healthRoutes } from "./modules/health/routes.js";
 import type { GatewayProvider } from "./modules/gateway/index.js";
+import { webhookRoutes } from "./modules/gateway/routes.js";
 import type { ShippingProvider } from "./modules/shipping/index.js";
 import type { Storage } from "./modules/storage/index.js";
 
@@ -52,6 +53,8 @@ export function createApp(deps: AppDeps) {
   }));
   app.use(helmet());
   app.use("/api", checkOrigin(deps.config.appUrl));
+  // webhook gateway butuh badan mentah untuk memeriksa tanda tangan, jadi dipasang sebelum pengurai JSON (T65)
+  app.use("/api/webhooks/gateway", express.raw({ type: () => true, limit: "100kb" }), webhookRoutes(deps));
   app.use(express.json({ limit: "100kb" }));
   app.use(cookieParser());
   app.use("/api", healthRoutes(deps.db, deps.storage));

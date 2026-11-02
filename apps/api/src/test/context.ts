@@ -68,7 +68,7 @@ export async function createTestContext(over: { mailer?: Mailer; env?: Record<st
   };
   const storage = createStorage(config.storage);
   const shipping = createFakeShipping();
-  const gateway = createFakeGateway();
+  const gateway = createFakeGateway(config.gateway.webhookSecret);
   const app = createApp({ config, db, logger, queue, crypto, storage, shipping, gateway, now: () => clock.now });
 
   // pengguna langsung di database, untuk tes yang tidak menguji pendaftaran

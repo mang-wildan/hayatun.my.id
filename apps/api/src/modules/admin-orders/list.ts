@@ -42,7 +42,7 @@ export async function listOrders(deps: Deps, admin: SessionUser, query: unknown)
   return {
     orders: rows.map(({ o, nameEnc }) => ({
       orderId: o.id, invoiceNumber: o.invoiceNumber, createdAt: o.createdAt, buyerName: nameEnc ? deps.crypto.decrypt(nameEnc) : null, total: o.total,
-      status: o.status, digitalStatus: o.digitalStatus, physicalStatus: o.physicalStatus,
+      status: o.status, digitalStatus: o.digitalStatus, physicalStatus: o.physicalStatus, paymentMethod: o.paymentMethod, reviewReason: o.reviewReason,
     })),
     total, page, pageSize: PAGE_SIZE,
   };

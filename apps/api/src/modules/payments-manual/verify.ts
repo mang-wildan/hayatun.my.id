@@ -1,12 +1,11 @@
 import { formatWIB } from "@hayatun/shared";
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import type { Response } from "express";
 import { z } from "zod";
 import type { AppDeps } from "../../app.js";
-import { orderItems, orders, paymentProofs, products, users } from "../../db/schema.js";
+import { orderItems, orders, paymentProofs, users } from "../../db/schema.js";
 import { HttpError } from "../../errors.js";
-import { assignLicenses, licensesOf } from "../fulfillment-digital/licenses.js";
-import { notifyAdmins } from "../notifications/admins.js";
+import { announcePaid, settleOrder } from "./settle.js";
 import { recordAudit, recordBuyerViews } from "../audit/index.js";
 import { readBankAccount } from "../settings/index.js";
 import type { SessionUser } from "../auth/sessions.js";
@@ -76,22 +75,12 @@ export async function acceptPayment(deps: Deps, admin: SessionUser, orderId: str
   const now = deps.now();
   const { o, short } = await deps.db.transaction(async (tx) => {
     const o = await lockForReview(tx, orderId);
-    const short = await assignLicenses(tx, o.id, now); // F7.1, F7.7: kurang kode tidak menggagalkan Lunas
-    const next = transition({ status: o.status, digital: o.digitalStatus, physical: o.physicalStatus }, { type: "PAYMENT_ACCEPTED", licensePending: short.length > 0 });
-    await tx.update(orders).set({ status: next.status, digitalStatus: next.digital, physicalStatus: next.physical, verifiedBy: admin.userId, paidAt: now, updatedAt: now }).where(eq(orders.id, o.id));
+    const short = await settleOrder(tx, o, { event: "PAYMENT_ACCEPTED", verifiedBy: admin.userId, now });
     await tx.update(paymentProofs).set({ status: "accepted", reviewedBy: admin.userId, reviewedAt: now }).where(and(eq(paymentProofs.orderId, o.id), eq(paymentProofs.status, "pending")));
-
-    const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, o.id));
-    for (const i of items.filter((x) => x.productType === "physical")) {
-      // dari ditahan menjadi terjual
-      await tx.update(products).set({ stockQty: sql`${products.stockQty} - ${i.qty}`, stockReserved: sql`${products.stockReserved} - ${i.qty}`, stockSold: sql`${products.stockSold} + ${i.qty}` }).where(eq(products.id, i.productId));
-    }
     await recordAudit(tx as unknown as Deps["db"], { actorId: admin.userId, action: "payment.accepted", entityType: "order", entityId: o.id });
     return { o, short };
   });
-  const licenses = await licensesOf(deps, o.id);
-  await emailBuyer(deps, o.userId, "payment_accepted", { invoiceNumber: o.invoiceNumber, link: `${deps.config.appUrl}/pesanan/${o.id}`, ...(licenses.length && { licenses }) });
-  for (const s of short) await notifyAdmins(deps, "license_pending", { invoiceNumber: o.invoiceNumber, productName: s.name, missing: s.missing, link: `${deps.config.appUrl}/admin/produk/${s.productId}` });
+  await announcePaid(deps, o, short);
   return { status: "LUNAS" as const };
 }
 

@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createTestContext, type TestContext } from "../../test/context.js";
 import { PHYSICAL, api, makeProduct } from "../../test/products.js";
 import { sweepOrders } from "../jobs/expiry.js";
+import { createFakeGateway } from "./fake.js";
 
 // T65 (F14.2-F14.7, N24, N36): webhook gateway. Penyedia tiruan menandatangani badan mentah dengan HMAC-SHA256 (header x-signature) memakai
 // PAYMENT_GATEWAY_WEBHOOK_SECRET; format penyedia sungguhan ditambah saat penyedia dipilih.
@@ -105,6 +106,19 @@ describe("keaslian (F14.3)", () => {
     await post(tampered, sign(signed)).expect(401);
     expect(await events()).toEqual([]);
     expect((await orderRow(o.orderId)).status).toBe("MENUNGGU_PEMBAYARAN");
+  });
+
+  it("tanda tangan diperiksa SEBELUM isi dibaca: tanda tangan salah dengan badan rusak tetap 401 (bukan 400)", async () => {
+    await setup();
+    const res = await post("{bukan json", "a".repeat(64)).expect(401);
+    expect(res.body).toMatchObject({ code: "INVALID_SIGNATURE" });
+  });
+
+  it("rahasia kosong tidak pernah menerima apa pun, termasuk tanda tangan HMAC berkunci kosong", async () => {
+    await setup();
+    const raw = Buffer.from(JSON.stringify({ eventId: "e", type: "payment.succeeded", reference: "R", amount: 1000 }));
+    const sig = createHmac("sha256", "").update(raw).digest("hex");
+    expect(() => createFakeGateway("").verifyWebhook(raw, { "x-signature": sig })).toThrow(expect.objectContaining({ code: "INVALID_SIGNATURE" }));
   });
 
   it("penyedia 'none': rute tidak ada (404), walau tanda tangannya benar", async () => {
@@ -255,6 +269,14 @@ describe("nominal tidak sama (F14.5)", () => {
     expect((await orderRow(o.orderId)).status).toBe("MENUNGGU_PEMBAYARAN");
   });
 
+  it("dua kejadian bermasalah berturut-turut: alasannya ditambahkan, tidak saling menimpa", async () => {
+    await setup();
+    const o = await gatewayOrder();
+    await pay(o, { amount: o.total - 1 }).expect(200);
+    await pay(o, { amount: o.total + 1 }).expect(200);
+    expect(((await orderRow(o.orderId)).review_reason ?? "").match(/Nominal dari gateway/g)).toHaveLength(2);
+  });
+
   it("nominal salah lalu kiriman benar dengan ID berbeda: Lunas, dan catatan 'perlu diperiksa' tetap ada sebagai riwayat", async () => {
     await setup();
     const o = await gatewayOrder();
@@ -276,7 +298,7 @@ describe("tiba setelah kedaluwarsa atau batal (F14.6)", () => {
     await pay(o).expect(200);
     const row = await orderRow(o.orderId);
     expect(row).toMatchObject({ status: "KEDALUWARSA", paid_at: null });
-    expect(row.review_reason).toMatch(/kedaluwarsa/i);
+    expect(row.review_reason).toMatch(/setelah pesanan kedaluwarsa/i);
     expect((await rows<{ status: string }>(sql`select status from license_codes order by id`)).every((r) => r.status === "available")).toBe(true);
     const subs = await subjects();
     expect(subs).toContain(REVIEW_MAIL);
@@ -302,7 +324,7 @@ describe("tiba setelah kedaluwarsa atau batal (F14.6)", () => {
     await pay(o).expect(200);
     const row = await orderRow(o.orderId);
     expect(row.status).toBe("DIBATALKAN");
-    expect(row.review_reason).toMatch(/dibatalkan/i);
+    expect(row.review_reason).toMatch(/setelah pesanan dibatalkan/i);
   });
 });
 

@@ -1,5 +1,6 @@
 import { eq, sql } from "drizzle-orm";
 import type { AppDeps } from "../../app.js";
+import type { IncomingHttpHeaders } from "node:http";
 import type { Config } from "../../config.js";
 import { orders } from "../../db/schema.js";
 import { HttpError } from "../../errors.js";
@@ -8,10 +9,21 @@ import { createFakeGateway } from "./fake.js";
 // N31: gateway hanya menerima ini, tidak pernah nama, nomor HP, alamat, atau email pembeli
 export interface GatewayRequest { orderId: string; invoiceNumber: string; amount: number; expiresAt: Date; returnUrl: string }
 export interface GatewayPayment { reference: string; paymentUrl: string }
-export interface GatewayProvider { createTransaction(req: GatewayRequest, signal: AbortSignal): Promise<GatewayPayment> }
+// Kejadian webhook yang sudah diperiksa keasliannya dan dinormalisasi; hanya bidang ini yang disimpan (tanpa data pembeli dari gateway)
+export interface GatewayEvent { eventId: string; type: "payment.succeeded" | "payment.failed" | "payment.expired" | "payment.pending"; reference: string; amount: number }
+export interface GatewayProvider {
+  createTransaction(req: GatewayRequest, signal: AbortSignal): Promise<GatewayPayment>;
+  /** Memeriksa tanda tangan SEBELUM membaca isi, lalu menormalisasi. Melempar invalidSignature() atau invalidEvent(). Tiap penyedia punya skema sendiri. */
+  verifyWebhook(rawBody: Buffer, headers: IncomingHttpHeaders): GatewayEvent;
+}
+export const invalidSignature = () => new HttpError(401, "Tanda tangan tidak sah.", "INVALID_SIGNATURE");
+export const invalidEvent = () => new HttpError(400, "Isi kejadian tidak sah.", "INVALID_EVENT");
 
-const none: GatewayProvider = { createTransaction: async () => { throw new Error("Penyedia gateway belum dipilih"); } };
-export const createGatewayProvider = (config: Config): GatewayProvider => (config.gateway.provider === "fake" ? createFakeGateway() : none);
+const none: GatewayProvider = {
+  createTransaction: async () => { throw new Error("Penyedia gateway belum dipilih"); },
+  verifyWebhook: () => { throw new Error("Penyedia gateway belum dipilih"); },
+};
+export const createGatewayProvider = (config: Config): GatewayProvider => (config.gateway.provider === "fake" ? createFakeGateway(config.gateway.webhookSecret) : none);
 
 type Deps = Pick<AppDeps, "db" | "gateway" | "config" | "logger" | "now">;
 const unavailable = () => new HttpError(503, "Pembayaran online belum bisa dibuka. Coba lagi sebentar lagi ya.", "GATEWAY_UNAVAILABLE");

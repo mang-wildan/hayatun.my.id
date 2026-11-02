@@ -11,6 +11,7 @@ export type EmailTemplate =
   | "payment_rejected"
   | "order_created"
   | "order_created_gateway"
+  | "payment_review"
   | "proof_uploaded"
   | "license_delivered"
   | "license_pending"
@@ -121,6 +122,15 @@ const CONTENT: Record<EmailTemplate, Content> = {
     ],
     button: { label: "Lanjut bayar" },
   },
+  payment_review: {
+    subject: "Pembayaran gateway perlu diperiksa",
+    paragraphs: (d) => [
+      `Pembayaran gateway untuk pesanan ${d.invoiceNumber} tidak bisa diselesaikan otomatis dan perlu kamu periksa.`,
+      `Alasan: ${d.reason}`,
+      "Cek transaksinya di dasbor gateway, lalu tangani pesanannya (teruskan atau kembalikan dana).",
+    ],
+    button: { label: "Buka daftar pesanan" },
+  },
   proof_uploaded: {
     subject: "Ada bukti bayar baru",
     paragraphs: (d) => [`Pembeli mengunggah bukti bayar untuk pesanan ${d.invoiceNumber} sebesar ${d.total}.`, "Cek dan putuskan terima atau tolak."],
@@ -196,7 +206,7 @@ export function renderEmail(template: EmailTemplate, data: EmailData): { subject
   const c = CONTENT[template];
   if (c.button && !data.link) throw new Error(`Templat ${template} butuh data link`);
   if (template === "low_stock" && (data.productName === undefined || data.available === undefined)) throw new Error("Templat low_stock butuh data productName dan available");
-  if (["order_expired", "order_reminder", "payment_accepted", "payment_rejected", "order_created", "order_created_gateway", "proof_uploaded", "license_delivered", "license_pending", "order_shipped", "tracking_updated", "order_cancelled", "order_refunded"].includes(template) && !data.invoiceNumber) throw new Error(`Templat ${template} butuh data invoiceNumber`);
+  if (["order_expired", "order_reminder", "payment_accepted", "payment_rejected", "order_created", "order_created_gateway", "payment_review", "proof_uploaded", "license_delivered", "license_pending", "order_shipped", "tracking_updated", "order_cancelled", "order_refunded"].includes(template) && !data.invoiceNumber) throw new Error(`Templat ${template} butuh data invoiceNumber`);
   if (["order_created", "order_created_gateway", "proof_uploaded"].includes(template) && !data.total) throw new Error(`Templat ${template} butuh data total`);
   if (template === "license_delivered" && !data.licenses?.length) throw new Error("Templat license_delivered butuh data licenses");
   if (template === "license_pending" && (data.productName === undefined || !data.missing)) throw new Error("Templat license_pending butuh data productName dan missing");
@@ -204,6 +214,7 @@ export function renderEmail(template: EmailTemplate, data: EmailData): { subject
   if (template === "bank_account_changed" && (!data.bank || !data.changedBy || !data.changedAt)) throw new Error("Templat bank_account_changed butuh data bank, changedBy, dan changedAt");
   if ((template === "admin_added" || template === "admin_disabled") && (!data.changedBy || !data.changedAt || !data.target)) throw new Error(`Templat ${template} butuh data changedBy, changedAt, dan target`);
   if ((template === "order_created" || template === "order_created_gateway") && !data.deadline) throw new Error(`Templat ${template} butuh data deadline`);
+  if (template === "payment_review" && !data.reason) throw new Error("Templat payment_review butuh data reason");
   if (template === "payment_rejected" && (!data.reason || !data.deadline)) throw new Error("Templat payment_rejected butuh data reason dan deadline");
   const paragraphs = typeof c.paragraphs === "function" ? c.paragraphs(data) : c.paragraphs;
   const greeting = data.name ? `Halo ${data.name},` : "Halo,";

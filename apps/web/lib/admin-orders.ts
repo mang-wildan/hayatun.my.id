@@ -1,6 +1,6 @@
 import type { DigitalStatus, OrderStatus, PhysicalStatus } from "@hayatun/shared";
 
-export interface AdminOrder { orderId: string; invoiceNumber: string; createdAt: string; buyerName: string | null; total: number; status: OrderStatus; digitalStatus: DigitalStatus; physicalStatus: PhysicalStatus }
+export interface AdminOrder { orderId: string; invoiceNumber: string; createdAt: string; buyerName: string | null; total: number; status: OrderStatus; digitalStatus: DigitalStatus; physicalStatus: PhysicalStatus; paymentMethod: "manual" | "gateway"; reviewReason: string | null }
 export interface AdminOrderList { orders: AdminOrder[]; total: number; page: number; pageSize: number }
 export interface MonthSummary { month: string; orders: number; products: number; shipping: number; total: number }
 

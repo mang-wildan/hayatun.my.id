@@ -28,6 +28,7 @@ export const E2E_API_ENV = {
   SHIPPING_PROVIDER: "fake", // hanya untuk tes; produksi menolak tiruan
   SHIPPING_ORIGIN_AREA_ID: "area-asal",
   PAYMENT_GATEWAY_PROVIDER: "fake", // hanya untuk tes; produksi menolak tiruan
+  PAYMENT_GATEWAY_WEBHOOK_SECRET: "rahasia-webhook-e2e-yang-cukup-panjang-1234",
 };
 export const KEYS = { encryption: Buffer.alloc(32, 2), blindIndex: Buffer.alloc(32, 3) };
 export const MAILPIT_URL = process.env.MAILPIT_URL ?? "http://127.0.0.1:8025";
