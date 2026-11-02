@@ -41,6 +41,9 @@ const envSchema = z.object({
   SHIPPING_PROVIDER: z.enum(["none", "fake"]).default("none"),
   SHIPPING_ORIGIN_AREA_ID: z.string().default(""),
   SHIPPING_TIMEOUT_MS: z.coerce.number().int().min(1).max(5000, "maksimal 5000 (N19)").default(5000),
+  // none: bayar online tidak ditawarkan. Penyedia sungguhan ditambah setelah dipilih (SPEC pertanyaan terbuka 7).
+  PAYMENT_GATEWAY_PROVIDER: z.enum(["none", "fake"]).default("none"),
+  PAYMENT_GATEWAY_TIMEOUT_MS: z.coerce.number().int().min(1).max(5000, "maksimal 5000").default(5000),
 });
 
 // format DATA_ENCRYPTION_KEYS: "k1:<base64 32 byte>,k2:<base64 32 byte>"
@@ -62,6 +65,7 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
   }
   const e = parsed.data;
   if (e.NODE_ENV === "production" && e.SHIPPING_PROVIDER === "fake") throw new Error("Konfigurasi salah: SHIPPING_PROVIDER: tiruan tidak boleh dipakai di produksi");
+  if (e.NODE_ENV === "production" && e.PAYMENT_GATEWAY_PROVIDER === "fake") throw new Error("Konfigurasi salah: PAYMENT_GATEWAY_PROVIDER: tiruan tidak boleh dipakai di produksi");
   const encryptionKeys = parseKeys(e.DATA_ENCRYPTION_KEYS);
   if (!encryptionKeys[e.DATA_ENCRYPTION_ACTIVE_KEY_ID]) {
     throw new Error(`DATA_ENCRYPTION_ACTIVE_KEY_ID: kunci "${e.DATA_ENCRYPTION_ACTIVE_KEY_ID}" tidak ada di DATA_ENCRYPTION_KEYS`);
@@ -88,6 +92,7 @@ export function loadConfig(env: NodeJS.ProcessEnv) {
     storage: { dir: e.STORAGE_DIR, internalPrefix: e.STORAGE_INTERNAL_PREFIX },
     productFileMaxBytes: Math.round(e.PRODUCT_FILE_MAX_MB * 1024 * 1024),
     shipping: { provider: e.SHIPPING_PROVIDER, originAreaId: e.SHIPPING_ORIGIN_AREA_ID, timeoutMs: e.SHIPPING_TIMEOUT_MS },
+    gateway: { provider: e.PAYMENT_GATEWAY_PROVIDER, timeoutMs: e.PAYMENT_GATEWAY_TIMEOUT_MS },
     secureCookies: e.NODE_ENV === "production",
   };
 }

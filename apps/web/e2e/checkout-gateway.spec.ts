@@ -23,7 +23,7 @@ async function cartWith(name: string, price: number) {
   const p = await seedProduct(admin, { name, price });
   await userApi(buyer, "POST", "/api/cart/items", { productId: p.id });
 }
-const choose = (page: Page, name: string) => page.getByRole("radio", { name }).check();
+const choose = (page: Page, name: string | RegExp) => page.getByRole("radio", { name }).check();
 const orderIds = async () => ((await userApi(buyer, "GET", "/api/orders")) as { orders: { orderId: string }[] }).orders.map((o) => o.orderId);
 
 test("langkah Bayar menawarkan Transfer bank (terpilih) dan Bayar online; lolos axe di 360 dan 1280 px", async ({ page }) => {

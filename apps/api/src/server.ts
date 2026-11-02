@@ -7,6 +7,7 @@ import { registerOrderJobs } from "./modules/jobs/expiry.js";
 import { createCrypto } from "./modules/crypto/index.js";
 import { createSmtpMailer } from "./modules/notifications/mailer.js";
 import { registerEmailWorker } from "./modules/notifications/worker.js";
+import { createGatewayProvider } from "./modules/gateway/index.js";
 import { createShippingProvider } from "./modules/shipping/index.js";
 import { createStorage } from "./modules/storage/index.js";
 
@@ -19,7 +20,7 @@ const storage = createStorage(config.storage);
 await registerEmailWorker(queue, { mailer: createSmtpMailer(config), crypto, logger });
 await registerOrderJobs(queue, { db, queue, crypto, config, logger, storage, now: () => new Date() });
 
-const server = createApp({ config, db, logger, queue, crypto, storage, shipping: createShippingProvider(config), now: () => new Date() })
+const server = createApp({ config, db, logger, queue, crypto, storage, shipping: createShippingProvider(config), gateway: createGatewayProvider(config), now: () => new Date() })
   .listen(config.apiPort, "127.0.0.1", () => logger.info({ port: config.apiPort }, "API berjalan"));
 
 process.on("SIGTERM", async () => {

@@ -10,6 +10,7 @@ const appWith = (execute: () => Promise<unknown>, checkWritable: () => Promise<v
     db: { execute } as never,
     logger: pino({ level: "silent" }),
     queue: {} as never,
+    gateway: {} as never,
     crypto: {} as never,
     storage: { checkWritable } as never,
     shipping: {} as never,

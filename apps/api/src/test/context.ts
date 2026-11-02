@@ -13,6 +13,7 @@ import { createSession } from "../modules/auth/sessions.js";
 import { createCrypto } from "../modules/crypto/index.js";
 import { createMemoryMailer, type Mailer } from "../modules/notifications/mailer.js";
 import { registerEmailWorker } from "../modules/notifications/worker.js";
+import { createFakeGateway } from "../modules/gateway/fake.js";
 import { createFakeShipping } from "../modules/shipping/fake.js";
 import { createStorage } from "../modules/storage/index.js";
 import { resetDb, testDb } from "./db.js";
@@ -45,15 +46,16 @@ export function testConfig(over: Record<string, string> = {}) {
     SMTP_PASSWORD: "",
     EMAIL_FROM: "toko@hayatun.my.id",
     STORAGE_DIR: mkdtempSync(join(tmpdir(), "hayatun-files-")),
+    PAYMENT_GATEWAY_PROVIDER: "fake",
     ...over,
   });
 }
 
 // App lengkap dengan database tes, antrean memori, email memori, dan jam yang bisa dimajukan.
-export async function createTestContext(over: { mailer?: Mailer } = {}) {
+export async function createTestContext(over: { mailer?: Mailer; env?: Record<string, string> } = {}) {
   await resetDb();
   const { db, pool } = testDb();
-  const config = testConfig();
+  const config = testConfig(over.env);
   const crypto = createCrypto({ keys: config.encryptionKeys, activeKeyId: config.activeKeyId, blindIndexKey: config.blindIndexKey });
   const logger = createLogger({ logLevel: "silent" });
   const queue = createMemoryQueue();
@@ -65,7 +67,8 @@ export async function createTestContext(over: { mailer?: Mailer } = {}) {
   };
   const storage = createStorage(config.storage);
   const shipping = createFakeShipping();
-  const app = createApp({ config, db, logger, queue, crypto, storage, shipping, now: () => clock.now });
+  const gateway = createFakeGateway();
+  const app = createApp({ config, db, logger, queue, crypto, storage, shipping, gateway, now: () => clock.now });
 
   // pengguna langsung di database, untuk tes yang tidak menguji pendaftaran
   async function createUser(u: {
@@ -109,7 +112,7 @@ export async function createTestContext(over: { mailer?: Mailer } = {}) {
   }
 
   return {
-    app, db, crypto, config, logger, queue, storage, shipping, clock, createUser, emails,
+    app, db, crypto, config, logger, queue, storage, shipping, gateway, clock, createUser, emails,
     adminCookie: () => cookieFor("admin"),
     buyerCookie: () => cookieFor("buyer"),
     post: (path: string, body?: object, cookie?: string) => {

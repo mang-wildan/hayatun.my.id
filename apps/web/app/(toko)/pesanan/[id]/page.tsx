@@ -6,6 +6,7 @@ import { PhysicalSection } from "@/components/orders/PhysicalSection";
 import { Steps } from "@/components/orders/Steps";
 import { CopyButton } from "@/components/CopyButton";
 import { CancelOrder } from "@/components/payment/CancelOrder";
+import { GatewayPay } from "@/components/payment/GatewayPay";
 import { OrderStatusBadge } from "@/components/payment/OrderStatusBadge";
 import { ProofUpload } from "@/components/payment/ProofUpload";
 import { apiServer, unwrap } from "@/lib/api-server";
@@ -48,7 +49,18 @@ export default async function Pesanan({ params }: { params: Promise<{ id: string
         <Steps label="Garis waktu pesanan" labels={timeline.labels} current={timeline.current} />
       </section>
 
-      {waiting && (
+      {waiting && p.method === "gateway" && (
+        <>
+          <p data-testid="batas-waktu">Bayar sebelum {formatWIB(new Date(p.expiresAt))}</p>
+          <section className="stack" aria-labelledby="online-h">
+            <h2 id="online-h">Bayar online</h2>
+            <GatewayPay orderId={id} paymentUrl={p.paymentUrl} />
+          </section>
+          <CancelOrder orderId={id} />
+        </>
+      )}
+
+      {waiting && p.method !== "gateway" && (
         <>
           <p data-testid="batas-waktu">Upload sebelum {formatWIB(new Date(p.expiresAt))}</p>
 

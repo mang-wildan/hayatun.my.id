@@ -2,6 +2,7 @@ import type { OrderStatus } from "@hayatun/shared";
 
 export interface PaymentInfo {
   orderId: string; invoiceNumber: string; status: OrderStatus; total: number; expiresAt: string; expired: boolean; canUploadProof: boolean;
+  method: "manual" | "gateway"; paymentUrl: string | null;
   lastRejection: { reason: string; at: string } | null;
   bankAccount: { bank: string; number: string; holder: string } | null;
   store: { name: string; email?: string; phone?: string };

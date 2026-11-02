@@ -99,6 +99,7 @@ describe("rincian sebelum konfirmasi (F3.5)", () => {
       shippingOptions: [],
       shippingCost: 0,
       total: 75000,
+      paymentMethods: ["manual", "gateway"],
     });
   });
 
@@ -140,7 +141,7 @@ describe("membuat pesanan (F3.4)", () => {
     const res = await physicalCheckout();
     expect(res.status).toBe(201);
     const total = 350000 + 240000 + 15000;
-    expect(res.body).toEqual({ orderId: expect.any(String), invoiceNumber: "INV/2026/10/0001", total, expiresAt: new Date(ctx.clock.now.getTime() + DAY).toISOString() });
+    expect(res.body).toEqual({ orderId: expect.any(String), invoiceNumber: "INV/2026/10/0001", total, expiresAt: new Date(ctx.clock.now.getTime() + DAY).toISOString(), paymentMethod: "manual", paymentUrl: null });
 
     const [o] = await rows<Record<string, unknown>>(sql`select * from orders where id = ${res.body.orderId}`);
     expect(o).toMatchObject({

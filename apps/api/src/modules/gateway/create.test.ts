@@ -33,7 +33,7 @@ const digitalCart = async (price = 75000, who = b) => { const p = await publish(
 const checkout = (body: object, who = b) => who.post("/api/checkout", body);
 const gatewayCheckout = async (price = 75000, who = b) => { await digitalCart(price, who); return checkout({ expectedTotal: price, paymentMethod: "gateway" }, who); };
 const payLink = (id: string, who = b) => who.post(`/api/orders/${id}/payment/gateway`);
-const orderRow = async (id: string) => (await rows<{ payment_method: string; status: string; gateway_reference: string | null; gateway_url: string | null; total: number; expires_at: Date }>(sql`select payment_method, status, gateway_reference, gateway_url, total, expires_at from orders where id = ${id}`))[0];
+const orderRow = async (id: string) => (await rows<{ payment_method: string; status: string; gateway_reference: string | null; gateway_url: string | null; total: number; expires_at: string | Date }>(sql`select payment_method, status, gateway_reference, gateway_url, total, expires_at from orders where id = ${id}`))[0];
 
 describe("pilihan bayar di checkout (F14.1)", () => {
   it("rincian (quote) menyebut cara bayar yang tersedia: manual dan gateway bila penyedia aktif", async () => {
@@ -102,7 +102,7 @@ describe("pilihan bayar di checkout (F14.1)", () => {
     const req = ctx.gateway.requests[0];
     expect(Object.keys(req).sort()).toEqual(["amount", "expiresAt", "invoiceNumber", "orderId", "returnUrl"]);
     expect(req).toMatchObject({ orderId: res.body.orderId, invoiceNumber: res.body.invoiceNumber, returnUrl: `${APP_URL}/pesanan/${res.body.orderId}` });
-    expect(new Date(req.expiresAt).getTime()).toBe((await orderRow(res.body.orderId)).expires_at.getTime());
+    expect(new Date(req.expiresAt).getTime()).toBe(new Date((await orderRow(res.body.orderId)).expires_at).getTime());
     const sent = JSON.stringify(req);
     for (const secret of [ADDRESS.recipient, ADDRESS.phone, "Pajajaran", "@hayatun.test"]) expect(sent).not.toContain(secret);
   });
@@ -145,6 +145,14 @@ describe("gateway gagal: pesanan tetap ada, bisa dicoba lagi", () => {
   it.each(["http://gateway.fake.test/pay/1", "javascript:alert(1)", "//evil.test/pay", "/pay/relatif", "bukan url", ""])("tautan dari gateway yang tidak sah (%j) dianggap gagal dan tidak disimpan", async (bad) => {
     await setup();
     ctx.gateway.paymentUrl = bad;
+    const { orderId, paymentUrl } = await failedOrder();
+    expect(paymentUrl).toBeNull();
+    expect(await orderRow(orderId)).toMatchObject({ gateway_url: null, gateway_reference: null });
+  });
+
+  it("referensi transaksi kosong dari gateway dianggap gagal dan tidak disimpan", async () => {
+    await setup();
+    ctx.gateway.reference = "";
     const { orderId, paymentUrl } = await failedOrder();
     expect(paymentUrl).toBeNull();
     expect(await orderRow(orderId)).toMatchObject({ gateway_url: null, gateway_reference: null });

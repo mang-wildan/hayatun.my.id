@@ -5,6 +5,7 @@ export interface ShippingOption { courier: string; service: string; price: numbe
 export interface Quote {
   items: { productId: string; name: string; type: "digital" | "physical"; price: number; qty: number; lineTotal: number }[];
   subtotal: number; requiresAddress: boolean; shippingOptions: ShippingOption[]; shippingCost: number | null; total: number | null;
+  paymentMethods: ("manual" | "gateway")[];
 }
 
 export const optionLabel = (o: ShippingOption) => `${o.courier} ${o.service}${o.etdDays ? ` · ${o.etdDays} hari` : ""} · Rp${o.price.toLocaleString("id-ID")}`;

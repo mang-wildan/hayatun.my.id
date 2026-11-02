@@ -29,6 +29,7 @@ export async function findOwnOrder(deps: Pick<AppDeps, "db">, viewer: SessionUse
 
 export async function uploadProof(deps: Deps, viewer: SessionUser, orderId: string, req: Request) {
   const o = await findOwnOrder(deps, viewer, orderId);
+  if (o.paymentMethod === "gateway") throw new HttpError(409, "Pesanan ini dibayar online, bukan lewat transfer. Tidak perlu unggah bukti.", "GATEWAY_ORDER");
   const isExpired = () => o.status === "KEDALUWARSA" || (o.status === "MENUNGGU_PEMBAYARAN" && deps.now() >= o.expiresAt);
   if (isExpired()) throw expired();
   if (o.status !== "MENUNGGU_PEMBAYARAN") throw notAllowed();
