@@ -58,4 +58,11 @@ describe("loadConfig", () => {
     expect(() => loadConfig(validEnv({ STORAGE_DIR: "" }))).toThrow(/STORAGE_DIR/);
     expect(() => loadConfig(validEnv({ STORAGE_INTERNAL_PREFIX: "_files" }))).toThrow(/STORAGE_INTERNAL_PREFIX/);
   });
+
+  it("webhook gateway: rahasia wajib (minimal 32 karakter) bila penyedia bukan none; tanpa penyedia tidak diminta", () => {
+    expect(() => loadConfig(validEnv({ PAYMENT_GATEWAY_PROVIDER: "fake" }))).toThrow(/PAYMENT_GATEWAY_WEBHOOK_SECRET/);
+    expect(() => loadConfig(validEnv({ PAYMENT_GATEWAY_PROVIDER: "fake", PAYMENT_GATEWAY_WEBHOOK_SECRET: "pendek" }))).toThrow(/PAYMENT_GATEWAY_WEBHOOK_SECRET/);
+    expect(loadConfig(validEnv({ PAYMENT_GATEWAY_PROVIDER: "fake", PAYMENT_GATEWAY_WEBHOOK_SECRET: "x".repeat(32) })).gateway.webhookSecret).toBe("x".repeat(32));
+    expect(loadConfig(validEnv()).gateway.provider).toBe("none");
+  });
 });

@@ -64,6 +64,7 @@ const ROWS: [string, Who][] = [
   ["GET /api/orders/:id", "owner"],
   ["GET /api/orders/:id/payment", "ownerOrAdmin"],
   ["POST /api/orders/:id/payment/gateway", "owner"],
+  ["POST /api/webhooks/gateway", "credential"], // tanda tangan gateway, bukan sesi
   ["POST /api/orders/:id/cancel", "owner"],
   ["POST /api/orders/:id/proof", "owner"],
   ["POST /api/orders/:id/received", "owner"],

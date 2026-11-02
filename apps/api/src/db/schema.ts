@@ -155,6 +155,7 @@ export const orders = pgTable("orders", {
   paymentMethod: text("payment_method", { enum: ["manual", "gateway"] }).notNull().default("manual"),
   gatewayReference: text("gateway_reference").unique(), // referensi transaksi dari gateway (T64); kosong sampai tautan bayar berhasil dibuat
   gatewayUrl: text("gateway_url"), // tautan bayar https dari gateway
+  reviewReason: text("review_reason"), // pembayaran gateway yang tidak bisa diselesaikan otomatis dan perlu ditangani admin (F14.5, F14.6)
   subtotal: integer("subtotal").notNull(),
   shippingCost: integer("shipping_cost").notNull(),
   total: integer("total").notNull(),
@@ -210,3 +211,14 @@ export const paymentProofs = pgTable("payment_proofs", {
   uploadedAt: ts("uploaded_at").notNull().defaultNow(),
   fileDeletedAt: ts("file_deleted_at"), // file dihapus 1 tahun setelah diunggah; barisnya tetap sebagai catatan (F12.3)
 }, (t) => [index("payment_proofs_order_idx").on(t.orderId, t.uploadedAt)]);
+
+// Kejadian webhook gateway (T65, ARCHITECTURE §5.7). ID kejadian unik = tepat satu kali (F14.4). Payload hanya bidang yang dinormalisasi, tanpa data pembeli dari gateway.
+export const paymentEvents = pgTable("payment_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  gatewayEventId: text("gateway_event_id").notNull().unique(),
+  orderId: uuid("order_id").references(() => orders.id),
+  payload: jsonb("payload").notNull(),
+  outcome: text("outcome").notNull(), // paid | review | ignored | unknown_order (received selama diproses)
+  receivedAt: ts("received_at").notNull().defaultNow(),
+  processedAt: ts("processed_at"),
+});

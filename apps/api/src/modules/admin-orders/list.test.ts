@@ -55,7 +55,7 @@ describe("daftar pesanan admin (F13.1)", () => {
     expect(res.orders.map((o: { orderId: string }) => o.orderId)).toEqual([mid, old]);
     expect(res.orders[0]).toEqual({
       orderId: mid, invoiceNumber: "INV/2026/10/0002", createdAt: expect.any(String), buyerName: "Rina Marlina", total: 75000,
-      status: "MENUNGGU_PEMBAYARAN", digitalStatus: "TIDAK_ADA", physicalStatus: "TIDAK_ADA",
+      status: "MENUNGGU_PEMBAYARAN", digitalStatus: "TIDAK_ADA", physicalStatus: "TIDAK_ADA", paymentMethod: "manual", reviewReason: null,
     });
     expect(res).toMatchObject({ total: 2, page: 1, pageSize: 25 });
     expect(JSON.stringify(res)).not.toMatch(/@hayatun\.test|81234567890|Pajajaran/);

@@ -47,6 +47,7 @@ export function AdminOrderList({ orders }: { orders: AdminOrder[] }) {
               <span>{o.buyerName ?? "Akun dihapus"}</span>
               <strong>{formatRupiah(o.total)}</strong>
               <OrderStatusBadge status={o.status} />
+              {o.reviewReason && <span className="notice" data-testid="perlu-diperiksa"><strong>Perlu diperiksa.</strong> {o.reviewReason}</span>}
               {o.status === "LUNAS" && <Button type="button" variant="danger" aria-label={`Batalkan pesanan ${o.invoiceNumber}`} onClick={() => open(o)}>Batalkan pesanan</Button>}
             </li>
           ))}

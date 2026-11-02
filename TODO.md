@@ -181,8 +181,9 @@ Reviewer setiap PR memakai **Opus 5.5 / high**. Review akhir per fase juga memak
 - [x] **T64 Adaptor gateway dan pilihan bayar di checkout** — F14.1 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/gateway/create.test.ts && npm run test:e2e -- checkout-gateway`
   Catatan: hanya penyedia tiruan (`PAYMENT_GATEWAY_PROVIDER=fake`) yang ada; adaptor gateway sungguhan menunggu pemilik memilih penyedia (SPEC pertanyaan terbuka 7). Bawaan `none`: opsi bayar online tidak ditawarkan. Pesanan gateway belum bisa menjadi Lunas sampai T65 (webhook) selesai, jadi jangan menyalakan penyedia sungguhan sebelum itu.
-- [ ] **T65 Webhook: tanda tangan, sekali proses, cek nominal, datang setelah kedaluwarsa, batas waktu** — F14.2–F14.7, N24, N36 · **A**
+- [x] **T65 Webhook: tanda tangan, sekali proses, cek nominal, datang setelah kedaluwarsa, batas waktu** — F14.2–F14.7, N24, N36 · **A**
   Selesai jika: `npx vitest run apps/api/src/modules/gateway/webhook.test.ts`
+  Catatan: hanya penyedia tiruan (skema tanda tangan HMAC buatan sendiri); adaptor dan skema tanda tangan gateway sungguhan menunggu pemilik memilih penyedia (SPEC pertanyaan terbuka 7). Lihat `docs/gateway.md`. Pengembalian dana dan pencocokan uang tetap manual di dasbor gateway.
 
 ---
 

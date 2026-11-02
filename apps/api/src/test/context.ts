@@ -47,6 +47,7 @@ export function testConfig(over: Record<string, string> = {}) {
     EMAIL_FROM: "toko@hayatun.my.id",
     STORAGE_DIR: mkdtempSync(join(tmpdir(), "hayatun-files-")),
     PAYMENT_GATEWAY_PROVIDER: "fake",
+    PAYMENT_GATEWAY_WEBHOOK_SECRET: "rahasia-webhook-tes-yang-cukup-panjang-1234",
     ...over,
   });
 }
@@ -67,7 +68,7 @@ export async function createTestContext(over: { mailer?: Mailer; env?: Record<st
   };
   const storage = createStorage(config.storage);
   const shipping = createFakeShipping();
-  const gateway = createFakeGateway();
+  const gateway = createFakeGateway(config.gateway.webhookSecret);
   const app = createApp({ config, db, logger, queue, crypto, storage, shipping, gateway, now: () => clock.now });
 
   // pengguna langsung di database, untuk tes yang tidak menguji pendaftaran
