@@ -58,7 +58,7 @@ jobs:
           npm run test:e2e
       - name: "Audit dependensi (N34: tinggi dan kritis)"
         run: npm audit --audit-level=high
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report
@@ -108,7 +108,7 @@ jobs:
           exit $rc
       - name: Uji beban 50 pengguna (N18, N20)
         run: npm -w apps/api run load-test
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: lighthouse
@@ -154,7 +154,7 @@ jobs:
           cat /tmp/serve.log; exit 1
       - name: ZAP baseline (N7)
         run: ops/zap-baseline.sh http://127.0.0.1:3000
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: zap-report
