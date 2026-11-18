@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const config: NextConfig = {
   transpilePackages: ["@hayatun/shared"],
+  experimental: { agentUpgrade: "security" },
   // Sampul produk datang dari API kita sendiri; alamatnya memuat ?v=<waktu ubah>, jadi hasil optimasi aman disimpan lama
   images: { localPatterns: [{ pathname: "/api/catalog/**" }, { pathname: "/ruang-kerja.jpg", search: "" }], qualities: [60], minimumCacheTTL: 31_536_000 },
   // Satu domain di semua lingkungan tanpa CORS. Di produksi Nginx yang meneruskan /api/* (ARCHITECTURE §1).
