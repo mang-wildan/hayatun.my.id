@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { getCatalog } from "@/lib/catalog";
@@ -20,7 +21,21 @@ export default async function Beranda({ searchParams }: { searchParams: Promise<
 
   return (
     <>
-      <h1 className="lead">E-book, template, aplikasi, dan produk pilihan dari Hayatun.</h1>
+      <section className="store-hero" aria-labelledby="store-title">
+        <div className="hero-copy">
+          <p className="eyebrow">Pilihan Hayatun</p>
+          <h1 id="store-title">Ide baik.<br />Mulai dari sini.</h1>
+          <p>E-book, template, aplikasi, dan produk pilihan untuk menemani belajar, berkarya, dan kebutuhan sehari-hari.</p>
+          <Link href="#koleksi" className="btn" data-variant="primary">Jelajahi produk <span aria-hidden="true">↗</span></Link>
+        </div>
+        <div className="hero-image">
+          <Image src="/ruang-kerja.jpg" alt="Buku catatan dan laptop di meja kerja yang diterangi cahaya alami" fill sizes="(min-width: 768px) 50vw, 100vw" quality={60} preload />
+        </div>
+      </section>
+      <div className="collection-heading" id="koleksi">
+        <h2>Temukan pilihanmu.</h2>
+        <p className="meta">Produk digital dan fisik, dalam satu tempat.</p>
+      </div>
       {products.length === 0 ? (
         <p className="empty">Produk Hayatun sedang disiapkan. Mampir lagi sebentar lagi ya.</p>
       ) : (

@@ -1,6 +1,8 @@
 # Design System: Hayatun
 
-Versi 1.0 · 2026-10-26 · Status: draf, menunggu persetujuan pemilik
+Versi 1.0 · 2026-10-26 · Status: draf historis
+
+> Refonte visual 2026-11-17 mengganti canvas blush, aksi hijau, dan komposisi beranda berdasarkan permintaan overhaul pemilik. Token aktual, hasil audit, dan batas verifikasi: [UI-AUDIT-2026-11-17.md](UI-AUDIT-2026-11-17.md). Bagian perilaku transaksi dan aksesibilitas tetap berlaku.
 Pasangan dokumen: [`SPEC.md`](SPEC.md). Bila ada yang bertentangan, SPEC yang berlaku.
 
 Dokumen ini menjelaskan **tampilan dan perilaku** toko Hayatun dan panel adminnya. Pilihan teknologi diserahkan ke pembangun. Tanda **[usulan]** berarti keputusan penyusun yang belum dikonfirmasi pemilik.

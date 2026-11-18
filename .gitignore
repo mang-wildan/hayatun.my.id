@@ -14,3 +14,6 @@ tsconfig.tsbuildinfo
 *.tsbuildinfo
 .lighthouseci/
 zap-report/
+*.log
+.env.*
+!.env.example

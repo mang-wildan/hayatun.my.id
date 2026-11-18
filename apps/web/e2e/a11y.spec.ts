@@ -22,19 +22,21 @@ for (const width of WIDTHS) {
   }
 }
 
-test("beranda langsung menyebut toko dan isinya, tanpa banner penghalang (DESIGN §6)", async ({ page }) => {
+test("beranda menampilkan proposisi toko dan CTA katalog tanpa banner penghalang", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/");
   await expect(page.getByRole("link", { name: "Hayatun" })).toBeVisible();
-  await expect(page.getByText("E-book, template, aplikasi, dan produk pilihan dari Hayatun.")).toBeVisible();
-  await expect(page.getByText("Produk Hayatun sedang disiapkan. Mampir lagi sebentar lagi ya.")).toBeInViewport();
+  await expect(page.getByRole("heading", { level: 1, name: /Ide baik/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Jelajahi produk" })).toBeInViewport();
+  await expect(page.getByText("Produk Hayatun sedang disiapkan. Mampir lagi sebentar lagi ya.")).toBeVisible();
   await expect(page.getByRole("link", { name: /menu|hamburger/i })).toHaveCount(0);
 });
 
-test("seluruh halaman memakai huruf Outfit dan latar blush pucat (DESIGN §2–§3)", async ({ page }) => {
+test("halaman memakai Outfit dan canvas netral terang", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/");
   expect(await page.evaluate(() => getComputedStyle(document.body).fontFamily)).toContain("Outfit");
-  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(253, 242, 248)"); // #FDF2F8
+  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(246, 246, 248)"); // #F6F6F8
   expect(await page.evaluate(() => getComputedStyle(document.body).fontSize)).toBe("16px");
 });
 
